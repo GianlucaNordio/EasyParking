@@ -1,7 +1,0 @@
-[
-{
-  "directory": "/home/giovanni/Scrivania/EasyParking/build",
-  "command": "/usr/bin/c++   -g -o CMakeFiles/EasyParking.dir/src/main.cpp.o -c /home/giovanni/Scrivania/EasyParking/src/main.cpp",
-  "file": "/home/giovanni/Scrivania/EasyParking/src/main.cpp"
-}
-]

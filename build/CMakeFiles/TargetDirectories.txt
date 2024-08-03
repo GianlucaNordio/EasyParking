@@ -1,3 +1,0 @@
-/home/giovanni/Scrivania/EasyParking/build/CMakeFiles/EasyParking.dir
-/home/giovanni/Scrivania/EasyParking/build/CMakeFiles/edit_cache.dir
-/home/giovanni/Scrivania/EasyParking/build/CMakeFiles/rebuild_cache.dir
