@@ -1,17 +1,23 @@
-cmake_minimum_required(VERSION 2.8)
-#set(CMAKE_CXX_STANDARD 11)
-#Set the project name
+cmake_minimum_required(VERSION 3.10)
 project(EasyParking)
 
-# Looks for OpenCVConfig.cmake (where some OpenCV related vars are defined)
+set(CMAKE_CXX_STANDARD 17)
+set(CMAKE_CXX_STANDARD_REQUIRED True)
+
+# Trova OpenCV
 find_package(OpenCV REQUIRED)
 
-# Tells the compiler to look for the headers also in the folders defined in this variable
 include_directories(${OpenCV_INCLUDE_DIRS})
-include_directories(./include)
+include_directories(include)
 
-#Add the executable
-add_executable(${PROJECT_NAME} src/main.cpp)
-target_link_libraries(${PROJECT_NAME}
-    ${OpenCV_LIBS}
+file(GLOB_RECURSE SOURCES
+    src/*.cpp
+    include/parkingSpot/*.cpp
+    include/parkingSpotDetector/*.cpp
+    include/parser/*.cpp
 )
+
+add_executable(EasyParking ${SOURCES})
+
+target_include_directories(EasyParking PRIVATE include)
+target_link_libraries(EasyParking ${OpenCV_LIBS})
