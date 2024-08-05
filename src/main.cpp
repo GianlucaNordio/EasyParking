@@ -1,19 +1,18 @@
 #include <iostream>
 #include <opencv2/highgui.hpp>
 #include <fstream>
+#include <opencv2/imgproc.hpp> // required to use the function cv::line
 
 
 class ParkingSpot {
     public:
         int id;
         bool occupied;
-        int center_x;
-        int center_y;
-        int width;
-        int height;
-        int angle;
+        cv::RotatedRect rect;
 };
 
+
+// This method reads token by token and when it finds a specific token it knows it will see a number after it
 std::vector<ParkingSpot> parseXML(const std::string& filename) {
     std::vector<ParkingSpot> spaces;
     std::ifstream file(filename);
@@ -21,35 +20,38 @@ std::vector<ParkingSpot> parseXML(const std::string& filename) {
     ParkingSpot currentSpace;
 
     std::getline(file, line); // to skip the first line containing parking (the first id would cause problems)
+
     while (std::getline(file, line)) {
         std::istringstream iss(line);
         std::string token;
         while(iss >> token) {
-            std::cout<<token<<std::endl;
             if(token.find("<space") != std::string::npos) {
                 currentSpace = ParkingSpot();
-            }
-            else if(token.find("</space>") != std::string::npos) {
+            } else if(token.find("</space>") != std::string::npos) {
                 spaces.push_back(currentSpace);
-            }
-            else if(token.find("id=") != std::string::npos) {
+            } else if(token.find("id=") != std::string::npos) {
                 currentSpace.id = std::stoi(token.substr(token.find("\"") + 1, token.find_last_of("\"") - token.find("\"") - 1));
-            }
-            else if (token.find("occupied=") != std::string::npos) {
+            } else if (token.find("occupied=") != std::string::npos) {
                 currentSpace.occupied = std::stoi(token.substr(token.find("occupied=\"") + 10, 1));
             } else if (token.find("center") != std::string::npos) {
+                // Read the center position
                 iss >> token;
-                currentSpace.center_x = std::stoi(token.substr(token.find("=") + 2));
+                int center_x = std::stoi(token.substr(token.find("=") + 2));
                 iss >> token;
-                currentSpace.center_y = std::stoi(token.substr(token.find("=") + 2));
+                int center_y = std::stoi(token.substr(token.find("=") + 2));
+                //Add center position
+                currentSpace.rect.center = cv::Point2f(center_x, center_y);
             } else if (token.find("size") != std::string::npos) {
+                //Read the rectangle size
                 iss >> token;
-                currentSpace.width = std::stoi(token.substr(token.find("=") + 2));
+                int width = std::stoi(token.substr(token.find("=") + 2));
                 iss >> token;
-                currentSpace.height = std::stoi(token.substr(token.find("=") + 2));
+                int height = std::stoi(token.substr(token.find("=") + 2));
+                // Add rectangle size
+                currentSpace.rect.size = cv::Size2f(width, height);
             } else if (token.find("angle") != std::string::npos) {
                 iss >> token;
-                currentSpace.angle = std::stoi(token.substr(token.find("=") + 2));
+                currentSpace.rect.angle = std::stoi(token.substr(token.find("=") + 2));
             }
         }
         
@@ -69,21 +71,36 @@ std::vector<ParkingSpot> parseXML(const std::string& filename) {
 }
 
 int main() {
+
+    cv::Mat img = cv::imread("../src/test_image.jpg");
+    cv::namedWindow("Test image");
+    cv::imshow("Test image", img);
+    cv::waitKey(0);
+
+    // Obtain a vector of ParkingSpots from parseXML
     std::vector<ParkingSpot> spaces = parseXML("../src/test_bbox.xml");
+    std::vector<cv::RotatedRect> rectangles;
     std::cout<< spaces.size();
     for (const auto& space : spaces) {
         std::cout << "Space ID: " << space.id << "\n";
         std::cout << "Occupied: " << space.occupied << "\n";
-        std::cout << "Center: (" << space.center_x << ", " << space.center_y << ")\n";
-        std::cout << "Size: " << space.width << "x" << space.height << "\n";
-        std::cout << "Angle: " << space.angle << "\n";
+        std::cout << "Center: (" << space.rect.center.x << "," <<space.rect.center.y << ")\n";
+        std::cout << "Size: " << space.rect.size.width << "x" << space.rect.size.height << "\n";
+        std::cout << "Angle: " << space.rect.angle << "\n";
         //std::cout << "Contour points: ";
         //for (const auto& point : space.contour) {
         //    std::cout << "(" << point.x << ", " << point.y << ") ";
         //}
-        
         std::cout << "\n\n";
-    }
 
+        // Adding rectangles to the image
+        cv::Point2f vertices[4];
+        space.rect.points(vertices);
+        for (int i = 0; i < 4; i++) {
+            cv::line(img, vertices[i], vertices[(i+1)%4], cv::Scalar(0,255,0), 2); 
+        }
+    }
+    cv::imshow("rectangles", img);
+    cv::waitKey(0);
     return 0;
 }
