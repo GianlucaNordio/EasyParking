@@ -5,6 +5,9 @@
 #include <filesystem>
 #include "parkingSpot/parkingSpot.hpp"
 #include "parkingSpotDetector/parkingSpotDetector.hpp"
+#include "utils/utils.hpp"
+
+
 
 int main() {
      // Detect bounding boxes
@@ -30,6 +33,9 @@ int main() {
                 std::cerr << "Could not read image: " << filePath << std::endl;
         }
     }
+
+    cv::imshow("Test", produceSingleImage(images, 3));
+    cv::waitKey();
 
     // Call the function to detect parking spots
 

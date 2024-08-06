@@ -17,7 +17,16 @@ file(GLOB_RECURSE SOURCES
     include/parser/*.cpp
 )
 
+add_library(utils 
+    ./include/utils/utils.hpp
+    ./include/utils/utils.cpp
+)
+target_include_directories(utils PRIVATE ${OpenCV_INCLUDE_DIRS})
+
 add_executable(EasyParking ${SOURCES})
 
 target_include_directories(EasyParking PRIVATE include)
-target_link_libraries(EasyParking ${OpenCV_LIBS})
+target_link_libraries(EasyParking 
+    utils    
+    ${OpenCV_LIBS}
+)
