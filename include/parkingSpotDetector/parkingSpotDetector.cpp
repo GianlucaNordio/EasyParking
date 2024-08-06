@@ -62,8 +62,8 @@ std::vector<ParkingSpot> detectParkingSpotInImage(const cv::Mat& image) {
         cv::line(image, cv::Point(line[0], line[1]), cv::Point(line[2], line[3]), cv::Scalar(0, 255, 0), 2);
     }
 
-    //cv::imshow("Detected Lines", image);
-    //cv::waitKey(0);
+    cv::imshow("Detected Lines", image);
+    cv::waitKey(0);
 
     // Find contours of the areas bounded by the lines
     std::vector<std::vector<cv::Point>> contours;
@@ -90,8 +90,8 @@ std::vector<ParkingSpot> detectParkingSpotInImage(const cv::Mat& image) {
             cv::line(image, vertices[i], vertices[(i + 1) % 4], cv::Scalar(0, 255, 0), 2);
         }
     }
-    cv::imshow("Detected Parking Spots", image);
-    cv::waitKey(0);
+    //cv::imshow("Detected Parking Spots", image);
+    //cv::waitKey(0);
     return parkingSpots;
 }
 
@@ -181,8 +181,8 @@ bool isOverlapping(const cv::RotatedRect& rect1, const cv::RotatedRect& rect2, c
     cv::Mat combined(img1.rows, img1.cols * 2, img1.type());
     img1.copyTo(combined(cv::Rect(0, 0, img1.cols, img1.rows)));
     img2.copyTo(combined(cv::Rect(img1.cols, 0, img2.cols, img2.rows)));
-    cv::imshow("Immagini Combinate", combined);
-    cv::waitKey(0);
+    //cv::imshow("Immagini Combinate", combined);
+    //cv::waitKey(0);
 
     // Draw the rectangles
     std::vector<std::vector<cv::Point>> contours1{intVertices1}, contours2{intVertices2};
