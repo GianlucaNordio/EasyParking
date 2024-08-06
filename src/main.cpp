@@ -7,6 +7,13 @@
 #include "parkingSpotDetector/parkingSpotDetector.hpp"
 
 int main() {
+     // Detect bounding boxes
+
+        // Read sequence 0 to use images to detect parking spots
+        // Find parking spots for each image
+        // Non maxima suppression to remove overlapping bounding boxes
+        // Build the 2D map of parking spots
+    
     
     // Read the images from the dataset
     std::string folderPath = "../dataset/sequence0/frames";
@@ -29,13 +36,7 @@ int main() {
     std::vector<ParkingSpot> parkingSpot;
     detectParkingSpot(images, parkingSpot);
 
-    // Detect bounding boxes
-
-        // Read sequence 0 to use images to detect parking spots
-        // Find parking spots for each image
-        // Non maxima suppression to remove overlapping bounding boxes
-        // Build the 2D map of parking spots
-    
+  
     // Classify parking spots
 
         // Read sequence 1-5 to use images to classify parking spots

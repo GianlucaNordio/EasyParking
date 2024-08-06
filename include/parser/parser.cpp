@@ -2,14 +2,7 @@
 #include <fstream>
 #include <opencv2/highgui.hpp>
 #include <opencv2/imgproc.hpp> 
-
-class ParkingSpot {
-    public:
-        int id;
-        bool occupied;
-        cv::RotatedRect rect;
-};
-
+#include <parkingSpot/parkingSpot.hpp>
 
 // This method reads token by token and when it finds a specific token it knows it will see a number after it
 std::vector<ParkingSpot> parseXML(const std::string& filename) {

@@ -2,8 +2,18 @@
 #define PARKINGSPOTDETECTOR_HPP
 
 #include "../parkingSpot/parkingSpot.hpp"
+#include <opencv2/opencv.hpp>
 #include <vector>
+#include <algorithm>
 
 void detectParkingSpot(const std::vector<cv::Mat>& images, std::vector<ParkingSpot>& parkingSpots);
+
+bool isOverlapping(const cv::RotatedRect& spot1, const cv::RotatedRect& spot2);
+
+std::vector<ParkingSpot> detectParkingSpotInImage(const cv::Mat& image);
+
+std::vector<ParkingSpot> nonMaximaSuppression(const std::vector<std::vector<ParkingSpot>>& parkingSpots);
+
+std::vector<cv::Point> convertToIntPoints(const std::vector<cv::Point2f>& floatPoints);
 
 #endif // PARKINGSPOTDETECTOR_HPP
