@@ -80,7 +80,6 @@ std::vector<ParkingSpot> detectParkingSpotInImage(const cv::Mat& image) {
     cv::RotatedRect rect = cv::minAreaRect(contour);
     parkingSpots.push_back(ParkingSpot{counter, 0, rect});
     counter++;
-    
     }
 
     // TODO --> show the result (test)
@@ -178,13 +177,19 @@ bool isOverlapping(const cv::RotatedRect& rect1, const cv::RotatedRect& rect2, c
     cv::Mat img1 = cv::Mat::zeros(imageSize, CV_8UC1);
     cv::Mat img2 = cv::Mat::zeros(imageSize, CV_8UC1);
 
+    // TODO --> show the result (test)
+    cv::Mat combined(img1.rows, img1.cols * 2, img1.type());
+    img1.copyTo(combined(cv::Rect(0, 0, img1.cols, img1.rows)));
+    img2.copyTo(combined(cv::Rect(img1.cols, 0, img2.cols, img2.rows)));
+    cv::imshow("Immagini Combinate", combined);
+    cv::waitKey(0);
+
     // Draw the rectangles
     std::vector<std::vector<cv::Point>> contours1{intVertices1}, contours2{intVertices2};
     cv::drawContours(img1, contours1, 0, cv::Scalar(255), cv::FILLED);
     cv::drawContours(img2, contours2, 0, cv::Scalar(255), cv::FILLED);
 
-    cv::imshow("Rect1", img1);
-    cv::imshow("Rect2", img2);
+    
 
     // Intersection of the two rectangles
     cv::Mat intersection;
