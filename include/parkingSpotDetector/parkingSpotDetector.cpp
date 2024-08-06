@@ -10,7 +10,7 @@ void detectParkingSpot(const std::vector<cv::Mat>& images, std::vector<ParkingSp
     }
 
     // Non maxima suppression to remove overlapping bounding boxes
-    std::vector<ParkingSpot> parkingSpotNonMaxima = nonMaximaSuppression(parkingSpotPerImage);
+    std::vector<ParkingSpot> parkingSpotNonMaxima = nonMaximaSuppression(parkingSpotPerImage, images[0].size());
     
     // Build the 2D map of parking spots
 
@@ -25,8 +25,8 @@ void detectParkingSpot(const std::vector<cv::Mat>& images, std::vector<ParkingSp
             cv::line(toprint, vertices[i], vertices[(i + 1) % 4], cv::Scalar(0, 255, 0), 2);
         }
     }
-    cv::imshow("Detected Parking Spots", toprint);
-    cv::waitKey(0);
+    //cv::imshow("Detected Parking Spots", toprint);
+    //cv::waitKey(0);
 
 }
 
@@ -34,13 +34,12 @@ void detectParkingSpot(const std::vector<cv::Mat>& images, std::vector<ParkingSp
 std::vector<ParkingSpot> detectParkingSpotInImage(const cv::Mat& image) {
     std::vector<ParkingSpot> parkingSpots;
 
-
     // Apply bilateral filter to smooth the image
-    int diameter = 15; // Diameter of the filter pixel
-    double sigmaColor = 75; // Standard deviation in color space
-    double sigmaSpace = 75; // Standard deviation in coordinate space
+    int diameter = 15; // Diametro del pixel del filtro
+    double sigmaColor = 75; // Deviazione standard nello spazio del colore
+    double sigmaSpace = 75; // Deviazione standard nello spazio delle coordinate
 
-    // Apply the bilateral filter
+    // Applica il filtro bilaterale
     cv::Mat filteredImage;
     cv::bilateralFilter(image, filteredImage, diameter, sigmaColor, sigmaSpace);
 
@@ -48,27 +47,30 @@ std::vector<ParkingSpot> detectParkingSpotInImage(const cv::Mat& image) {
     cv::Mat gray;
     cv::cvtColor(filteredImage, gray, cv::COLOR_BGR2GRAY);
 
-    // Threshold the grayscale image to keep only values above 245, set the rest to 0
-    cv::threshold(gray, gray, 245, 255, cv::THRESH_BINARY);
-
     // Apply Canny edge detection to find edges
     cv::Mat edges;
     cv::Canny(gray, edges, 50, 150);
 
-    // Display the edges
-    cv::imshow("Edges", edges);
-    cv::waitKey(0);
+    // Detect lines using Hough Line Transform
+    std::vector<cv::Vec4i> lines;
+    int minLen = 55;
+    cv::HoughLinesP(edges, lines, 1, CV_PI / 180, 50, minLen, 20);
 
-    // Dilate the edges to connect gaps between lines
-    cv::Mat dilatedEdges;
-    cv::dilate(edges, dilatedEdges, cv::Mat(), cv::Point(-1, -1), 2);
+    
+    // Draw lines on the image
+    for (const auto& line : lines) {
+        cv::line(image, cv::Point(line[0], line[1]), cv::Point(line[2], line[3]), cv::Scalar(0, 255, 0), 2);
+    }
+
+    //cv::imshow("Detected Lines", image);
+    //cv::waitKey(0);
 
     // Find contours of the areas bounded by the lines
     std::vector<std::vector<cv::Point>> contours;
-    cv::findContours(dilatedEdges, contours, cv::RETR_TREE, cv::CHAIN_APPROX_SIMPLE);
+    cv::findContours(edges, contours, cv::RETR_TREE, cv::CHAIN_APPROX_SIMPLE);
 
     // Prepare to store the detected parking spots
-   int counter = 0;
+    int counter = 0;
 
     // Process each contour to detect parking spots
     for (const auto& contour : contours) {
@@ -76,23 +78,10 @@ std::vector<ParkingSpot> detectParkingSpotInImage(const cv::Mat& image) {
 
     // Find the minimum area rectangle that encloses the contour
     cv::RotatedRect rect = cv::minAreaRect(contour);
-
-    // Filter the rectangle based on its angle to be approximately ±45°
-    float angle = rect.angle;
-    if (angle < -45.0) angle += 90.0;
-    if (angle > 45.0) angle -= 90.0;
-
-    // Check if the angle is approximately ±45°
-    if (std::abs(angle - 45.0) < 10.0 || std::abs(angle + 45.0) < 10.0) {
     parkingSpots.push_back(ParkingSpot{counter, 0, rect});
     counter++;
+    
     }
-    }
-
-    // Display the dilated edges
-    cv::imshow("Dilated Edges", dilatedEdges);
-    cv::waitKey(0);
-
 
     // TODO --> show the result (test)
     for (const auto& spot : parkingSpots) {
@@ -104,11 +93,10 @@ std::vector<ParkingSpot> detectParkingSpotInImage(const cv::Mat& image) {
     }
     cv::imshow("Detected Parking Spots", image);
     cv::waitKey(0);
-
     return parkingSpots;
 }
 
-std::vector<ParkingSpot> nonMaximaSuppression(const std::vector<std::vector<ParkingSpot>>& parkingSpots) {
+std::vector<ParkingSpot> nonMaximaSuppression(const std::vector<std::vector<ParkingSpot>>& parkingSpots, cv::Size imageSize) {
     std::vector<ParkingSpot> result;
     int id = 0;
     // Union of all parking spots
@@ -134,7 +122,7 @@ std::vector<ParkingSpot> nonMaximaSuppression(const std::vector<std::vector<Park
         for (size_t j = i + 1; j < allSpots.size(); ++j) {
             if (considered[j]) continue;
 
-            if (isOverlapping(allSpots[i].rect, allSpots[j].rect)) {
+            if (isOverlapping(allSpots[i].rect, allSpots[j].rect, imageSize)) {
                 centers.push_back(allSpots[j].rect.center);
                 sizes.push_back(allSpots[j].rect.size);
 
@@ -176,7 +164,7 @@ std::vector<cv::Point> convertToIntPoints(const std::vector<cv::Point2f>& floatP
 }
 
 // Function to calculate if two rectangles are overlapping
-bool isOverlapping(const cv::RotatedRect& rect1, const cv::RotatedRect& rect2) {
+bool isOverlapping(const cv::RotatedRect& rect1, const cv::RotatedRect& rect2, cv::Size imageSize) {
     // Vetices extraction
     std::vector<cv::Point2f> vertices1(4), vertices2(4);
     rect1.points(vertices1.data());
@@ -187,13 +175,16 @@ bool isOverlapping(const cv::RotatedRect& rect1, const cv::RotatedRect& rect2) {
     std::vector<cv::Point> intVertices2 = convertToIntPoints(vertices2);
 
     // Binary images creation
-    cv::Mat img1 = cv::Mat::zeros(500, 500, CV_8UC1);
-    cv::Mat img2 = cv::Mat::zeros(500, 500, CV_8UC1);
+    cv::Mat img1 = cv::Mat::zeros(imageSize, CV_8UC1);
+    cv::Mat img2 = cv::Mat::zeros(imageSize, CV_8UC1);
 
     // Draw the rectangles
     std::vector<std::vector<cv::Point>> contours1{intVertices1}, contours2{intVertices2};
     cv::drawContours(img1, contours1, 0, cv::Scalar(255), cv::FILLED);
     cv::drawContours(img2, contours2, 0, cv::Scalar(255), cv::FILLED);
+
+    cv::imshow("Rect1", img1);
+    cv::imshow("Rect2", img2);
 
     // Intersection of the two rectangles
     cv::Mat intersection;
