@@ -23,10 +23,18 @@ add_library(utils
 )
 target_include_directories(utils PRIVATE ${OpenCV_INCLUDE_DIRS})
 
+add_library(segmentation 
+    ./include/segmentation/segmentation.hpp
+    ./include/segmentation/segmentation.cpp
+)
+target_include_directories(segmentation PRIVATE ${OpenCV_INCLUDE_DIRS})
+
+
 add_executable(EasyParking ${SOURCES})
 
 target_include_directories(EasyParking PRIVATE include)
 target_link_libraries(EasyParking 
     utils    
+    segmentation
     ${OpenCV_LIBS}
 )

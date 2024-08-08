@@ -3,9 +3,11 @@
 #include <opencv2/highgui.hpp>
 #include <opencv2/imgproc.hpp> // required to use the function cv::line
 #include <filesystem>
+
 #include "parkingSpot/parkingSpot.hpp"
 #include "parkingSpotDetector/parkingSpotDetector.hpp"
 #include "utils/utils.hpp"
+#include "segmentation/segmentation.hpp"
 
 const int NUMBER_SEQUENCES = 5;
 
@@ -26,18 +28,20 @@ int main() {
 
 
     // Call the function to detect parking spots
-
+    /*
     std::vector<ParkingSpot> parkingSpot;
-    detectParkingSpot(images, parkingSpot);
-
+    detectParkingSpot(images, parkingSpot); 
+    */
 
     // Load the other frames relative to the test sequences
+    
     std::vector<std::vector<cv::Mat>> data;
     loadSequencesFrames("../dataset", NUMBER_SEQUENCES, data);
     for(int i = 0; i < data.size(); i++) {
         cv::imshow("Test Data", produceSingleImage(data[i], 3));
         cv::waitKey();
     }
+    
     
   
     // Classify parking spots
@@ -47,7 +51,7 @@ int main() {
         // Draw bounding boxes and classification on the image
     
     // Segment car in the images
-
+    test(images,data[4][0]);
 
     // Performance measure
 
