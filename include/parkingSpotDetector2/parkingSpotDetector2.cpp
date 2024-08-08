@@ -36,10 +36,75 @@ std::vector<ParkingSpot> detectParkingSpotInImage2(const cv::Mat& image) {
     cv::imshow("warped", warped_img);
     cv::waitKey(0);
 
-    cv::cvtColor(warped_img, warped_img, cv::COLOR_BGR2GRAY);
+    cv::Mat filteredImage;
+    cv::bilateralFilter(image, filteredImage, -1, 50, 15);
 
-    cv::imshow("gs", warped_img);
+    cv::imshow("bilateral filtered", filteredImage);
     cv::waitKey(0);
 
+    cv::Mat gs;
+    cv::cvtColor(filteredImage, gs, cv::COLOR_BGR2GRAY);
+
+    cv::imshow("grayscale", gs);
+    cv::waitKey(0);
+
+    // cv::Mat equalized;
+    // cv::equalizeHist(gs,equalized);
+
+    // cv::imshow("equalized", equalized);
+    // cv::waitKey(0);
+
+    // Apply Canny edge detection to find edges
+    cv::Mat gx;
+    cv::Sobel(gs, gx, CV_8U, 1,0);
+
+    cv::imshow("gradient x", gx);
+    cv::waitKey(0);
+
+    cv::Mat gy;
+    cv::Sobel(gs, gy, CV_8U, 0,1);
+
+    cv::imshow("gradient y", gy);
+    cv::waitKey(0);
+
+    cv::Mat grad_magn = gx + gy;
+
+    cv::imshow("gradient magnitude", grad_magn);
+    cv::waitKey(0);
+
+    // TODO: choose which image may give the best information, then try to use a sliding window approach
+    cv::Mat gmagthold;
+    cv::threshold( grad_magn, gmagthold, 200, 255,  cv::THRESH_BINARY);
+    cv::imshow("gmagthold", gmagthold);
+    cv::waitKey(0);
+
+    cv::Mat lap;
+    cv::Laplacian(gs,lap,CV_8U);
+
+    cv::imshow("Laplacian", lap);
+    cv::waitKey(0);
+
+    cv::Mat gythold;
+    cv::threshold( gy, gythold, 200, 255,  cv::THRESH_BINARY);
+    cv::imshow("gythold", gythold);
+    cv::waitKey(0);
+
+    cv::Mat res = lap + gythold;
+    cv::imshow("Laplacian + gradY", res);
+    cv::waitKey(0);
+
+    // Detect lines using Hough Line Transform
+    // std::vector<cv::Vec4i> lines;
+    // int minLen = 55;
+    // cv::HoughLinesP(edges, lines, 1, CV_PI / 180, 50, minLen, 20);
+
+    
+    // // Draw lines on the image
+    // for (const auto& line : lines) {
+    //     cv::line(warped_img, cv::Point(line[0], line[1]), cv::Point(line[2], line[3]), cv::Scalar(0, 255, 0), 2);
+    // }
+
+    // cv::imshow("Detected Lines", warped_img);
+    // cv::waitKey(0);
     return parkingSpots;
 }
