@@ -14,6 +14,7 @@ file(GLOB_RECURSE SOURCES
     src/*.cpp
     include/parkingSpot/*.cpp
     include/parkingSpotDetector/*.cpp
+    include/parkingSpotDetector2/*.cpp
     include/parser/*.cpp
 )
 

@@ -6,6 +6,7 @@
 
 #include "parkingSpot/parkingSpot.hpp"
 #include "parkingSpotDetector/parkingSpotDetector.hpp"
+#include "parkingSpotDetector2/parkingSpotDetector2.hpp"
 #include "utils/utils.hpp"
 #include "segmentation/segmentation.hpp"
 
@@ -28,10 +29,10 @@ int main() {
 
 
     // Call the function to detect parking spots
-    /*
+    
     std::vector<ParkingSpot> parkingSpot;
-    detectParkingSpot(images, parkingSpot); 
-    */
+    detectParkingSpots2(images, parkingSpot); 
+    
 
     // Load the other frames relative to the test sequences
     
@@ -51,7 +52,8 @@ int main() {
         // Draw bounding boxes and classification on the image
     
     // Segment car in the images
-    test(images,data[4][0]);
+    
+    // test(images,data[4][0]);
 
     // Performance measure
 

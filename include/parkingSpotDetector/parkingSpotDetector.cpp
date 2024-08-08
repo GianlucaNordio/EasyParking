@@ -25,8 +25,8 @@ void detectParkingSpot(const std::vector<cv::Mat>& images, std::vector<ParkingSp
             cv::line(toprint, vertices[i], vertices[(i + 1) % 4], cv::Scalar(0, 255, 0), 2);
         }
     }
-    //cv::imshow("Detected Parking Spots", toprint);
-    //cv::waitKey(0);
+    cv::imshow("Detected Parking Spots", toprint);
+    cv::waitKey(0);
 
 }
 
