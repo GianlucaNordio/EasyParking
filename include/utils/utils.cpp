@@ -2,7 +2,15 @@
 #include <opencv2/imgproc.hpp> 
 #include <iostream>
 
+#include <filesystem>
+
 #include "utils.hpp"
+
+
+const std::string FRAMES_FOLDER = "frames";
+const int BASE_SEQUENCE_INDEX = 0;
+const std::string SEQUENCE = "sequence";
+const std::string SLASH = "/";
 
 
 cv::Mat produceSingleImage(const std::vector<cv::Mat>& images, int imagesPerLine) {
@@ -53,3 +61,30 @@ cv::Mat produceSingleImage(const std::vector<cv::Mat>& images, int imagesPerLine
 }
 
 
+void loadBaseSequenceFrames(const std::string& datasetPath, std::vector<cv::Mat> &images) {
+    std::string folderPath = datasetPath + SLASH + SEQUENCE + std::to_string(BASE_SEQUENCE_INDEX) + SLASH + FRAMES_FOLDER;
+    loadImages(folderPath, images);
+}
+
+void loadSequencesFrames(const std::string& datasetPath, int numSequences, std::vector<std::vector<cv::Mat>> &images) {
+    for(int i = 1; i <= numSequences; i++) {
+        std::vector<cv::Mat> empty;   
+        images.push_back(empty);
+        std::string folderPath = datasetPath + SLASH + SEQUENCE + std::to_string(i) + SLASH + FRAMES_FOLDER;
+        loadImages(folderPath, images[i - 1]);
+    }
+}
+
+void loadImages(std::string path, std::vector<cv::Mat> &images) {
+    for(const auto& entry : std::filesystem::directory_iterator(path)) {
+        if(entry.is_regular_file()){
+            std::string filePath = entry.path().string();
+            cv::Mat image = cv::imread(filePath);
+            if(!image.empty()){
+                images.push_back(image);
+                std::cout << "Read image: " << filePath << std::endl; // TODO maybe use exception
+            } else
+                std::cerr << "Could not read image: " << filePath << std::endl; // TODO maybe use exception
+        }
+    }
+}

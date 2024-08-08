@@ -7,7 +7,7 @@
 #include "parkingSpotDetector/parkingSpotDetector.hpp"
 #include "utils/utils.hpp"
 
-
+const int NUMBER_SEQUENCES = 5;
 
 int main() {
      // Detect bounding boxes
@@ -19,29 +19,26 @@ int main() {
     
     
     // Read the images from the dataset
-    std::string folderPath = "../dataset/sequence0/frames";
     std::vector<cv::Mat> images;
-
-    for(const auto& entry : std::filesystem::directory_iterator(folderPath)) {
-        if(entry.is_regular_file()){
-            std::string filePath = entry.path().string();
-            cv::Mat image = cv::imread(filePath);
-            if(!image.empty()){
-                images.push_back(image);
-                std::cout << "Read image: " << filePath << std::endl;
-            } else
-                std::cerr << "Could not read image: " << filePath << std::endl;
-        }
-    }
-
-    cv::imshow("Test", produceSingleImage(images, 3));
+    loadBaseSequenceFrames("../dataset", images);
+    cv::imshow("Base sequence", produceSingleImage(images, 3));
     cv::waitKey();
+
 
     // Call the function to detect parking spots
 
     std::vector<ParkingSpot> parkingSpot;
     detectParkingSpot(images, parkingSpot);
 
+
+    // Load the other frames relative to the test sequences
+    std::vector<std::vector<cv::Mat>> data;
+    loadSequencesFrames("../dataset", NUMBER_SEQUENCES, data);
+    for(int i = 0; i < data.size(); i++) {
+        cv::imshow("Test Data", produceSingleImage(data[i], 3));
+        cv::waitKey();
+    }
+    
   
     // Classify parking spots
 
