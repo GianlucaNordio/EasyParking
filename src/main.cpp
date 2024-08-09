@@ -48,7 +48,17 @@ int main() {
         // Draw bounding boxes and classification on the image
     
     // Segment car in the images
-    test(images,data[4][0]);
+    Segmentation segm(images);
+    std::vector<cv::Mat> masks;
+    segm.segmentVectorImages(data[0], masks);
+
+
+    cv::imshow("Test Data", produceSingleImage(masks, 3));
+    cv::waitKey();
+
+    //cv::imshow("mask", mask);
+    //cv::waitKey();
+    //test(images,data[4][0]);
 
     // Performance measure
 
