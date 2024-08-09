@@ -6,15 +6,21 @@
 
 Segmentation::Segmentation(const std::vector<cv::Mat> &backgroundImages) {
     // Build the background model
-    // pBackSub = cv::createBackgroundSubtractorKNN();
-    pBackSub = cv::createBackgroundSubtractorMOG2();
+     pBackSub = cv::createBackgroundSubtractorKNN();
+    //pBackSub = cv::createBackgroundSubtractorMOG2();
     cv::Mat mask;
     for(int i = 0; i < backgroundImages.size(); i++) {
-        pBackSub -> apply(backgroundImages[i], mask);
+        cv::Mat equalized;
+        cv::cvtColor(backgroundImages[i], equalized, cv::COLOR_BGR2GRAY);
+        cv::equalizeHist(equalized, equalized);
+        pBackSub -> apply(equalized, mask);
     }
 }
 
 void Segmentation::segmentImage(const cv::Mat &image, cv::Mat &outputMask) {
+    cv::Mat equalized;
+    cv::cvtColor(image, equalized, cv::COLOR_BGR2GRAY);
+    cv::equalizeHist(equalized, equalized);
     pBackSub -> apply(image, outputMask, BACKGROUND_NOT_UPDATED);
 }
 
