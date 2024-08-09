@@ -95,6 +95,18 @@ std::vector<ParkingSpot> detectParkingSpotInImage2(const cv::Mat& image) {
     cv::imshow("median blurred", medianblurred);
     cv::waitKey(0);
 
+    cv::Mat gmagthold;
+    cv::threshold( medianblurred, gmagthold, 125, 255,  cv::THRESH_BINARY);
+    cv::imshow("gmagthold", gmagthold);
+    cv::waitKey(0);
+
+    cv::Mat element = cv::getStructuringElement( 
+                        cv::MORPH_RECT, cv::Size(3,3)); 
+    cv::Mat dilate; 
+    cv::dilate(gmagthold, dilate, element, cv::Point(-1, -1), 1); 
+    cv::imshow("dilated", dilate);
+    cv::waitKey(0);
+
     // TODO: choose which image may give the best information, then try to use a sliding window approach
     /*cv::Mat gmagthold;
     cv::threshold( grad_magn, gmagthold, 100, 255,  cv::THRESH_BINARY);
