@@ -10,4 +10,6 @@ void detectParkingSpots2(const std::vector<cv::Mat>& images, std::vector<Parking
 
 std::vector<ParkingSpot> detectParkingSpotInImage2(const cv::Mat& image);
 
+cv::Mat applyGammaTransform(const cv::Mat& src, double gamma);
+
 #endif // PARKINGSPOTDETECTOR2_HPP

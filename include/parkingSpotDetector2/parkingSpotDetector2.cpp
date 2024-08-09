@@ -33,11 +33,11 @@ std::vector<ParkingSpot> detectParkingSpotInImage2(const cv::Mat& image) {
     cv::Mat warped_img;
     cv::warpPerspective(image, warped_img, M, warped_image_size);
 
-    cv::imshow("warped", warped_img);
-    cv::waitKey(0);
+    // cv::imshow("warped", warped_img);
+    // cv::waitKey(0);
 
     cv::Mat filteredImage;
-    cv::bilateralFilter(image, filteredImage, -1, 50, 15);
+    cv::bilateralFilter(image, filteredImage, -1, 40, 10);
 
     cv::imshow("bilateral filtered", filteredImage);
     cv::waitKey(0);
@@ -48,6 +48,24 @@ std::vector<ParkingSpot> detectParkingSpotInImage2(const cv::Mat& image) {
     cv::imshow("grayscale", gs);
     cv::waitKey(0);
 
+    // Set the gamma value
+    double gammaValue = 1.25; // Example gamma value
+
+    // Apply gamma transformation
+    cv::Mat gammaCorrected1 = applyGammaTransform(gs, gammaValue);
+    // cv::imshow("gamma tf1", gammaCorrected1);
+    // cv::waitKey(0);
+
+    gammaValue = 2;
+    cv::Mat gammaCorrected2 = applyGammaTransform(gammaCorrected1, gammaValue);
+    // cv::imshow("gamma tf2", gammaCorrected2);
+    // cv::waitKey(0);
+
+    cv::Mat gsthold;
+    cv::threshold( gammaCorrected2, gsthold, 180, 255,  cv::THRESH_BINARY);
+    // cv::imshow("gsthold", gsthold);
+    // cv::waitKey(0);
+
     // cv::Mat equalized;
     // cv::equalizeHist(gs,equalized);
 
@@ -56,32 +74,38 @@ std::vector<ParkingSpot> detectParkingSpotInImage2(const cv::Mat& image) {
 
     // Apply Canny edge detection to find edges
     cv::Mat gx;
-    cv::Sobel(gs, gx, CV_8U, 1,0);
+    cv::Sobel(gammaCorrected2, gx, CV_8U, 1,0);
 
-    cv::imshow("gradient x", gx);
-    cv::waitKey(0);
+    // cv::imshow("gradient x", gx);
+    // cv::waitKey(0);
 
     cv::Mat gy;
-    cv::Sobel(gs, gy, CV_8U, 0,1);
+    cv::Sobel(gammaCorrected2, gy, CV_8U, 0,1);
 
-    cv::imshow("gradient y", gy);
-    cv::waitKey(0);
+    // cv::imshow("gradient y", gy);
+    // cv::waitKey(0);
 
     cv::Mat grad_magn = gx + gy;
 
     cv::imshow("gradient magnitude", grad_magn);
     cv::waitKey(0);
 
+    cv::Mat medianblurred;
+    cv::bilateralFilter(grad_magn, medianblurred, -1, 20, 10);
+    cv::imshow("median blurred", medianblurred);
+    cv::waitKey(0);
+
     // TODO: choose which image may give the best information, then try to use a sliding window approach
-    cv::Mat gmagthold;
-    cv::threshold( grad_magn, gmagthold, 200, 255,  cv::THRESH_BINARY);
+    /*cv::Mat gmagthold;
+    cv::threshold( grad_magn, gmagthold, 100, 255,  cv::THRESH_BINARY);
     cv::imshow("gmagthold", gmagthold);
     cv::waitKey(0);
 
     cv::Mat lap;
     cv::Laplacian(gs,lap,CV_8U);
 
-    cv::imshow("Laplacian", lap);
+    cv::Mat int1 = gy-gx+gammaCorrected2;
+    cv::imshow("Intermediate 1", gy-gx+gammaCorrected2);
     cv::waitKey(0);
 
     cv::Mat gythold;
@@ -92,6 +116,7 @@ std::vector<ParkingSpot> detectParkingSpotInImage2(const cv::Mat& image) {
     cv::Mat res = lap + gythold;
     cv::imshow("Laplacian + gradY", res);
     cv::waitKey(0);
+    */
 
     // Detect lines using Hough Line Transform
     // std::vector<cv::Vec4i> lines;
@@ -107,4 +132,19 @@ std::vector<ParkingSpot> detectParkingSpotInImage2(const cv::Mat& image) {
     // cv::imshow("Detected Lines", warped_img);
     // cv::waitKey(0);
     return parkingSpots;
+}
+
+cv::Mat applyGammaTransform(const cv::Mat& src, double gamma) {
+    // Create a lookup table for faster processing
+    cv::Mat lookupTable(1, 256, CV_8U);
+    uchar* p = lookupTable.ptr();
+    for (int i = 0; i < 256; ++i) {
+        p[i] = cv::saturate_cast<uchar>(pow(i / 255.0, gamma) * 255.0);
+    }
+
+    cv::Mat dst;
+    // Apply the lookup table to the source image
+    cv::LUT(src, lookupTable, dst);
+
+    return dst;
 }
