@@ -5,7 +5,8 @@
 #include <opencv2/imgproc.hpp>
 
 Segmentation::Segmentation(const std::vector<cv::Mat> &backgroundImages) {
-    // pBackSub = cv::createBackgroundSubtractorKNN()
+    // Build the background model
+    // pBackSub = cv::createBackgroundSubtractorKNN();
     pBackSub = cv::createBackgroundSubtractorMOG2();
     cv::Mat mask;
     for(int i = 0; i < backgroundImages.size(); i++) {
@@ -18,6 +19,7 @@ void Segmentation::segmentImage(const cv::Mat &image, cv::Mat &outputMask) {
 }
 
 void Segmentation::segmentVectorImages(const std::vector<cv::Mat> &images, std::vector<cv::Mat> &outputMasks) {
+    // Apply segmentImage to each element of the vector separately
     for(int i = 0; i < images.size(); i++) {
         outputMasks.push_back(cv::Mat());
         segmentImage(images[i], outputMasks[i]);
