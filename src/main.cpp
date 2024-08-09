@@ -4,10 +4,10 @@
 #include <opencv2/imgproc.hpp> // required to use the function cv::line
 #include <filesystem>
 
-#include "parkingSpot/parkingSpot.hpp"
-#include "parkingSpotDetector/parkingSpotDetector.hpp"
-#include "utils/utils.hpp"
-#include "segmentation/segmentation.hpp"
+#include "parkingSpot.hpp"
+#include "parkingSpotDetector.hpp"
+#include "utils.hpp"
+#include "segmentation.hpp"
 
 const int NUMBER_SEQUENCES = 5;
 
@@ -28,13 +28,10 @@ int main() {
 
 
     // Call the function to detect parking spots
-    /*
     std::vector<ParkingSpot> parkingSpot;
     detectParkingSpot(images, parkingSpot); 
-    */
-
-    // Load the other frames relative to the test sequences
     
+    // Load the other frames relative to the test sequences
     std::vector<std::vector<cv::Mat>> data;
     loadSequencesFrames("../dataset", NUMBER_SEQUENCES, data);
     for(int i = 0; i < data.size(); i++) {

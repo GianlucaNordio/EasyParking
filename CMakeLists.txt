@@ -18,14 +18,14 @@ file(GLOB_RECURSE SOURCES
 )
 
 add_library(utils 
-    ./include/utils/utils.hpp
-    ./include/utils/utils.cpp
+    ./include/utils.hpp
+    ./src/utils.cpp
 )
 target_include_directories(utils PRIVATE ${OpenCV_INCLUDE_DIRS})
 
 add_library(segmentation 
-    ./include/segmentation/segmentation.hpp
-    ./include/segmentation/segmentation.cpp
+    ./include/segmentation.hpp
+    ./src/segmentation.cpp
 )
 target_include_directories(segmentation PRIVATE ${OpenCV_INCLUDE_DIRS})
 

@@ -1,7 +1,7 @@
 #ifndef PARKINGSPOTDETECTOR_HPP
 #define PARKINGSPOTDETECTOR_HPP
 
-#include "../parkingSpot/parkingSpot.hpp"
+#include "parkingSpot.hpp"
 #include <opencv2/opencv.hpp>
 #include <vector>
 #include <algorithm>

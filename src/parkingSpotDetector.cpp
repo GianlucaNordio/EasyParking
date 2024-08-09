@@ -9,6 +9,8 @@ void detectParkingSpot(const std::vector<cv::Mat>& images, std::vector<ParkingSp
         parkingSpotPerImage.push_back(detectParkingSpotInImage(image));
     }
 
+    /* TODO DECOMENTARE!!!!!!!
+
     // Non maxima suppression to remove overlapping bounding boxes
     std::vector<ParkingSpot> parkingSpotNonMaxima = nonMaximaSuppression(parkingSpotPerImage, images[0].size());
     
@@ -27,7 +29,7 @@ void detectParkingSpot(const std::vector<cv::Mat>& images, std::vector<ParkingSp
     }
     //cv::imshow("Detected Parking Spots", toprint);
     //cv::waitKey(0);
-
+    */
 }
 
 // This function detects the parking spots in a single image
