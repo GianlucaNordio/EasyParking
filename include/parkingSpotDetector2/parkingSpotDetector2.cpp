@@ -143,6 +143,47 @@ std::vector<ParkingSpot> detectParkingSpotInImage2(const cv::Mat& image) {
 
     // cv::imshow("Detected Lines", warped_img);
     // cv::waitKey(0);
+
+    cv::Mat test_kernel(39,145,CV_8U);
+    for(int i = 0; i< test_kernel.rows; i++) {
+        for(int j = 0; j<test_kernel.cols; j++) {
+            if(i<4 || i>34) {
+                test_kernel.at<uchar>(i,j) = 255;
+            }
+            else {
+                test_kernel.at<uchar>(i,j) = 0;
+            }
+        }
+    }
+
+    cv::imshow("added", test_kernel);
+    cv::waitKey(0);
+
+    cv::Mat R = cv::getRotationMatrix2D(cv::Point2f(19,77),-9,1);
+    cv::Mat rotated;
+    cv::warpAffine(test_kernel,rotated,R,cv::Size(101,55));
+
+    cv::imshow("rotated", rotated);
+    cv::waitKey(0);
+
+    cv::Mat test;
+    //cv::filter2D(dilate, test, CV_32F, rotated);
+    //cv::imshow("test", test);
+    //cv::waitKey(0);
+
+    cv::matchTemplate(dilate,rotated,test,cv::TM_CCORR_NORMED);
+    cv::normalize( test, test, 0, 1, cv::NORM_MINMAX, -1, cv::Mat() );
+
+    double minVal; double maxVal; cv::Point minLoc; cv::Point maxLoc;
+    cv::Point matchLoc;
+    cv::minMaxLoc( test, &minVal, &maxVal, &minLoc, &maxLoc, cv::Mat() );
+
+    cv::rectangle( dilate, maxLoc, cv::Point( maxLoc.x + rotated.cols , maxLoc.y + rotated.rows ), cv::Scalar::all(255), 2, 8, 0 );
+    cv::rectangle( test, maxLoc, cv::Point( maxLoc.x + rotated.cols , maxLoc.y + rotated.rows ), cv::Scalar::all(255), 2, 8, 0 );
+    cv::imshow("gs2", dilate );
+    cv::imshow("end result", test );
+    cv::waitKey(0);
+
     return parkingSpots;
 }
 
