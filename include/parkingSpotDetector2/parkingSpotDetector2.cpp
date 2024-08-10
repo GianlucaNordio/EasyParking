@@ -92,20 +92,20 @@ std::vector<ParkingSpot> detectParkingSpotInImage2(const cv::Mat& image) {
 
     cv::Mat medianblurred;
     cv::bilateralFilter(grad_magn, medianblurred, -1, 20, 10);
-    cv::imshow("median blurred", medianblurred);
-    cv::waitKey(0);
+    //cv::imshow("median blurred", medianblurred);
+    //cv::waitKey(0);
 
     cv::Mat gmagthold;
     cv::threshold( medianblurred, gmagthold, 125, 255,  cv::THRESH_BINARY);
-    cv::imshow("gmagthold", gmagthold);
-    cv::waitKey(0);
+    //cv::imshow("gmagthold", gmagthold);
+    //cv::waitKey(0);
 
     cv::Mat element = cv::getStructuringElement( 
                         cv::MORPH_RECT, cv::Size(3,3)); 
     cv::Mat dilate; 
     cv::dilate(gmagthold, dilate, element, cv::Point(-1, -1), 1); 
-    cv::imshow("dilated", dilate);
-    cv::waitKey(0);
+    //cv::imshow("dilated", dilate);
+    //cv::waitKey(0);
 
     // TODO: choose which image may give the best information, then try to use a sliding window approach
     /*cv::Mat gmagthold;
@@ -143,67 +143,86 @@ std::vector<ParkingSpot> detectParkingSpotInImage2(const cv::Mat& image) {
 
     // cv::imshow("Detected Lines", warped_img);
     // cv::waitKey(0);
+    std::vector<int> angles = {-9};
+    std::vector<float> scales = {1};
 
-    cv::Mat test_kernel(39,145,CV_8U);
-    for(int i = 0; i< test_kernel.rows; i++) {
-        for(int j = 0; j<test_kernel.cols; j++) {
-            if(i<4 || i>34) {
-                test_kernel.at<uchar>(i,j) = 255;
-            }
-            else {
-                test_kernel.at<uchar>(i,j) = 0;
+    for(int k = 0; k<angles.size(); k++) {
+        int kheight = 39*scales[k];
+        int kwidth = 145*scales[k];
+
+        cv::Mat test_kernel(kheight,kwidth,CV_8U);
+        for(int i = 0; i< test_kernel.rows; i++) {
+            for(int j = 0; j<test_kernel.cols; j++) {
+                if(i<4 || (i>(kheight-4)&& j > 20*scales[k]*scales[k])) {
+                    test_kernel.at<uchar>(i,j) = 255;
+                }
+                else {
+                    test_kernel.at<uchar>(i,j) = 0;
+                }
             }
         }
+
+        //cv::imshow("added", test_kernel);
+        //cv::waitKey(0);
+
+        cv::Mat R = cv::getRotationMatrix2D(cv::Point2f(19,77),angles[k],1);
+        cv::Mat rotated;
+        cv::warpAffine(test_kernel,rotated,R,cv::Size(101*scales[k],55*scales[k]));
+
+        cv::imshow("rotated", rotated);
+        cv::waitKey(0);
+
+        cv::Mat test;
+        //cv::filter2D(dilate, test, CV_32F, rotated);
+        //cv::imshow("test", test);
+        //cv::waitKey(0);
+
+        cv::matchTemplate(dilate,rotated,test,cv::TM_CCORR_NORMED);
+        cv::normalize( test, test, 0, 1, cv::NORM_MINMAX, -1, cv::Mat() );
+    
+        std::vector<cv::Point> maxLocs;
+        std::vector<cv::Point> centers;
+
+        for(int i = 0; i<1; i++) {
+            double minVal; double maxVal; cv::Point minLoc; cv::Point maxLoc;
+            cv::minMaxLoc( test, &minVal, &maxVal, &minLoc, &maxLoc, cv::Mat() );
+            maxLocs.push_back(maxLoc);
+            cv::Point center;
+            center.x = maxLoc.x + 101*scales[k] / 2;
+            center.y = maxLoc.y + 55*scales[k] / 2;
+            centers.push_back(center);
+            test.at<float>(maxLoc) = 0.0;
+        }
+
+        for(int i = 0; i<1; i++) {
+            cv::Point center = centers[i];
+            cv::RotatedRect rotatedRect(center, cv::Size(101*scales[k],55*scales[k]), -angles[k]);
+                    // Get the 4 vertices of the rotated rectangle
+            cv::Point2f vertices[4];
+            rotatedRect.points(vertices);
+
+            // Draw the rotated rectangle using lines between its vertices
+            for (int i = 0; i < 4; i++) {
+                cv::line(gs, vertices[i], vertices[(i+1) % 4], cv::Scalar(0, 255, 0), 2);
+            }
+
+            cv::Point2f dst_pts[4];
+            dst_pts[0] = cv::Point2f(1819, kheight+200);
+            dst_pts[1] = cv::Point2f(1819-kwidth, kheight+200);
+            dst_pts[2] = cv::Point2f(1819-kwidth, 200);
+            dst_pts[3] = cv::Point2f(1819, 200);
+
+            cv::Size warped_image2_size = cv::Size(1820, 1280);
+            cv::Mat M = cv::getPerspectiveTransform(vertices, dst_pts);
+            cv::Mat warped_img2;
+            cv::warpPerspective(gs, warped_img2, M, warped_image2_size);
+
+            cv::imshow("warped", warped_img2);
+            cv::waitKey(0);
+        }
     }
-
-    cv::imshow("added", test_kernel);
-    cv::waitKey(0);
-
-    cv::Mat R = cv::getRotationMatrix2D(cv::Point2f(19,77),-9,1);
-    cv::Mat rotated;
-    cv::warpAffine(test_kernel,rotated,R,cv::Size(101,55));
-
-    cv::imshow("rotated", rotated);
-    cv::waitKey(0);
-
-    cv::Mat test;
-    //cv::filter2D(dilate, test, CV_32F, rotated);
-    //cv::imshow("test", test);
-    //cv::waitKey(0);
-
-    cv::matchTemplate(dilate,rotated,test,cv::TM_CCORR_NORMED);
-    cv::normalize( test, test, 0, 1, cv::NORM_MINMAX, -1, cv::Mat() );
-
-    std::vector<cv::Point> maxLocs;
-    for(int i = 0; i<10; i++) {
-        double minVal; double maxVal; cv::Point minLoc; cv::Point maxLoc;
-        cv::minMaxLoc( test, &minVal, &maxVal, &minLoc, &maxLoc, cv::Mat() );
-        maxLocs.push_back(maxLoc);
-        test.at<float>(maxLoc) = 0.0;
-    }
-
-    for(int i = 0; i<10; i++) {
-        cv::Point maxLoc = maxLocs[i];
-        cv::rectangle( dilate, maxLoc, cv::Point( maxLoc.x + rotated.cols , maxLoc.y + rotated.rows ), cv::Scalar::all(255), 2, 8, 0 );
-        cv::rectangle( test, maxLoc, cv::Point( maxLoc.x + rotated.cols , maxLoc.y + rotated.rows ), cv::Scalar::all(255), 2, 8, 0 );
-    }
-    cv::imshow("gs2", dilate );
-    cv::imshow("end result", test );
-    cv::waitKey(0);
-
-    std::vector<std::vector<cv::Point> > contours;
-    std::vector<cv::Vec4i> hierarchy;
-    cv::findContours( dilate, contours, hierarchy, cv::RETR_TREE, cv::CHAIN_APPROX_SIMPLE );
-    cv::Mat drawing = cv::Mat::zeros( dilate.size(), CV_8UC3 );
-    cv::RNG rng(12345);
-    for( size_t i = 0; i< contours.size(); i++ )
-    {
-        cv::Scalar color = cv::Scalar( rng.uniform(0, 256), rng.uniform(0,256), rng.uniform(0,256) );
-        drawContours( drawing, contours, (int)i, color, 2, cv::LINE_8, hierarchy, 0 );
-    }
-
-    cv::imshow( "Contours", drawing );
-    cv::waitKey(0);
+        cv::imshow("gs2", gs );
+        cv::waitKey(0);
 
     return parkingSpots;
 }
