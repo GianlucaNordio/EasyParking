@@ -191,6 +191,20 @@ std::vector<ParkingSpot> detectParkingSpotInImage2(const cv::Mat& image) {
     cv::imshow("end result", test );
     cv::waitKey(0);
 
+    std::vector<std::vector<cv::Point> > contours;
+    std::vector<cv::Vec4i> hierarchy;
+    cv::findContours( dilate, contours, hierarchy, cv::RETR_TREE, cv::CHAIN_APPROX_SIMPLE );
+    cv::Mat drawing = cv::Mat::zeros( dilate.size(), CV_8UC3 );
+    cv::RNG rng(12345);
+    for( size_t i = 0; i< contours.size(); i++ )
+    {
+        cv::Scalar color = cv::Scalar( rng.uniform(0, 256), rng.uniform(0,256), rng.uniform(0,256) );
+        drawContours( drawing, contours, (int)i, color, 2, cv::LINE_8, hierarchy, 0 );
+    }
+
+    cv::imshow( "Contours", drawing );
+    cv::waitKey(0);
+
     return parkingSpots;
 }
 
