@@ -16,6 +16,9 @@ Segmentation::Segmentation(const std::vector<cv::Mat> &backgroundImages) {
 
 void Segmentation::segmentImage(const cv::Mat &image, cv::Mat &outputMask) {
     pBackSub -> apply(image, outputMask, BACKGROUND_NOT_UPDATED);
+    //cv::blur(outputMask, outputMask, cv::Size(15, 15), cv::Point(-1, -1));
+    // Remove the shadow parts and the noise
+    //cv::threshold(outputMask, outputMask, 128, 255, cv::THRESH_BINARY);
 }
 
 void Segmentation::segmentVectorImages(const std::vector<cv::Mat> &images, std::vector<cv::Mat> &outputMasks) {
