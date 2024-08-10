@@ -174,12 +174,19 @@ std::vector<ParkingSpot> detectParkingSpotInImage2(const cv::Mat& image) {
     cv::matchTemplate(dilate,rotated,test,cv::TM_CCORR_NORMED);
     cv::normalize( test, test, 0, 1, cv::NORM_MINMAX, -1, cv::Mat() );
 
-    double minVal; double maxVal; cv::Point minLoc; cv::Point maxLoc;
-    cv::Point matchLoc;
-    cv::minMaxLoc( test, &minVal, &maxVal, &minLoc, &maxLoc, cv::Mat() );
+    std::vector<cv::Point> maxLocs;
+    for(int i = 0; i<10; i++) {
+        double minVal; double maxVal; cv::Point minLoc; cv::Point maxLoc;
+        cv::minMaxLoc( test, &minVal, &maxVal, &minLoc, &maxLoc, cv::Mat() );
+        maxLocs.push_back(maxLoc);
+        test.at<float>(maxLoc) = 0.0;
+    }
 
-    cv::rectangle( dilate, maxLoc, cv::Point( maxLoc.x + rotated.cols , maxLoc.y + rotated.rows ), cv::Scalar::all(255), 2, 8, 0 );
-    cv::rectangle( test, maxLoc, cv::Point( maxLoc.x + rotated.cols , maxLoc.y + rotated.rows ), cv::Scalar::all(255), 2, 8, 0 );
+    for(int i = 0; i<10; i++) {
+        cv::Point maxLoc = maxLocs[i];
+        cv::rectangle( dilate, maxLoc, cv::Point( maxLoc.x + rotated.cols , maxLoc.y + rotated.rows ), cv::Scalar::all(255), 2, 8, 0 );
+        cv::rectangle( test, maxLoc, cv::Point( maxLoc.x + rotated.cols , maxLoc.y + rotated.rows ), cv::Scalar::all(255), 2, 8, 0 );
+    }
     cv::imshow("gs2", dilate );
     cv::imshow("end result", test );
     cv::waitKey(0);
