@@ -17,24 +17,24 @@ std::vector<ParkingSpot> detectParkingSpotInImage2(const cv::Mat& image) {
 
     // (182, 571) (302, 515) (70, 197) (160, 160)
     cv::Point2f src_pts[4];
-    src_pts[0] = cv::Point2f(182, 571);
-    src_pts[1] = cv::Point2f(302, 515);
-    src_pts[2] = cv::Point2f(70, 197);
-    src_pts[3] = cv::Point2f(160, 160);
+    src_pts[0] = cv::Point2f(555, 538);
+    src_pts[1] = cv::Point2f(607, 629);
+    src_pts[2] = cv::Point2f(721, 664);
+    src_pts[3] = cv::Point2f(638, 559);
 
     cv::Point2f dst_pts[4];
-    dst_pts[0] = cv::Point2f(182, 571);
-    dst_pts[1] = cv::Point2f(302, 571);
-    dst_pts[2] = cv::Point2f(182, 166);
-    dst_pts[3] = cv::Point2f(302, 166);
+    dst_pts[0] = cv::Point2f(1780-200, 799-200);
+    dst_pts[1] = cv::Point2f(1819-200, 799-200);
+    dst_pts[2] = cv::Point2f(1819-200, 749-200);
+    dst_pts[3] = cv::Point2f(1780-200, 749-200);
 
-    cv::Size warped_image_size = cv::Size(1820, 1280);
+    cv::Size warped_image_size = cv::Size(1820, 800);
     cv::Mat M = cv::getPerspectiveTransform(src_pts, dst_pts);
     cv::Mat warped_img;
     cv::warpPerspective(image, warped_img, M, warped_image_size);
 
-    // cv::imshow("warped", warped_img);
-    // cv::waitKey(0);
+    cv::imshow("warped", warped_img);
+    cv::waitKey(0);
 
     cv::Mat filteredImage;
     cv::bilateralFilter(image, filteredImage, -1, 40, 10);
@@ -207,10 +207,10 @@ std::vector<ParkingSpot> detectParkingSpotInImage2(const cv::Mat& image) {
             }
 
             cv::Point2f dst_pts[4];
-            dst_pts[0] = cv::Point2f(1819, kheight+200);
-            dst_pts[1] = cv::Point2f(1819-kwidth, kheight+200);
-            dst_pts[2] = cv::Point2f(1819-kwidth, 200);
-            dst_pts[3] = cv::Point2f(1819, 200);
+            dst_pts[0] = cv::Point2f(1819-500, kheight+200);
+            dst_pts[1] = cv::Point2f(1819-500-kwidth, kheight+200);
+            dst_pts[2] = cv::Point2f(1819-500-kwidth, 200);
+            dst_pts[3] = cv::Point2f(1819-500, 200);
 
             cv::Size warped_image2_size = cv::Size(1820, 1280);
             cv::Mat M = cv::getPerspectiveTransform(vertices, dst_pts);
@@ -218,6 +218,30 @@ std::vector<ParkingSpot> detectParkingSpotInImage2(const cv::Mat& image) {
             cv::warpPerspective(gs, warped_img2, M, warped_image2_size);
 
             cv::imshow("warped", warped_img2);
+            cv::waitKey(0);
+
+            cv::Mat gammaCorrected1 = applyGammaTransform(warped_img2, gammaValue);
+            // cv::imshow("gamma tf1", gammaCorrected1);
+            // cv::waitKey(0);
+
+            gammaValue = 2;
+            cv::Mat gammaCorrected2 = applyGammaTransform(gammaCorrected1, gammaValue);
+
+            cv::Mat gx;
+            cv::Sobel(gammaCorrected2, gx, CV_8U, 1,0);
+
+            cv::imshow("gradient x2", gx);
+            cv::waitKey(0);
+
+            cv::Mat gy;
+            cv::Sobel(gammaCorrected2, gy, CV_8U, 0,1);
+
+            cv::imshow("gradient y2", gy);
+            cv::waitKey(0);
+
+            cv::Mat grad_magn = gx + gy;
+
+            cv::imshow("gradient magnitude2", grad_magn);
             cv::waitKey(0);
         }
     }
