@@ -12,7 +12,7 @@
 const int NUMBER_SEQUENCES = 5;
 
 int main() {
-     // Detect bounding boxes
+    // Detect bounding boxes
 
         // Read sequence 0 to use images to detect parking spots
         // Find parking spots for each image
@@ -36,13 +36,17 @@ int main() {
 
 
     // Load the other frames relative to the test sequences
+    /*
     std::vector<std::vector<cv::Mat>> data;
     loadSequencesFrames("../dataset", NUMBER_SEQUENCES, data);
-    
+    */
+
+    /*
     for(int i = 0; i < data.size(); i++) {
         cv::imshow("Test Data", produceSingleImage(data[i], 3));
         cv::waitKey();
     }
+    */
     
     
   
@@ -53,18 +57,32 @@ int main() {
         // Draw bounding boxes and classification on the image
     
     // Segment car in the images
+    /*
     Segmentation segm(images);
     std::vector<cv::Mat> masks;
     segm.segmentVectorImages(data[0], masks);
     cv::imshow("Test Data", produceSingleImage(masks, 3));
-    //cv::waitKey();
-
-
+    cv::waitKey();
+    */
+    /*
     cv::Mat out;  
     data[0][1].copyTo(out, masks[1]);
     cv::imshow("Applied", out);
     cv::waitKey();
-
+    */
+    
+    for (int i = 0; i < images.size(); i++) {
+    cv::Mat working;
+    cv::cvtColor(images[i], working, cv::COLOR_BGR2HSV);
+    cv::Scalar average = cv::mean(working);
+    cv::Mat colorMask;
+    for (int inter = 50; inter < 170; inter += 5) {
+            cv::inRange(working, average + cv::Scalar(-inter, -inter, -inter), average + cv::Scalar(inter, inter, inter), colorMask);
+            cv::imshow("color Mask", colorMask);
+            cv::waitKey(500);
+        }
+    }
+    
     // Performance measure
 
     return 0;
