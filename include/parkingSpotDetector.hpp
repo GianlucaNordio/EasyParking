@@ -16,6 +16,7 @@ std::vector<ParkingSpot> nonMaximaSuppression(const std::vector<std::vector<Park
 
 std::vector<cv::Point> convertToIntPoints(const std::vector<cv::Point2f>& floatPoints);
 
+cv::Mat applyGammaTransform(const cv::Mat& src, double gamma);
 
 
 #endif // PARKINGSPOTDETECTOR_HPP

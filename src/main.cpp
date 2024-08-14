@@ -28,11 +28,8 @@ int main() {
 
 
     // Call the function to detect parking spots
-    
-    /*
     std::vector<ParkingSpot> parkingSpot;
     detectParkingSpot(images, parkingSpot); 
-    */
 
 
     // Load the other frames relative to the test sequences
@@ -71,17 +68,7 @@ int main() {
     cv::waitKey();
     */
     
-    for (int i = 0; i < images.size(); i++) {
-    cv::Mat working;
-    cv::cvtColor(images[i], working, cv::COLOR_BGR2HSV);
-    cv::Scalar average = cv::mean(working);
-    cv::Mat colorMask;
-    for (int inter = 50; inter < 170; inter += 5) {
-            cv::inRange(working, average + cv::Scalar(-inter, -inter, -inter), average + cv::Scalar(inter, inter, inter), colorMask);
-            cv::imshow("color Mask", colorMask);
-            cv::waitKey(500);
-        }
-    }
+    
     
     // Performance measure
 
