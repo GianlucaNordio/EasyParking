@@ -199,11 +199,17 @@ std::vector<ParkingSpot> detectParkingSpotInImage2(const cv::Mat& image) {
                     // Get the 4 vertices of the rotated rectangle
             cv::Point2f vertices[4];
             rotatedRect.points(vertices);
+            vertices[0].x = vertices[0].x + 50;
+
+            vertices[3].x = vertices[3].x +50;
 
             // Draw the rotated rectangle using lines between its vertices
             for (int i = 0; i < 4; i++) {
                 cv::line(gs, vertices[i], vertices[(i+1) % 4], cv::Scalar(0, 255, 0), 2);
             }
+
+            cv::imshow("BBOX", gs);
+            cv::waitKey(0);
 
             cv::Point2f dst_pts[4];
             dst_pts[0] = cv::Point2f(1819-500, kheight+200);
@@ -219,8 +225,8 @@ std::vector<ParkingSpot> detectParkingSpotInImage2(const cv::Mat& image) {
             cv::Mat gswrpd;
             cv::cvtColor(warped_img2, gswrpd, cv::COLOR_BGR2GRAY);
 
-            cv::imshow("warped", gswrpd);
-            cv::waitKey(0);
+            // Display the L channel
+            cv::imshow("gswrpd", gswrpd);
 
             cv::Mat gammaCorrected1 = applyGammaTransform(gswrpd, gammaValue);
             cv::imshow("gamma tfff", gammaCorrected1);
