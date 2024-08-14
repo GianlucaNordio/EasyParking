@@ -8,7 +8,6 @@ void detectParkingSpots2(const std::vector<cv::Mat>& images, std::vector<Parking
         // Find parking spots for each image separately
         parkingSpotsPerImage.push_back(detectParkingSpotInImage2(image));
     }
-
 }
 
 // This function detects the parking spots in a single image
@@ -33,8 +32,8 @@ std::vector<ParkingSpot> detectParkingSpotInImage2(const cv::Mat& image) {
     cv::Mat warped_img;
     cv::warpPerspective(image, warped_img, M, warped_image_size);
 
-    cv::imshow("warped", warped_img);
-    cv::waitKey(0);
+    // cv::imshow("warped", warped_img);
+    // cv::waitKey(0);
 
     cv::Mat filteredImage;
     cv::bilateralFilter(image, filteredImage, -1, 40, 10);
@@ -215,14 +214,17 @@ std::vector<ParkingSpot> detectParkingSpotInImage2(const cv::Mat& image) {
             cv::Size warped_image2_size = cv::Size(1820, 1280);
             cv::Mat M = cv::getPerspectiveTransform(vertices, dst_pts);
             cv::Mat warped_img2;
-            cv::warpPerspective(gs, warped_img2, M, warped_image2_size);
+            cv::warpPerspective(image, warped_img2, M, warped_image2_size);
 
-            cv::imshow("warped", warped_img2);
+            cv::Mat gswrpd;
+            cv::cvtColor(warped_img2, gswrpd, cv::COLOR_BGR2GRAY);
+
+            cv::imshow("warped", gswrpd);
             cv::waitKey(0);
 
-            cv::Mat gammaCorrected1 = applyGammaTransform(warped_img2, gammaValue);
-            // cv::imshow("gamma tf1", gammaCorrected1);
-            // cv::waitKey(0);
+            cv::Mat gammaCorrected1 = applyGammaTransform(gswrpd, gammaValue);
+            cv::imshow("gamma tfff", gammaCorrected1);
+            cv::waitKey(0);
 
             gammaValue = 2;
             cv::Mat gammaCorrected2 = applyGammaTransform(gammaCorrected1, gammaValue);
@@ -243,6 +245,12 @@ std::vector<ParkingSpot> detectParkingSpotInImage2(const cv::Mat& image) {
 
             cv::imshow("gradient magnitude2", grad_magn);
             cv::waitKey(0);
+
+            cv::imwrite("test.png", gx);
+
+            cv::imshow("Detected Lines", warped_img2);
+            cv::waitKey(0);
+
         }
     }
         cv::imshow("gs2", gs );
