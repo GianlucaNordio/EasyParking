@@ -103,47 +103,9 @@ std::vector<ParkingSpot> detectParkingSpotInImage2(const cv::Mat& image) {
                         cv::MORPH_RECT, cv::Size(3,3)); 
     cv::Mat dilate; 
     cv::dilate(gmagthold, dilate, element, cv::Point(-1, -1), 1); 
-    //cv::imshow("dilated", dilate);
-    //cv::waitKey(0);
 
-    // TODO: choose which image may give the best information, then try to use a sliding window approach
-    /*cv::Mat gmagthold;
-    cv::threshold( grad_magn, gmagthold, 100, 255,  cv::THRESH_BINARY);
-    cv::imshow("gmagthold", gmagthold);
-    cv::waitKey(0);
-
-    cv::Mat lap;
-    cv::Laplacian(gs,lap,CV_8U);
-
-    cv::Mat int1 = gy-gx+gammaCorrected2;
-    cv::imshow("Intermediate 1", gy-gx+gammaCorrected2);
-    cv::waitKey(0);
-
-    cv::Mat gythold;
-    cv::threshold( gy, gythold, 200, 255,  cv::THRESH_BINARY);
-    cv::imshow("gythold", gythold);
-    cv::waitKey(0);
-
-    cv::Mat res = lap + gythold;
-    cv::imshow("Laplacian + gradY", res);
-    cv::waitKey(0);
-    */
-
-    // Detect lines using Hough Line Transform
-    // std::vector<cv::Vec4i> lines;
-    // int minLen = 55;
-    // cv::HoughLinesP(edges, lines, 1, CV_PI / 180, 50, minLen, 20);
-
-    
-    // // Draw lines on the image
-    // for (const auto& line : lines) {
-    //     cv::line(warped_img, cv::Point(line[0], line[1]), cv::Point(line[2], line[3]), cv::Scalar(0, 255, 0), 2);
-    // }
-
-    // cv::imshow("Detected Lines", warped_img);
-    // cv::waitKey(0);
-    std::vector<int> angles = {-9};
-    std::vector<float> scales = {1};
+    std::vector<int> angles = {-7,-8,-9, -10, -11, -12, -15};
+    std::vector<float> scales = {0.5, 0.75, 1, 1.05, 1.1, 1.2, 2};
 
     for(int k = 0; k<angles.size(); k++) {
         int kheight = 39*scales[k];
@@ -176,15 +138,25 @@ std::vector<ParkingSpot> detectParkingSpotInImage2(const cv::Mat& image) {
         //cv::imshow("test", test);
         //cv::waitKey(0);
 
-        cv::matchTemplate(dilate,rotated,test,cv::TM_CCORR_NORMED);
+        cv::matchTemplate(dilate,rotated,test,cv::TM_SQDIFF,rotated);
         cv::normalize( test, test, 0, 1, cv::NORM_MINMAX, -1, cv::Mat() );
     
         std::vector<cv::Point> maxLocs;
         std::vector<cv::Point> centers;
 
-        for(int i = 0; i<1; i++) {
+        cv::imshow("match template output", test);
+        cv::waitKey(0);
+
+        cv::Mat tholdtest;
+        cv::threshold( test, tholdtest, 0.2, 255,  cv::THRESH_BINARY_INV);
+
+        cv::imshow("match template thold", tholdtest);
+        cv::waitKey(0);
+
+        for(int i = 0; i<500; i++) {
             double minVal; double maxVal; cv::Point minLoc; cv::Point maxLoc;
             cv::minMaxLoc( test, &minVal, &maxVal, &minLoc, &maxLoc, cv::Mat() );
+            maxLoc = minLoc;
             maxLocs.push_back(maxLoc);
             cv::Point center;
             center.x = maxLoc.x + 101*scales[k] / 2;
@@ -193,70 +165,19 @@ std::vector<ParkingSpot> detectParkingSpotInImage2(const cv::Mat& image) {
             test.at<float>(maxLoc) = 0.0;
         }
 
-        for(int i = 0; i<1; i++) {
+        for(int i = 0; i<500; i++) {
             cv::Point center = centers[i];
             cv::RotatedRect rotatedRect(center, cv::Size(101*scales[k],55*scales[k]), -angles[k]);
                     // Get the 4 vertices of the rotated rectangle
             cv::Point2f vertices[4];
             rotatedRect.points(vertices);
-            vertices[0].x = vertices[0].x + 50;
-
-            vertices[3].x = vertices[3].x +50;
-
             // Draw the rotated rectangle using lines between its vertices
             for (int i = 0; i < 4; i++) {
                 cv::line(gs, vertices[i], vertices[(i+1) % 4], cv::Scalar(0, 255, 0), 2);
             }
 
-            cv::imshow("BBOX", gs);
-            cv::waitKey(0);
-
-            cv::Point2f dst_pts[4];
-            dst_pts[0] = cv::Point2f(1819-500, kheight+200);
-            dst_pts[1] = cv::Point2f(1819-500-kwidth, kheight+200);
-            dst_pts[2] = cv::Point2f(1819-500-kwidth, 200);
-            dst_pts[3] = cv::Point2f(1819-500, 200);
-
-            cv::Size warped_image2_size = cv::Size(1820, 1280);
-            cv::Mat M = cv::getPerspectiveTransform(vertices, dst_pts);
-            cv::Mat warped_img2;
-            cv::warpPerspective(image, warped_img2, M, warped_image2_size);
-
-            cv::Mat gswrpd;
-            cv::cvtColor(warped_img2, gswrpd, cv::COLOR_BGR2GRAY);
-
-            // Display the L channel
-            cv::imshow("gswrpd", gswrpd);
-
-            cv::Mat gammaCorrected1 = applyGammaTransform(gswrpd, gammaValue);
-            cv::imshow("gamma tfff", gammaCorrected1);
-            cv::waitKey(0);
-
-            gammaValue = 2;
-            cv::Mat gammaCorrected2 = applyGammaTransform(gammaCorrected1, gammaValue);
-
-            cv::Mat gx;
-            cv::Sobel(gammaCorrected2, gx, CV_8U, 1,0);
-
-            cv::imshow("gradient x2", gx);
-            cv::waitKey(0);
-
-            cv::Mat gy;
-            cv::Sobel(gammaCorrected2, gy, CV_8U, 0,1);
-
-            cv::imshow("gradient y2", gy);
-            cv::waitKey(0);
-
-            cv::Mat grad_magn = gx + gy;
-
-            cv::imshow("gradient magnitude2", grad_magn);
-            cv::waitKey(0);
-
-            cv::imwrite("test.png", gx);
-
-            cv::imshow("Detected Lines", warped_img2);
-            cv::waitKey(0);
-
+            //cv::imshow("BBOX", gs);
+            //cv::waitKey(0);
         }
     }
         cv::imshow("gs2", gs );
