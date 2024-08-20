@@ -8,6 +8,20 @@ void detectParkingSpots2(const std::vector<cv::Mat>& images, std::vector<Parking
         // Find parking spots for each image separately
         parkingSpotsPerImage.push_back(detectParkingSpotInImage2(image));
     }
+
+    std::vector<ParkingSpot> parkingSpotNonMaxima = nonMaximaSuppression2(parkingSpotsPerImage, images[0].size());
+
+    cv::Mat toprint = images[0].clone();
+
+    for (const auto& spot : parkingSpotNonMaxima) {
+        cv::Point2f vertices[4];
+        spot.rect.points(vertices);
+        for (int i = 0; i < 4; ++i) {
+            cv::line(toprint, vertices[i], vertices[(i + 1) % 4], cv::Scalar(0, 255, 0), 2);
+        }
+    }
+    cv::imshow("Detected Parking Spots", toprint);
+    cv::waitKey(0);
 }
 
 // This function detects the parking spots in a single image
@@ -114,7 +128,7 @@ std::vector<ParkingSpot> detectParkingSpotInImage2(const cv::Mat& image) {
         cv::Mat test_kernel(kheight,kwidth,CV_8U);
         for(int i = 0; i< test_kernel.rows; i++) {
             for(int j = 0; j<test_kernel.cols; j++) {
-                if(i<4 || (i>(kheight-4)&& j > 20*scales[k]*scales[k])) {
+                if((i<4 && j < kwidth-100*scales[k]*scales[k]) || (i>(kheight-4)&& j > 20*scales[k]*scales[k])) {
                     test_kernel.at<uchar>(i,j) = 255;
                 }
                 else {
@@ -123,8 +137,8 @@ std::vector<ParkingSpot> detectParkingSpotInImage2(const cv::Mat& image) {
             }
         }
 
-        //cv::imshow("added", test_kernel);
-        //cv::waitKey(0);
+        cv::imshow("added", test_kernel);
+        cv::waitKey(0);
 
         cv::Mat R = cv::getRotationMatrix2D(cv::Point2f(19,77),angles[k],1);
         cv::Mat rotated;
@@ -148,7 +162,7 @@ std::vector<ParkingSpot> detectParkingSpotInImage2(const cv::Mat& image) {
         cv::waitKey(0);
 
         cv::Mat tholdtest;
-        cv::threshold( test, tholdtest, 0.2, 255,  cv::THRESH_BINARY_INV);
+        cv::threshold( test, tholdtest, 0.1, 255,  cv::THRESH_BINARY_INV);
 
         cv::imshow("match template thold", tholdtest);
         cv::waitKey(0);
@@ -162,7 +176,7 @@ std::vector<ParkingSpot> detectParkingSpotInImage2(const cv::Mat& image) {
             center.x = maxLoc.x + 101*scales[k] / 2;
             center.y = maxLoc.y + 55*scales[k] / 2;
             centers.push_back(center);
-            test.at<float>(maxLoc) = 0.0;
+            test.at<float>(maxLoc) = 255;
         }
 
         for(int i = 0; i<500; i++) {
@@ -175,6 +189,7 @@ std::vector<ParkingSpot> detectParkingSpotInImage2(const cv::Mat& image) {
             for (int i = 0; i < 4; i++) {
                 cv::line(gs, vertices[i], vertices[(i+1) % 4], cv::Scalar(0, 255, 0), 2);
             }
+            parkingSpots.push_back(ParkingSpot{0,0,rotatedRect});
 
             //cv::imshow("BBOX", gs);
             //cv::waitKey(0);
@@ -199,4 +214,113 @@ cv::Mat applyGammaTransform(const cv::Mat& src, double gamma) {
     cv::LUT(src, lookupTable, dst);
 
     return dst;
+}
+
+std::vector<ParkingSpot> nonMaximaSuppression2(const std::vector<std::vector<ParkingSpot>>& parkingSpots, cv::Size imageSize) {
+    std::vector<ParkingSpot> result;
+    int id = 0;
+    // Union of all parking spots
+    std::vector<ParkingSpot> allSpots;
+    for (const auto& spots : parkingSpots) {
+        allSpots.insert(allSpots.end(), spots.begin(), spots.end());
+    }
+
+    // Vector to keep track of which spots have been considered
+    std::vector<bool> considered(allSpots.size(), false);
+
+    for (size_t i = 0; i < allSpots.size(); ++i) {
+        if (considered[i]) continue;
+
+        std::vector<cv::Point2f> centers;
+        std::vector<cv::Size2f> sizes;
+
+        centers.push_back(allSpots[i].rect.center);
+        sizes.push_back(allSpots[i].rect.size);
+
+        considered[i] = true;
+
+        for (size_t j = i + 1; j < allSpots.size(); ++j) {
+            if (considered[j]) continue;
+
+            if (isOverlapping2(allSpots[i].rect, allSpots[j].rect, imageSize)) {
+                centers.push_back(allSpots[j].rect.center);
+                sizes.push_back(allSpots[j].rect.size);
+
+                considered[j] = true;
+            }
+        }
+
+        // Compute the average center
+        cv::Point2f avgCenter(0, 0);
+        for (const auto& center : centers) {
+            avgCenter += center;
+        }
+        avgCenter.x /= centers.size();
+        avgCenter.y /= centers.size();
+
+        // Compute the average size
+        cv::Size2f avgSize(0, 0);
+        for (const auto& size : sizes) {
+            avgSize.width += size.width;
+            avgSize.height += size.height;
+        }
+        avgSize.width /= sizes.size();
+        avgSize.height /= sizes.size();
+
+
+        result.push_back(ParkingSpot{id, 0, cv::RotatedRect(avgCenter, avgSize, 0)});
+        id++;
+    }
+
+    return result;
+}
+
+std::vector<cv::Point> convertToIntPoints2(const std::vector<cv::Point2f>& floatPoints) {
+    std::vector<cv::Point> intPoints;
+    for (const auto& point : floatPoints) {
+        intPoints.emplace_back(cv::Point(cv::saturate_cast<int>(point.x), cv::saturate_cast<int>(point.y)));
+    }
+    return intPoints;
+}
+
+// Function to calculate if two rectangles are overlapping
+bool isOverlapping2(const cv::RotatedRect& rect1, const cv::RotatedRect& rect2, cv::Size imageSize) {
+    // Vetices extraction
+    std::vector<cv::Point2f> vertices1(4), vertices2(4);
+    rect1.points(vertices1.data());
+    rect2.points(vertices2.data());
+
+    //  Conversion to integer points
+    std::vector<cv::Point> intVertices1 = convertToIntPoints2(vertices1);
+    std::vector<cv::Point> intVertices2 = convertToIntPoints2(vertices2);
+
+    // Binary images creation
+    cv::Mat img1 = cv::Mat::zeros(imageSize, CV_8UC1);
+    cv::Mat img2 = cv::Mat::zeros(imageSize, CV_8UC1);
+
+    // TODO --> show the result (test)
+    cv::Mat combined(img1.rows, img1.cols * 2, img1.type());
+    img1.copyTo(combined(cv::Rect(0, 0, img1.cols, img1.rows)));
+    img2.copyTo(combined(cv::Rect(img1.cols, 0, img2.cols, img2.rows)));
+    //cv::imshow("Immagini Combinate", combined);
+    //cv::waitKey(0);
+
+    // Draw the rectangles
+    std::vector<std::vector<cv::Point>> contours1{intVertices1}, contours2{intVertices2};
+    cv::drawContours(img1, contours1, 0, cv::Scalar(255), cv::FILLED);
+    cv::drawContours(img2, contours2, 0, cv::Scalar(255), cv::FILLED);
+
+    
+
+    // Intersection of the two rectangles
+    cv::Mat intersection;
+    cv::bitwise_and(img1, img2, intersection);
+
+    // Area calculation
+    double area1 = cv::contourArea(intVertices1);
+    double area2 = cv::contourArea(intVertices2);
+    double intersectionArea = cv::countNonZero(intersection);
+
+    // Overlapping condition
+    return (intersectionArea >= 0.2 * area1) || (intersectionArea >= 0.2 * area2);
 }
