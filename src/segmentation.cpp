@@ -22,7 +22,8 @@ void Segmentation::segmentImage(const cv::Mat &image, cv::Mat &outputMask) {
     // Tried using the noShade option in the constructor but still finds shades
     cv::threshold(outputMask, outputMask, 128, 255, cv::THRESH_BINARY);
 
-    for(int k = 20; k < 5000; k+=500) {
+    // Currently testing with multiple values for the thresholds
+    for(int k = 20; k < 3000; k+=200) {
         // Keeping only connected that have a dimension bigger than 2000 pixels
         cv::Mat stats, centroids, labelImage;
         int numLabels = cv::connectedComponentsWithStats(outputMask, labelImage, stats, centroids, 8, CV_32S);
@@ -37,7 +38,7 @@ void Segmentation::segmentImage(const cv::Mat &image, cv::Mat &outputMask) {
         image.copyTo(r,mask);
         imshow("Result", r);
         cv::waitKey(500);
-        std::cout<<"Area " + k;
+        std::cout<<"Area " << k<<std::endl;
     }
 }
 
