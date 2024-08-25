@@ -63,7 +63,7 @@ int main() {
     std::vector<std::vector<cv::Mat>> groundTruthMasksGray;
     loadSequencesSegMasks("../dataset", NUMBER_SEQUENCES, groundTruthMasksGray);
     std::vector<std::vector<cv::Mat>> groundTruthMasksBGR = groundTruthMasksGray;
-    convertGreyscaleToBGR(groundTruthMasksGray, groundTruthMasksBGR);
+    convertGreyMaskToBGR(groundTruthMasksGray, groundTruthMasksBGR);
     for(int i = 0; i < groundTruthMasksBGR.size(); i++) {
         cv::Mat test = produceSingleImage(groundTruthMasksBGR[i], 3);
 

@@ -7,7 +7,6 @@
 #include "utils.hpp"
 
 
-namespace fs = std::filesystem;
 
 const std::string FRAMES_FOLDER = "frames";
 const int BASE_SEQUENCE_INDEX = 0;
@@ -113,7 +112,7 @@ void loadSequencesSegMasks(const std::string& datasetPath, const int numSequence
     }
 }
 
-void convertGreyscaleToBGR(const std::vector<std::vector<cv::Mat>> &srcImages, std::vector<std::vector<cv::Mat>> &dstImages) {
+void convertGreyMaskToBGR(const std::vector<std::vector<cv::Mat>> &srcImages, std::vector<std::vector<cv::Mat>> &dstImages) {
     for(int i = 0; i < srcImages.size(); i++) {
         for(int j = 0; j < srcImages[i].size(); j++) {
             dstImages[i][j] =  cv::Mat(srcImages[i][j].rows,srcImages[i][j].cols, CV_8UC3, cv::Scalar(0 ,0 ,0));
@@ -121,20 +120,18 @@ void convertGreyscaleToBGR(const std::vector<std::vector<cv::Mat>> &srcImages, s
             const cv::Mat &src = srcImages[i][j];
             for(int x = 0; x < src.cols; x++) {
                 for(int y = 0; y < src.rows; y++) {
+                    cv::Vec3b &color = dst.at<cv::Vec3b>(y, x);
                     if (src.at<uchar>(y, x) == 0) {
-                        cv::Vec3b &color = dst.at<cv::Vec3b>(y, x);
                         color[0] = 128;
                         color[1] = 128;
                         color[2] = 128;
                     }
-                    if (src.at<uchar>(y, x) == 1) {
-                        cv::Vec3b &color = dst.at<cv::Vec3b>(y, x);
+                    else if (src.at<uchar>(y, x) == 1) {
                         color[0] = 255;
                         color[1] = 0;
                         color[2] = 0;
                     }
-                    if (src.at<uchar>(y, x) == 2) {
-                        cv::Vec3b &color = dst.at<cv::Vec3b>(y, x);
+                    else if (src.at<uchar>(y, x) == 2) {
                         color[0] = 0;
                         color[1] = 255;
                         color[2] = 0;

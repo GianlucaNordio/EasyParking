@@ -40,8 +40,17 @@ void loadImages(std::string path, std::vector<cv::Mat> &images);
 void loadSequencesSegMasks(const std::string& datasetPath, int numSequences, std::vector<std::vector<cv::Mat>> &segMasks);
 
 
-
-void convertGreyscaleToBGR(const std::vector<std::vector<cv::Mat>> &srcImages, std::vector<std::vector<cv::Mat>> &dstImages);
+/**
+ * Allows to convert the greyscale masks provided by the dataset to BGR.
+ * Performs the following mapping:
+ * 0: (128,128,128)
+ * 1: (255,0,0)
+ * 2: (0,255,0
+ * 
+ * @param srcImages vector of greyscale images containing the mask (values are only 0, 1, 2)
+ * @param dstImages vector of BGR images produced by perorming the mapping on the input masks
+ */
+void convertGreyMaskToBGR(const std::vector<std::vector<cv::Mat>> &srcImages, std::vector<std::vector<cv::Mat>> &dstImages);
 
 
 #endif // UTILS_HPP
