@@ -28,16 +28,15 @@ void Segmentation::segmentImage(const cv::Mat &image, cv::Mat &outputMask) {
     cv::Mat stats, centroids, labelImage;
     int numLabels = cv::connectedComponentsWithStats(outputMask, labelImage, stats, centroids, 8, CV_32S);
     cv::Mat mask(labelImage.size(), CV_8UC1, cv::Scalar(0));
-    int pixelThreshold = 450;
+    int pixelThreshold = 600;
     cv::Mat surfSup=stats.col(4) > pixelThreshold;
     for (int i = 1; i < numLabels; i++) {
         if (surfSup.at<uchar>(i, 0)) {
             mask = mask | (labelImage==i);
         }
     }
-    cv::Mat r(outputMask.size(), CV_8UC1, cv::Scalar(0));
-    image.copyTo(r,mask);
-    imshow("Result", r);
+    image.copyTo(outputMask,mask);
+    imshow("Result", outputMask);
     cv::waitKey(500);
 }
 
