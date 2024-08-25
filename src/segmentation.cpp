@@ -23,23 +23,22 @@ void Segmentation::segmentImage(const cv::Mat &image, cv::Mat &outputMask) {
     cv::threshold(outputMask, outputMask, 128, 255, cv::THRESH_BINARY);
 
     // Currently testing with multiple values for the thresholds
-    for(int k = 20; k < 3000; k+=200) {
+    //for(int k = 20; k < 3000; k+=200) {
         // Keeping only connected that have a dimension bigger than 2000 pixels
-        cv::Mat stats, centroids, labelImage;
-        int numLabels = cv::connectedComponentsWithStats(outputMask, labelImage, stats, centroids, 8, CV_32S);
-        cv::Mat mask(labelImage.size(), CV_8UC1, cv::Scalar(0));
-        cv::Mat surfSup=stats.col(4) > k;
-        for (int i = 1; i < numLabels; i++) {
-            if (surfSup.at<uchar>(i, 0)) {
-                mask = mask | (labelImage==i);
-            }
+    cv::Mat stats, centroids, labelImage;
+    int numLabels = cv::connectedComponentsWithStats(outputMask, labelImage, stats, centroids, 8, CV_32S);
+    cv::Mat mask(labelImage.size(), CV_8UC1, cv::Scalar(0));
+    int pixelThreshold = 450;
+    cv::Mat surfSup=stats.col(4) > pixelThreshold;
+    for (int i = 1; i < numLabels; i++) {
+        if (surfSup.at<uchar>(i, 0)) {
+            mask = mask | (labelImage==i);
         }
-        cv::Mat r(outputMask.size(), CV_8UC1, cv::Scalar(0));
-        image.copyTo(r,mask);
-        imshow("Result", r);
-        cv::waitKey(500);
-        std::cout<<"Area " << k<<std::endl;
     }
+    cv::Mat r(outputMask.size(), CV_8UC1, cv::Scalar(0));
+    image.copyTo(r,mask);
+    imshow("Result", r);
+    cv::waitKey(500);
 }
 
 void Segmentation::segmentVectorImages(const std::vector<cv::Mat> &images, std::vector<cv::Mat> &outputMasks) {
