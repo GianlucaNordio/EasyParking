@@ -59,11 +59,19 @@ int main() {
     cv::imshow("Test Data", produceSingleImage(masks, 3));
     //cv::waitKey();
 
+    
+    std::vector<std::vector<cv::Mat>> groundTruthMasksGray;
+    loadSequencesSegMasks("../dataset", NUMBER_SEQUENCES, groundTruthMasksGray);
+    std::vector<std::vector<cv::Mat>> groundTruthMasksBGR = groundTruthMasksGray;
+    convertGreyscaleToBGR(groundTruthMasksGray, groundTruthMasksBGR);
+    for(int i = 0; i < groundTruthMasksBGR.size(); i++) {
+        cv::Mat test = produceSingleImage(groundTruthMasksBGR[i], 3);
 
-    cv::Mat out;  
-    data[0][1].copyTo(out, masks[1]);
-    cv::imshow("Applied", out);
-    cv::waitKey();
+        cv::imshow("Test Data", test);
+        cv::waitKey();
+    }
+
+
 
     // Performance measure
 

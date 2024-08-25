@@ -32,4 +32,16 @@ void loadSequencesFrames(const std::string& datasetPath, int numSequences, std::
  */
 void loadImages(std::string path, std::vector<cv::Mat> &images);
 
+/**
+ * @brief Loads the masks used as grouund truth for segmentation from the given path
+ * @param path path of the masks to load
+ * @param numSequences number of sequences present in the data
+ */
+void loadSequencesSegMasks(const std::string& datasetPath, int numSequences, std::vector<std::vector<cv::Mat>> &segMasks);
+
+
+
+void convertGreyscaleToBGR(const std::vector<std::vector<cv::Mat>> &srcImages, std::vector<std::vector<cv::Mat>> &dstImages);
+
+
 #endif // UTILS_HPP

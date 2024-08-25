@@ -7,10 +7,16 @@
 #include "utils.hpp"
 
 
+namespace fs = std::filesystem;
+
 const std::string FRAMES_FOLDER = "frames";
 const int BASE_SEQUENCE_INDEX = 0;
 const std::string SEQUENCE = "sequence";
+
+
 const std::string SLASH = "/";
+
+const std::string MASKS_FOLDER = "masks";
 
 
 cv::Mat produceSingleImage(const std::vector<cv::Mat>& images, int imagesPerLine) {
@@ -85,6 +91,56 @@ void loadImages(std::string path, std::vector<cv::Mat> &images) {
                 std::cout << "Read image: " << filePath << std::endl; // TODO maybe use exception
             } else
                 std::cerr << "Could not read image: " << filePath << std::endl; // TODO maybe use exception
+        }
+    }
+}
+
+
+void loadSequencesSegMasks(const std::string& datasetPath, const int numSequences, std::vector<std::vector<cv::Mat>> &segMasks) {
+    // Move over all the sequences
+    for(int i = 0; i < numSequences; i++) {
+        // Initialize the vector relative to the i-th sequence
+        std::vector<cv::Mat> empty;   
+        segMasks.push_back(empty);
+
+        // Create the path relative to the i-th sequence
+        std::string folderPath = datasetPath + SLASH + SEQUENCE + std::to_string(i + 1) + SLASH + MASKS_FOLDER;
+        loadImages(folderPath, segMasks[i]);
+        // Conver the images to greyscale
+        for(int j = 0; j < segMasks[i].size(); j++) {
+            cv::cvtColor(segMasks[i][j], segMasks[i][j], cv::COLOR_BGR2GRAY);
+        }
+    }
+}
+
+void convertGreyscaleToBGR(const std::vector<std::vector<cv::Mat>> &srcImages, std::vector<std::vector<cv::Mat>> &dstImages) {
+    for(int i = 0; i < srcImages.size(); i++) {
+        for(int j = 0; j < srcImages[i].size(); j++) {
+            dstImages[i][j] =  cv::Mat(srcImages[i][j].rows,srcImages[i][j].cols, CV_8UC3, cv::Scalar(0 ,0 ,0));
+            cv::Mat &dst = dstImages[i][j];
+            const cv::Mat &src = srcImages[i][j];
+            for(int x = 0; x < src.cols; x++) {
+                for(int y = 0; y < src.rows; y++) {
+                    if (src.at<uchar>(y, x) == 0) {
+                        cv::Vec3b &color = dst.at<cv::Vec3b>(y, x);
+                        color[0] = 128;
+                        color[1] = 128;
+                        color[2] = 128;
+                    }
+                    if (src.at<uchar>(y, x) == 1) {
+                        cv::Vec3b &color = dst.at<cv::Vec3b>(y, x);
+                        color[0] = 255;
+                        color[1] = 0;
+                        color[2] = 0;
+                    }
+                    if (src.at<uchar>(y, x) == 2) {
+                        cv::Vec3b &color = dst.at<cv::Vec3b>(y, x);
+                        color[0] = 0;
+                        color[1] = 255;
+                        color[2] = 0;
+                    }
+                }
+            }
         }
     }
 }
