@@ -36,8 +36,6 @@ void Segmentation::segmentImage(const cv::Mat &image, cv::Mat &outputMask) {
         }
     }
     image.copyTo(outputMask,mask);
-    imshow("Result", outputMask);
-    cv::waitKey(500);
 }
 
 void Segmentation::segmentVectorImages(const std::vector<cv::Mat> &images, std::vector<cv::Mat> &outputMasks) {
