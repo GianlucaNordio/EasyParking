@@ -34,235 +34,24 @@ void detectParkingSpot(const std::vector<cv::Mat>& images, std::vector<ParkingSp
 
 // This function detects the parking spots in a single image
 std::vector<ParkingSpot> detectParkingSpotInImage(const cv::Mat& image) {
-
-    /*
-    cv::Mat filteredImage;
-    cv::bilateralFilter(image, filteredImage, -1, 40, 10);
-
-    cv::imshow("bilateral filtered", filteredImage);
-    cv::waitKey(0);
-
-    cv::Mat gs;
-    cv::cvtColor(filteredImage, gs, cv::COLOR_BGR2GRAY);
-
-    cv::imshow("grayscale", gs);
-    cv::waitKey(0);
-
-    // Set the gamma value
-    double gammaValue = 1.25; // Example gamma value
-
-    // Apply gamma transformation
-    cv::Mat gammaCorrected1 = applyGammaTransform(gs, gammaValue);
-    // cv::imshow("gamma tf1", gammaCorrected1);
-    // cv::waitKey(0);
-
-    gammaValue = 2;
-    cv::Mat gammaCorrected2 = applyGammaTransform(gammaCorrected1, gammaValue);
-    // cv::imshow("gamma tf2", gammaCorrected2);
-    // cv::waitKey(0);
-
-    cv::Mat gsthold;
-    cv::threshold( gammaCorrected2, gsthold, 180, 255,  cv::THRESH_BINARY);
-    // cv::imshow("gsthold", gsthold);
-    // cv::waitKey(0);
-
-    // cv::Mat equalized;
-    // cv::equalizeHist(gs,equalized);
-
-    // cv::imshow("equalized", equalized);
-    // cv::waitKey(0);
-
-    // Apply Canny edge detection to find edges
-    cv::Mat gx;
-    cv::Sobel(gammaCorrected2, gx, CV_8U, 1,0);
-
-    // cv::imshow("gradient x", gx);
-    // cv::waitKey(0);
-
-    cv::Mat gy;
-    cv::Sobel(gammaCorrected2, gy, CV_8U, 0,1);
-
-    // cv::imshow("gradient y", gy);
-    // cv::waitKey(0);
-
-    cv::Mat grad_magn = gx + gy;
-
-    cv::imshow("gradient magnitude", grad_magn);
-    cv::waitKey(0);
-
-    cv::Mat medianblurred;
-    cv::bilateralFilter(grad_magn, medianblurred, -1, 20, 10);
-    //cv::imshow("median blurred", medianblurred);
-    //cv::waitKey(0);
-
-    cv::Mat gmagthold;
-    cv::threshold( medianblurred, gmagthold, 125, 255,  cv::THRESH_BINARY);
-    //cv::imshow("gmagthold", gmagthold);
-    //cv::waitKey(0);
-
-    cv::Mat element = cv::getStructuringElement( 
-                        cv::MORPH_RECT, cv::Size(3,3)); 
-    cv::Mat dilate; 
-    cv::dilate(gmagthold, dilate, element, cv::Point(-1, -1), 1); 
-    //cv::imshow("dilated", dilate);
-    //cv::waitKey(0);
-
-    // TODO: choose which image may give the best information, then try to use a sliding window approach
-    /*cv::Mat gmagthold;
-    cv::threshold( grad_magn, gmagthold, 100, 255,  cv::THRESH_BINARY);
-    cv::imshow("gmagthold", gmagthold);
-    cv::waitKey(0);
-
-    cv::Mat lap;
-    cv::Laplacian(gs,lap,CV_8U);
-
-    cv::Mat int1 = gy-gx+gammaCorrected2;
-    cv::imshow("Intermediate 1", gy-gx+gammaCorrected2);
-    cv::waitKey(0);
-
-    cv::Mat gythold;
-    cv::threshold( gy, gythold, 200, 255,  cv::THRESH_BINARY);
-    cv::imshow("gythold", gythold);
-    cv::waitKey(0);
-
-    cv::Mat res = lap + gythold;
-    cv::imshow("Laplacian + gradY", res);
-    cv::waitKey(0);
-    */
-
-    // Detect lines using Hough Line Transform
-    // std::vector<cv::Vec4i> lines;
-    // int minLen = 55;
-    // cv::HoughLinesP(edges, lines, 1, CV_PI / 180, 50, minLen, 20);
-
-    
-    // // Draw lines on the image
-    // for (const auto& line : lines) {
-    //     cv::line(warped_img, cv::Point(line[0], line[1]), cv::Point(line[2], line[3]), cv::Scalar(0, 255, 0), 2);
-    // }
-
-    // cv::imshow("Detected Lines", warped_img);
-    // cv::waitKey(0);
-
-
     std::vector<ParkingSpot> parkingSpots;
-
-    cv::Mat filteredImage;
-    cv::bilateralFilter(image, filteredImage, -1, 40, 10);
-
-    //cv::imshow("bilateral filtered", filteredImage);
-    //cv::waitKey(0);
-
-    cv::Mat gs;
-    cv::cvtColor(filteredImage, gs, cv::COLOR_BGR2GRAY);
-
-    //cv::imshow("grayscale", gs);
-    //cv::waitKey(0);
-
-    // Set the gamma value
-    double gammaValue = 1.25; // Example gamma value
-
-    // Apply gamma transformation
-    cv::Mat gammaCorrected1 = applyGammaTransform(gs, gammaValue);
-    // cv::imshow("gamma tf1", gammaCorrected1);
-    // cv::waitKey(0);
-
-    gammaValue = 2;
-    cv::Mat gammaCorrected2 = applyGammaTransform(gammaCorrected1, gammaValue);
-    // cv::imshow("gamma tf2", gammaCorrected2);
-    // cv::waitKey(0);
-
-    cv::Mat gsthold;
-    cv::threshold( gammaCorrected2, gsthold, 180, 255,  cv::THRESH_BINARY);
-    // cv::imshow("gsthold", gsthold);
-    // cv::waitKey(0);
-
-    // cv::Mat equalized;
-    // cv::equalizeHist(gs,equalized);
-
-    // cv::imshow("equalized", equalized);
-    // cv::waitKey(0);
-
-    // Apply Canny edge detection to find edges
-    cv::Mat gx;
-    cv::Sobel(gammaCorrected2, gx, CV_8U, 1,0);
-
-    // cv::imshow("gradient x", gx);
-    // cv::waitKey(0);
-
-    cv::Mat gy;
-    cv::Sobel(gammaCorrected2, gy, CV_8U, 0,1);
-
-    // cv::imshow("gradient y", gy);
-    // cv::waitKey(0);
-
-    cv::Mat grad_magn = gx + gy;
-
-    //cv::imshow("gradient magnitude", grad_magn);
-    //cv::waitKey(0);
-
-    cv::Mat medianblurred;
-    cv::bilateralFilter(grad_magn, medianblurred, -1, 20, 10);
-    //cv::imshow("median blurred", medianblurred);
-    //cv::waitKey(0);
-
-    cv::Mat gmagthold;
-    cv::threshold( medianblurred, gmagthold, 125, 255,  cv::THRESH_BINARY);
-    //cv::imshow("gmagthold", gmagthold);
-    //cv::waitKey(0);
-
-    cv::Mat element = cv::getStructuringElement( 
-                        cv::MORPH_RECT, cv::Size(3,3)); 
-    cv::Mat dilate; 
-    cv::dilate(gmagthold, dilate, element, cv::Point(-1, -1), 1); 
-    //cv::imshow("dilated", dilate);
-    //cv::waitKey(0);
-
-    // TODO: choose which image may give the best information, then try to use a sliding window approach
-    /*cv::Mat gmagthold;
-    cv::threshold( grad_magn, gmagthold, 100, 255,  cv::THRESH_BINARY);
-    cv::imshow("gmagthold", gmagthold);
-    cv::waitKey(0);
-
-    cv::Mat lap;
-    cv::Laplacian(gs,lap,CV_8U);
-
-    cv::Mat int1 = gy-gx+gammaCorrected2;
-    cv::imshow("Intermediate 1", gy-gx+gammaCorrected2);
-    cv::waitKey(0);
-
-    cv::Mat gythold;
-    cv::threshold( gy, gythold, 200, 255,  cv::THRESH_BINARY);
-    cv::imshow("gythold", gythold);
-    cv::waitKey(0);
-
-    cv::Mat res = lap + gythold;
-    cv::imshow("Laplacian + gradY", res);
-    cv::waitKey(0);
-    */
-
-    // Detect lines using Hough Line Transform
-    // std::vector<cv::Vec4i> lines;
-    // int minLen = 55;
-    // cv::HoughLinesP(edges, lines, 1, CV_PI / 180, 50, minLen, 20);
-
     
-    // // Draw lines on the image
-    // for (const auto& line : lines) {
-    //     cv::line(warped_img, cv::Point(line[0], line[1]), cv::Point(line[2], line[3]), cv::Scalar(0, 255, 0), 2);
-    // }
+    // Mean shift smoothing
+    cv::Mat preprocessed;
+    //cv::cvtColor(image, preprocessed, cv::COLOR_BGR2HSV);
+    cv::pyrMeanShiftFiltering(image, preprocessed, 5, 50);
+    cv::imshow("Preprocessed", preprocessed);
 
-    // cv::imshow("Detected Lines", warped_img);
-    // cv::waitKey(0);
-    
-    // Detect lines using Hough Line Transform
-    int minLen = 10;
-    cv::createTrackbar("Dil", "Detected Lines", nullptr, 200, 0);
-    cv::setTrackbarPos("Dil", "Detected Lines", minLen);
-    cv::imshow("Dilate", gmagthold);
+    // Canny
+    cv::Mat edges;
+    cv::Canny(preprocessed, edges, 200, 250);
+    cv::imshow("Canny", edges);
     cv::waitKey();
+   
+    // Detect lines using Hough Line Transform
+    int minLen = 20;
     std::vector<cv::Vec4i> lines;
-    cv::HoughLinesP(gmagthold, lines, 1, CV_PI / 2, 7, minLen, 30);
+    cv::HoughLinesP(edges, lines, 1, CV_PI / 2, 7, minLen, 30);
     // Denominator of CV_PI /... is the number of bins we have
     
     // Draw lines on the image
@@ -272,62 +61,7 @@ std::vector<ParkingSpot> detectParkingSpotInImage(const cv::Mat& image) {
 
     cv::imshow("Detected Lines", image);
     cv::waitKey(0);
-
-
     return parkingSpots;
-
-    /*
-    // Convert the image to grayscale
-    cv::Mat gray;
-    cv::cvtColor(filteredImage, gray, cv::COLOR_BGR2GRAY);
-
-    // Apply Canny edge detection to find edges
-    cv::Mat edges;
-    cv::Canny(gray, edges, 50, 150);
-
-    // Detect lines using Hough Line Transform
-    std::vector<cv::Vec4i> lines;
-    int minLen = 55;
-    cv::HoughLinesP(edges, lines, 1, CV_PI / 180, 50, minLen, 20);
-
-    
-    // Draw lines on the image
-    for (const auto& line : lines) {
-        cv::line(image, cv::Point(line[0], line[1]), cv::Point(line[2], line[3]), cv::Scalar(0, 255, 0), 2);
-    }
-
-    cv::imshow("Detected Lines", image);
-    cv::waitKey(0);
-
-    // Find contours of the areas bounded by the lines
-    std::vector<std::vector<cv::Point>> contours;
-    cv::findContours(edges, contours, cv::RETR_TREE, cv::CHAIN_APPROX_SIMPLE);
-
-    // Prepare to store the detected parking spots
-    int counter = 0;
-
-    // Process each contour to detect parking spots
-    for (const auto& contour : contours) {
-    if (contour.size() < 5) continue; // cv::fitEllipse requires at least 5 points
-
-    // Find the minimum area rectangle that encloses the contour
-    cv::RotatedRect rect = cv::minAreaRect(contour);
-    parkingSpots.push_back(ParkingSpot{counter, 0, rect});
-    counter++;
-    }
-
-    // TODO --> show the result (test)
-    for (const auto& spot : parkingSpots) {
-        cv::Point2f vertices[4];
-        spot.rect.points(vertices);
-        for (int i = 0; i < 4; ++i) {
-            cv::line(image, vertices[i], vertices[(i + 1) % 4], cv::Scalar(0, 255, 0), 2);
-        }
-    }
-    //cv::imshow("Detected Parking Spots", image);
-    //cv::waitKey(0);
-    return parkingSpots;
-    */
 }
 
 cv::Mat applyGammaTransform(const cv::Mat& src, double gamma) {
