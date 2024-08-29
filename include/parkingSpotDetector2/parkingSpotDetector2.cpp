@@ -252,42 +252,63 @@ std::vector<ParkingSpot> detectParkingSpotInImage2(const cv::Mat& image) {
             cv::imshow("gradient magnitude2", grad_magn);
             cv::waitKey(0);
 
-            cv::Mat test_kernel2(kheight,kwidth,CV_8U);
-            for(int i = 0; i< test_kernel2.rows; i++) {
-                for(int j = 0; j<test_kernel2.cols; j++) {
-                    if(j<8 || j>kwidth-8) {
-                        test_kernel2.at<uchar>(i,j) = 255;
-                    }
-                    else {
-                        test_kernel2.at<uchar>(i,j) = 0;
+            std::vector<float> scales = {0.5, 0.6, 0.7, 0.8, 0.9, 1, 1.1, 1.2, 1.3, 1.4,1.5};
+            for(int s = 0; s < scales.size(); s++) {
+                // build vertical template
+                cv::Mat test_kernel2(kheight,kwidth*scales[s],CV_8U);
+                cv::Mat mask(test_kernel2.rows, test_kernel2.cols, CV_8U);
+                for(int i = 0; i< test_kernel2.rows; i++) {
+                    for(int j = 0; j<test_kernel2.cols; j++) {
+                        if(j<8 || j>test_kernel2.cols-8) {
+                            test_kernel2.at<uchar>(i,j) = 255;
+                            mask.at<uchar>(i,j) = 255;
+                        }
+                        else {
+                            test_kernel2.at<uchar>(i,j) = 0;
+                            mask.at<uchar>(i,j) = 0;
+                        }
                     }
                 }
-            }
 
-            cv::imshow("template 2", test_kernel2);
+                cv::imshow("template 2", test_kernel2);
 
-            cv::Mat reshom;
-            cv::matchTemplate(gx,test_kernel2,reshom,cv::TM_SQDIFF, test_kernel2);
-            cv::normalize( reshom, reshom, 0, 1, cv::NORM_MINMAX, -1, cv::Mat() );
-//             reshom.setTo(1, reshom>0.2);
+                cv::Mat reshom;
+                cv::Mat edges;
+                cv::Canny(gx, edges, 250, 300);
+                cv::matchTemplate(edges,test_kernel2,reshom,cv::TM_SQDIFF, mask);
+                
+                double minVal; double maxVal; cv::Point minLoc; cv::Point maxLoc;
+                cv::minMaxLoc( reshom, &minVal, &maxVal, &minLoc, &maxLoc, cv::Mat() );
+                std::cout << minVal << ' ' << maxVal << std::endl;
+                std::cout<<minVal/maxVal << std::endl;
 
-            cv::imshow("mtemplate res", reshom);
-            cv::waitKey(0);
+                if(minVal/maxVal > 0.84) continue;
+    
+                cv::normalize( reshom, reshom, 0, 1, cv::NORM_MINMAX, -1, cv::Mat() );
+                cv::imshow("mtemplate res", reshom);
+                cv::waitKey(0);
+    //             reshom.setTo(1, reshom>0.2);
 
-            // Finding local minima
-            cv::Mat eroded;
-            std::vector<cv::Point> minima;
-            cv::Mat kernel = cv::getStructuringElement(cv::MORPH_RECT, cv::Size(kwidth, kheight));
-            cv::erode(reshom, eroded, kernel);
-            cv::Mat localMinimaMask = (reshom == eroded) & (reshom <= 0.2 );
+                // Finding local minima
+                cv::Mat eroded;
+                std::vector<cv::Point> minima;
+                cv::Mat kernel = cv::getStructuringElement(cv::MORPH_RECT, cv::Size(test_kernel2.cols, test_kernel2.rows));
+                cv::erode(reshom, eroded, kernel);
+                cv::Mat localMinimaMask = (reshom == eroded) & (reshom <= 0.3 );
 
-            cv::imshow("mtemplate eroded", eroded);
-            cv::waitKey(0);
+                cv::imshow("mtemplate eroded", eroded);
+                cv::waitKey(0);
 
-            // Find all non-zero points (local minima) in the mask
-            findNonZero(localMinimaMask, minima);
-            for (const cv::Point& pt : minima) {
-                cv::circle(gswrpd, pt, 3, cv::Scalar(255), 1); // Draw white circles at minima points
+                // Find all non-zero points (local minima) in the mask
+                findNonZero(localMinimaMask, minima);
+                for (const cv::Point& pt : minima) {
+                    cv::circle(gswrpd, pt, 3, cv::Scalar(255), 1); // Draw white circles at minima points
+
+                    cv::Rect bbox1(pt.x,pt.y, 8, test_kernel2.rows);
+                    cv::rectangle(gswrpd,bbox1, cv::Scalar(255));
+                }
+                cv::imshow("gswrpd2", gswrpd);
+                cv::waitKey(0);
             }
             cv::imshow("gswrpd2", gswrpd);
             cv::waitKey(0);
