@@ -161,8 +161,8 @@ std::vector<ParkingSpot> detectParkingSpotInImage2(const cv::Mat& image) {
             }
         }
 
-        //cv::imshow("added", test_kernel);
-        //cv::waitKey(0);
+        cv::imshow("added", test_kernel);
+        cv::waitKey(0);
 
         cv::Mat R = cv::getRotationMatrix2D(cv::Point2f(19,77),angles[k],1);
         cv::Mat rotated;
@@ -252,15 +252,48 @@ std::vector<ParkingSpot> detectParkingSpotInImage2(const cv::Mat& image) {
             cv::imshow("gradient magnitude2", grad_magn);
             cv::waitKey(0);
 
-            cv::imwrite("test.png", gx);
+            cv::Mat test_kernel2(kheight,kwidth,CV_8U);
+            for(int i = 0; i< test_kernel2.rows; i++) {
+                for(int j = 0; j<test_kernel2.cols; j++) {
+                    if(j<8 || j>kwidth-8) {
+                        test_kernel2.at<uchar>(i,j) = 255;
+                    }
+                    else {
+                        test_kernel2.at<uchar>(i,j) = 0;
+                    }
+                }
+            }
 
-            cv::imshow("Detected Lines", warped_img2);
+            cv::imshow("template 2", test_kernel2);
+
+            cv::Mat reshom;
+            cv::matchTemplate(gx,test_kernel2,reshom,cv::TM_SQDIFF, test_kernel2);
+            cv::normalize( reshom, reshom, 0, 1, cv::NORM_MINMAX, -1, cv::Mat() );
+//             reshom.setTo(1, reshom>0.2);
+
+            cv::imshow("mtemplate res", reshom);
             cv::waitKey(0);
 
+            // Finding local minima
+            cv::Mat eroded;
+            std::vector<cv::Point> minima;
+            cv::Mat kernel = cv::getStructuringElement(cv::MORPH_RECT, cv::Size(kwidth, kheight));
+            cv::erode(reshom, eroded, kernel);
+            cv::Mat localMinimaMask = (reshom == eroded) & (reshom <= 0.2 );
+
+            cv::imshow("mtemplate eroded", eroded);
+            cv::waitKey(0);
+
+            // Find all non-zero points (local minima) in the mask
+            findNonZero(localMinimaMask, minima);
+            for (const cv::Point& pt : minima) {
+                cv::circle(gswrpd, pt, 3, cv::Scalar(255), 1); // Draw white circles at minima points
+            }
+            cv::imshow("gswrpd2", gswrpd);
+            cv::waitKey(0);
         }
     }
-        cv::imshow("gs2", gs );
-        cv::waitKey(0);
+        
 
     return parkingSpots;
 }
