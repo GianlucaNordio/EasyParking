@@ -129,39 +129,43 @@ std::vector<ParkingSpot> detectParkingSpotInImage2(const cv::Mat& image) {
         cv::Mat tholdtest;
         cv::threshold( test, tholdtest, 0.1, 255,  cv::THRESH_BINARY_INV);
 
-        cv::imshow("match template thold", tholdtest);
+        //cv::imshow("match template thold", tholdtest);
+        //cv::waitKey(0);
+
+        // Finding local minima
+        cv::Mat eroded;
+        std::vector<cv::Point> minima;
+        cv::Mat kernel = cv::getStructuringElement(cv::MORPH_RECT, cv::Size(rotated.cols, rotated.rows));
+        cv::erode(test, eroded, kernel);
+        cv::Mat localMinimaMask = (test == eroded) & (test <= 0.1 );
+
+        cv::imshow("TM Result, eroded", eroded);
         cv::waitKey(0);
 
-        for(int i = 0; i<500; i++) {
-            double minVal; double maxVal; cv::Point minLoc; cv::Point maxLoc;
-            cv::minMaxLoc( test, &minVal, &maxVal, &minLoc, &maxLoc, cv::Mat() );
-            maxLoc = minLoc;
-            maxLocs.push_back(maxLoc);
-            cv::Point center;
-            center.x = maxLoc.x + 101*scales[k] / 2;
-            center.y = maxLoc.y + 55*scales[k] / 2;
-            centers.push_back(center);
-            test.at<float>(maxLoc) = 255;
-        }
+        // Find all non-zero points (local minima) in the mask
+        findNonZero(localMinimaMask, minima);
 
-        for(int i = 0; i<500; i++) {
-            cv::Point center = centers[i];
-            cv::RotatedRect rotatedRect(center, cv::Size(101*scales[k],55*scales[k]), -angles[k]);
-                    // Get the 4 vertices of the rotated rectangle
+        // Draw bboxes of the found lines
+        for (const cv::Point& pt : minima) {
+            // White circles at minima points
+            // cv::circle(gs, pt, 3, cv::Scalar(255), 1);
+
+            // Get center of the bbox to draw the rotated rect
+            cv::Point center;
+            center.x = pt.x+rotated.cols/2;
+            center.y = pt.y+rotated.rows/2;
+            
+            cv::RotatedRect rotatedRect(center, cv::Size(rotated.cols,rotated.rows), -angles[k]);
             cv::Point2f vertices[4];
             rotatedRect.points(vertices);
             // Draw the rotated rectangle using lines between its vertices
             for (int i = 0; i < 4; i++) {
-                cv::line(gs, vertices[i], vertices[(i+1) % 4], cv::Scalar(0, 255, 0), 2);
+                cv::line(image, vertices[i], vertices[(i+1) % 4], cv::Scalar(0, 255, 0), 2);
             }
-            parkingSpots.push_back(ParkingSpot{0,0,rotatedRect});
-
-            //cv::imshow("BBOX", gs);
-            //cv::waitKey(0);
         }
-    }
-        cv::imshow("gs2", gs );
+        cv::imshow("with lines", image);
         cv::waitKey(0);
+    }
 
     return parkingSpots;
 }
