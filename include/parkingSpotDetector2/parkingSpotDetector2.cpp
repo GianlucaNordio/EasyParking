@@ -65,6 +65,11 @@ std::vector<ParkingSpot> detectParkingSpotInImage2(const cv::Mat& image) {
 
     cv::Mat grad_magn = gx + gy;
 
+    cv::Mat lap;
+    cv::Laplacian(gammaCorrected2,lap,CV_8U);
+    cv::imshow("Laplacian", lap);
+    cv::waitKey(0);
+
     cv::imshow("gradient magnitude", grad_magn);
     cv::waitKey(0);
 
@@ -88,8 +93,9 @@ std::vector<ParkingSpot> detectParkingSpotInImage2(const cv::Mat& image) {
     cv::dilate(gmagthold, dilate, element, cv::Point(-1, -1), 1); 
     cv::imshow("dilated", dilate);
 
-    std::vector<int> angles = {-8, -9, -10, -11, -12, -15};
-    std::vector<float> scales = {0.75, 1, 1.05, 1.1, 1.2, 2};
+    std::vector<int> angles = {-8, -9, -10, -11, -12};
+    std::vector<float> scales = {0.75, 1, 1.05, 1.1, 1.2};
+    std::vector<cv::RotatedRect> line_boxes;
 
     for(int k = 0; k<angles.size(); k++) {
         // Template size
@@ -103,7 +109,7 @@ std::vector<ParkingSpot> detectParkingSpotInImage2(const cv::Mat& image) {
         // Build the template and mask
         for(int i = 0; i< horizontal_template.rows; i++) {
             for(int j = 0; j<horizontal_template.cols; j++) {
-                horizontal_template.at<uchar>(i,j) = 200;
+                horizontal_template.at<uchar>(i,j) = 255;
                 horizontal_mask.at<uchar>(i,j) = 255;
             }
         }
@@ -131,7 +137,7 @@ std::vector<ParkingSpot> detectParkingSpotInImage2(const cv::Mat& image) {
         //cv::waitKey(0);
 
         // use dilate or medianblurred or canny with 100-1000
-        cv::matchTemplate(medianblurred,rotated_template,tm_result,cv::TM_SQDIFF,rotated_mask);
+        cv::matchTemplate(dilate,rotated_template,tm_result,cv::TM_SQDIFF,rotated_mask);
         cv::normalize( tm_result, tm_result, 0, 1, cv::NORM_MINMAX, -1, cv::Mat() );
     
         cv::imshow("TM Result", tm_result);
@@ -142,7 +148,7 @@ std::vector<ParkingSpot> detectParkingSpotInImage2(const cv::Mat& image) {
         std::vector<cv::Point> minima;
         cv::Mat kernel = cv::getStructuringElement(cv::MORPH_RECT, cv::Size(rotated_width, rotated_height));
         cv::erode(tm_result, eroded, kernel);
-        cv::Mat localMinimaMask = (tm_result == eroded) & (tm_result <= 0.4 );
+        cv::Mat localMinimaMask = (tm_result == eroded) & (tm_result <= 0.6 );
 
         cv::imshow("TM Result, eroded", eroded);
         cv::waitKey(0);
@@ -159,11 +165,13 @@ std::vector<ParkingSpot> detectParkingSpotInImage2(const cv::Mat& image) {
             cv::Point center;
             center.x = pt.x+rotated_width/2;
             center.y = pt.y+rotated_height/2;
-            
+
             cv::RotatedRect rotatedRect(center, cv::Size(template_width,template_height), -angles[k]);
+            line_boxes.push_back(rotatedRect);
+
+            // Draw the rotated rectangle using lines between its vertices
             cv::Point2f vertices[4];
             rotatedRect.points(vertices);
-            // Draw the rotated rectangle using lines between its vertices
             for (int i = 0; i < 4; i++) {
                 cv::line(image, vertices[i], vertices[(i+1) % 4], cv::Scalar(0, 255, 0), 2);
             }
@@ -171,6 +179,35 @@ std::vector<ParkingSpot> detectParkingSpotInImage2(const cv::Mat& image) {
         cv::imshow("with lines", image);
         cv::waitKey(0);
     }
+
+    float scoreThreshold = 0.0f;  // Minimum score to keep
+    float nmsThreshold = 0.1f;    // IoU threshold for NMS
+    std::vector<float> scores(line_boxes.size(),0.1f);
+
+    // Vector to store indices of bounding boxes to keep after NMS
+    std::vector<int> indices;
+
+    // Apply NMS for rotated rectangles
+    cv::dnn::NMSBoxes(line_boxes, scores, scoreThreshold, nmsThreshold, indices);
+
+    // Draw the remaining boxes after NMS
+    for (int idx : indices) {
+        cv::RotatedRect& rect = line_boxes[idx];
+
+        // Draw the rotated rectangle
+        cv::Point2f vertices[4];
+        rect.points(vertices);
+        for (int j = 0; j < 4; j++) {
+            cv::line(image, vertices[j], vertices[(j + 1) % 4], cv::Scalar(0, 0, 255), 2);
+        }
+    }
+
+    // Display the image
+    cv::imshow("NMS Result", image);
+    cv::waitKey(0);
+
+    // O uso questo come centri di k-means, o non uso NMS e quando disegno un nuovo rotatedrect controllo che il suo match sia migliore di quello precedente
+    // rispetto al bbox che gli è più vicino
 
     return parkingSpots;
 }

@@ -3,6 +3,7 @@
 
 #include "../parkingSpot/parkingSpot.hpp"
 #include <opencv2/opencv.hpp>
+#include <opencv2/dnn/dnn.hpp>
 #include <vector>
 #include <algorithm>
 #include <math.h>
