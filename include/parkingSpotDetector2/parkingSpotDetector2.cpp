@@ -21,7 +21,7 @@ std::vector<ParkingSpot> detectParkingSpotInImage2(const cv::Mat& image) {
     cv::waitKey(0);
 
     cv::Mat gs;
-    cv::cvtColor(filteredImage, gs, cv::COLOR_BGR2GRAY);
+    cv::cvtColor(image, gs, cv::COLOR_BGR2GRAY);
 
     cv::imshow("grayscale", gs);
     cv::waitKey(0);
@@ -94,13 +94,13 @@ std::vector<ParkingSpot> detectParkingSpotInImage2(const cv::Mat& image) {
     cv::imshow("dilated", dilate);
 
     std::vector<int> angles = {-8, -9, -10, -11, -12};
-    std::vector<float> scales = {0.75, 1, 1.05, 1.1, 1.2};
+    std::vector<float> scales = {0.75, 1, 1.01, 1.1, 1.2};
     std::vector<cv::RotatedRect> line_boxes;
 
     for(int k = 0; k<angles.size(); k++) {
         // Template size
         int template_height = 5;
-        int template_width = 100*scales[k];
+        int template_width = 150*scales[k];
 
         // Horizontal template and mask definition
         cv::Mat horizontal_template(template_height,template_width,CV_8U);
@@ -191,24 +191,73 @@ std::vector<ParkingSpot> detectParkingSpotInImage2(const cv::Mat& image) {
     cv::dnn::NMSBoxes(line_boxes, scores, scoreThreshold, nmsThreshold, indices);
 
     // Draw the remaining boxes after NMS
+    std::vector<cv::Point2f> nms_centers;
+
     for (int idx : indices) {
         cv::RotatedRect& rect = line_boxes[idx];
+        nms_centers.push_back(rect.center);
+    }
 
-        // Draw the rotated rectangle
-        cv::Point2f vertices[4];
-        rect.points(vertices);
-        for (int j = 0; j < 4; j++) {
-            cv::line(image, vertices[j], vertices[(j + 1) % 4], cv::Scalar(0, 0, 255), 2);
+    // Average min distance
+    double sumOfMinDistances = 0.0;
+    // Iterate through each point in the vector
+    for (size_t i = 0; i < nms_centers.size(); ++i) {
+        double minDistance = std::numeric_limits<double>::max(); // Initialize with the maximum possible value
+
+        // Find the minimum distance to any other point
+        for (size_t j = 0; j < nms_centers.size(); ++j) {
+            if (i != j) { // Don't compare the point to itself
+                double distance = cv::norm(nms_centers[i] - nms_centers[j]);
+                if (distance < minDistance) {
+                    minDistance = distance;
+                }
+            }
+        }
+
+        sumOfMinDistances += minDistance;
+    }
+
+    // Compute the average minimum distance
+    double averageMinDistance = sumOfMinDistances / nms_centers.size();
+    std::cout << averageMinDistance << std::endl;
+
+    // Remove nms centers too close or too far from eachother
+    for (int idx : indices) {
+        cv::RotatedRect& rect = line_boxes[idx];
+        double minDistance = std::numeric_limits<double>::max(); // Initialize with the maximum possible value
+        int closest;
+
+        // Find the minimum distance to any other point
+        for (int j: indices) {
+            if (idx != j) { // Don't compare the point to itself
+                double distance = cv::norm(rect.center - line_boxes[j].center);
+                if (distance < minDistance) {
+                    minDistance = distance;
+                    closest = j;
+                }
+            }
+        }
+
+        std::cout << minDistance << std::endl;
+
+        /*if(minDistance < averageMinDistance/2 || minDistance > averageMinDistance*2) {
+            indices.erase(std::find(indices.begin(),indices.end(),idx));
+        }*/
+        if(minDistance > averageMinDistance/2 && minDistance < averageMinDistance*2) {
+            // Draw the rotated rectangle
+            cv::Point2f vertices[4];
+            rect.points(vertices);
+            for (int j = 0; j < 4; j++) {
+                cv::line(image, vertices[j], vertices[(j + 1) % 4], cv::Scalar(0, 0, 255), 2);
+            }
         }
     }
 
+    // O uso questo come centri di k-means, o non uso NMS e quando disegno un nuovo rotatedrect controllo che il suo match sia migliore di quello precedente
+    // rispetto al bbox che gli è più vicino
     // Display the image
     cv::imshow("NMS Result", image);
     cv::waitKey(0);
-
-    // O uso questo come centri di k-means, o non uso NMS e quando disegno un nuovo rotatedrect controllo che il suo match sia migliore di quello precedente
-    // rispetto al bbox che gli è più vicino
-
     return parkingSpots;
 }
 
