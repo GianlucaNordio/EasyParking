@@ -26,6 +26,10 @@ std::vector<ParkingSpot> detectParkingSpotInImage2(const cv::Mat& image) {
     cv::imshow("grayscale", gs);
     cv::waitKey(0);
 
+    cv::Mat stretched = contrastStretchTransform(gs);
+    cv::imshow("stretched", stretched);
+    cv::waitKey(0);
+
     // Set the gamma value
     double gammaValue = 1.25; // Example gamma value
 
@@ -44,12 +48,6 @@ std::vector<ParkingSpot> detectParkingSpotInImage2(const cv::Mat& image) {
     // cv::imshow("gsthold", gsthold);
     // cv::waitKey(0);
 
-    cv::Mat equalized;
-    cv::equalizeHist(gammaCorrected2,equalized);
-    cv::imshow("equalized", equalized);
-    cv::waitKey(0);
-
-    // Apply Canny edge detection to find edges
     cv::Mat gx;
     cv::Sobel(gammaCorrected2, gx, CV_16S, 1,0);
 
@@ -61,13 +59,40 @@ std::vector<ParkingSpot> detectParkingSpotInImage2(const cv::Mat& image) {
     cv::convertScaleAbs(gx, abs_grad_x);
     cv::convertScaleAbs(gy, abs_grad_y);
 
-    cv::imshow("gradient x", abs_grad_x);
+    cv::imshow("gradient x gamma", abs_grad_x);
     cv::waitKey(0);
-    cv::imshow("gradient y", abs_grad_y);
+    cv::imshow("gradient y gamma", abs_grad_y);
     cv::waitKey(0);
 
     cv::Mat grad_magn;
     cv::addWeighted(abs_grad_x, 0.5, abs_grad_y, 0.5, 0, grad_magn);
+
+    cv::Mat equalized;
+    cv::equalizeHist(gammaCorrected2,equalized);
+    cv::imshow("equalized", equalized);
+    cv::waitKey(0);
+
+    cv::Mat equalized_filt;
+    cv::bilateralFilter(equalized,equalized_filt, -1,40,10);
+
+    cv::Mat gxeq;
+    cv::Sobel(equalized_filt, gxeq, CV_16S, 1,1);
+
+    cv::Mat gyeq;
+    cv::Sobel(equalized_filt, gyeq, CV_16S, 0,1);
+
+    cv::Mat abs_grad_xeq;
+    cv::Mat abs_grad_yeq;
+    cv::convertScaleAbs(gxeq, abs_grad_xeq);
+    cv::convertScaleAbs(gyeq, abs_grad_yeq);
+
+    cv::imshow("gradient x eq", abs_grad_xeq);
+    cv::waitKey(0);
+    cv::imshow("gradient y eq", abs_grad_yeq);
+    cv::waitKey(0);
+
+    cv::Mat grad_magneq;
+    cv::addWeighted(abs_grad_xeq, 0.5, abs_grad_yeq, 0.5, 0, grad_magneq);
 
     cv::Mat laplacian;
     cv::Laplacian(equalized, laplacian, CV_32F);  // Use CV_32F to avoid overflow
@@ -84,11 +109,14 @@ std::vector<ParkingSpot> detectParkingSpotInImage2(const cv::Mat& image) {
     cv::waitKey(0);  // Wait for a key press indefinitely
 
     cv::Mat filtered_laplacian;
-    cv::bilateralFilter(normalized_abs_laplacian, filtered_laplacian, -1, 20, 10);
+    cv::bilateralFilter(normalized_abs_laplacian, filtered_laplacian, -1, 10, 10);
     cv::imshow("filtered laplacian", filtered_laplacian);
     cv::waitKey(0);
 
     cv::imshow("gradient magnitude", grad_magn);
+    cv::waitKey(0);
+
+    cv::imshow("gradient magnitude eq", grad_magneq);
     cv::waitKey(0);
 
     cv::Mat medianblurred;
@@ -107,6 +135,33 @@ std::vector<ParkingSpot> detectParkingSpotInImage2(const cv::Mat& image) {
     cv::Mat dilate; 
     cv::dilate(gmagthold, dilate, element, cv::Point(-1, -1), 1); 
     cv::imshow("dilated", dilate);
+
+/*
+   std::vector<int> angles = {-8, -9, -10, -11, -12, -13};
+    std::vector<float> scales = {0.75, 1, 1.05, 1.1, 1.2, 2};
+    std::vector<cv::RotatedRect> line_boxes;
+
+    for(int k = 0; k<angles.size(); k++) {
+        // Template size
+        int template_height = 5*2+20*scales[k]*scales[k];
+        int template_width = 100*scales[k];
+
+        // Horizontal template and mask definition
+        cv::Mat horizontal_template(template_height,template_width,CV_8U);
+        cv::Mat horizontal_mask(template_height,template_width,CV_8U);
+
+        // Build the template and mask
+        for(int i = 0; i< horizontal_template.rows; i++) {
+            for(int j = 0; j<horizontal_template.cols; j++) {
+                uchar val = 0;
+                if(i < 5 || (i > template_height-5) || j > template_width-5) {
+                    val = 255;
+                }
+                horizontal_mask.at<uchar>(i,j) = val;
+                horizontal_template.at<uchar>(i,j) = val;
+            }
+        }
+*/
 
     std::vector<int> angles = {-8, -9, -10, -11, -12};
     std::vector<float> scales = {0.75, 1, 1.01, 1.1, 1.2};
@@ -282,6 +337,27 @@ cv::Mat applyGammaTransform(const cv::Mat& src, double gamma) {
     uchar* p = lookupTable.ptr();
     for (int i = 0; i < 256; ++i) {
         p[i] = cv::saturate_cast<uchar>(pow(i / 255.0, gamma) * 255.0);
+    }
+
+    cv::Mat dst;
+    // Apply the lookup table to the source image
+    cv::LUT(src, lookupTable, dst);
+
+    return dst;
+}
+
+cv::Mat contrastStretchTransform(const cv::Mat& src) {
+    // Create a lookup table for faster processing
+    cv::Mat lookupTable(1, 256, CV_8U);
+    uchar* p = lookupTable.ptr();
+    for (int i = 0; i < 256; ++i) {
+        if(i < 80) {
+            p[i] = cv::saturate_cast<uchar>(i/4);
+        }
+        else {
+            p[i] = i;
+        }
+        
     }
 
     cv::Mat dst;
