@@ -31,55 +31,70 @@ std::vector<ParkingSpot> detectParkingSpotInImage2(const cv::Mat& image) {
 
     // Apply gamma transformation
     cv::Mat gammaCorrected1 = applyGammaTransform(gs, gammaValue);
-    // cv::imshow("gamma tf1", gammaCorrected1);
-    // cv::waitKey(0);
+    cv::imshow("gamma tf1", gammaCorrected1);
+    cv::waitKey(0);
 
     gammaValue = 2;
     cv::Mat gammaCorrected2 = applyGammaTransform(gammaCorrected1, gammaValue);
-    // cv::imshow("gamma tf2", gammaCorrected2);
-    // cv::waitKey(0);
+    cv::imshow("gamma tf2", gammaCorrected2);
+    cv::waitKey(0);
 
     cv::Mat gsthold;
     cv::threshold( gammaCorrected2, gsthold, 180, 255,  cv::THRESH_BINARY);
     // cv::imshow("gsthold", gsthold);
     // cv::waitKey(0);
 
-    // cv::Mat equalized;
-    // cv::equalizeHist(gs,equalized);
-
-    // cv::imshow("equalized", equalized);
-    // cv::waitKey(0);
+    cv::Mat equalized;
+    cv::equalizeHist(gammaCorrected2,equalized);
+    cv::imshow("equalized", equalized);
+    cv::waitKey(0);
 
     // Apply Canny edge detection to find edges
     cv::Mat gx;
-    cv::Sobel(gammaCorrected2, gx, CV_8U, 1,0);
-
-    // cv::imshow("gradient x", gx);
-    // cv::waitKey(0);
+    cv::Sobel(gammaCorrected2, gx, CV_16S, 1,0);
 
     cv::Mat gy;
-    cv::Sobel(gammaCorrected2, gy, CV_8U, 0,1);
+    cv::Sobel(gammaCorrected1, gy, CV_16S, 0,1);
 
-    // cv::imshow("gradient y", gy);
-    // cv::waitKey(0);
+    cv::Mat abs_grad_x;
+    cv::Mat abs_grad_y;
+    cv::convertScaleAbs(gx, abs_grad_x);
+    cv::convertScaleAbs(gy, abs_grad_y);
 
-    cv::Mat grad_magn = gx + gy;
+    cv::imshow("gradient x", abs_grad_x);
+    cv::waitKey(0);
+    cv::imshow("gradient y", abs_grad_y);
+    cv::waitKey(0);
 
-    cv::Mat lap;
-    cv::Laplacian(gammaCorrected2,lap,CV_8U);
-    cv::imshow("Laplacian", lap);
+    cv::Mat grad_magn;
+    cv::addWeighted(abs_grad_x, 0.5, abs_grad_y, 0.5, 0, grad_magn);
+
+    cv::Mat laplacian;
+    cv::Laplacian(equalized, laplacian, CV_32F);  // Use CV_32F to avoid overflow
+
+    // Compute the absolute value of the Laplacian
+    cv::Mat abs_laplacian;
+    cv::convertScaleAbs(laplacian, abs_laplacian); // Convert to absolute value
+
+    // Normalize the result to range [0, 255] for visualization
+    cv::Mat normalized_abs_laplacian;
+    cv::normalize(abs_laplacian, normalized_abs_laplacian, 0, 255, cv::NORM_MINMAX, CV_8U);
+
+    cv::imshow("Normalized Absolute Laplacian", normalized_abs_laplacian);  // Normalized for grayscale
+    cv::waitKey(0);  // Wait for a key press indefinitely
+
+    cv::Mat filtered_laplacian;
+    cv::bilateralFilter(normalized_abs_laplacian, filtered_laplacian, -1, 20, 10);
+    cv::imshow("filtered laplacian", filtered_laplacian);
     cv::waitKey(0);
 
     cv::imshow("gradient magnitude", grad_magn);
     cv::waitKey(0);
 
-    cv::imwrite("grad_magn.png", grad_magn);
-
     cv::Mat medianblurred;
-    cv::bilateralFilter(grad_magn, medianblurred, -1, 20, 10);
-    //cv::imshow("median blurred", medianblurred);
-    //cv::waitKey(0);
-    cv::imwrite("grad_magn_filt.png", medianblurred);
+    cv::bilateralFilter(grad_magn+normalized_abs_laplacian, medianblurred, -1, 20, 10);
+    cv::imshow("bilateral filtered2", medianblurred);
+    cv::waitKey(0);
 
 
     cv::Mat gmagthold;
