@@ -105,7 +105,7 @@ std::vector<ParkingSpot> detectParkingSpotInImage2(const cv::Mat& image) {
     cv::Mat normalized_abs_laplacian;
     cv::normalize(abs_laplacian, normalized_abs_laplacian, 0, 255, cv::NORM_MINMAX, CV_8U);
 
-    cv::imshow("Normalized Absolute Laplacian", normalized_abs_laplacian);  // Normalized for grayscale
+    cv::imshow("Normalized Absolute Laplacian", gammaCorrected2+normalized_abs_laplacian);  // Normalized for grayscale
     cv::waitKey(0);  // Wait for a key press indefinitely
 
     cv::Mat filtered_laplacian;
@@ -117,7 +117,7 @@ std::vector<ParkingSpot> detectParkingSpotInImage2(const cv::Mat& image) {
     cv::waitKey(0);
 
     cv::Mat medianblurred;
-    cv::medianBlur(grad_magn+filtered_laplacian, medianblurred, 3);
+    cv::medianBlur(grad_magn, medianblurred, 3);
     cv::Mat bilateralblurred;
     cv::bilateralFilter(medianblurred, bilateralblurred, -1,20,10);
     cv::imshow("bilateral filtered2", bilateralblurred);
@@ -132,7 +132,7 @@ std::vector<ParkingSpot> detectParkingSpotInImage2(const cv::Mat& image) {
     cv::Mat element = cv::getStructuringElement( 
                         cv::MORPH_RECT, cv::Size(3,3)); 
     cv::Mat dilate; 
-    cv::dilate(gmagthold, dilate, element, cv::Point(-1, -1), 3); 
+    cv::dilate(gmagthold, dilate, element, cv::Point(-1, -1), 4); 
     cv::imshow("dilated", dilate);
 
 /*
@@ -170,18 +170,20 @@ std::vector<ParkingSpot> detectParkingSpotInImage2(const cv::Mat& image) {
 
     for(int k = 0; k<angles.size(); k++) {
         // Template size
-        int template_height = 70*scales[k];
-        int template_width = 70*scales[k];
+        int template_height = 17;
+        int template_width = 120*scales[k];
 
         // Horizontal template and mask definition
-        cv::Mat horizontal_template(template_height,template_width,CV_8U);
-        cv::Mat horizontal_mask(template_height,template_width,CV_8U);
+        cv::Mat horizontal_template(template_height,template_width,CV_8U,cv::Scalar(0));
+        cv::Mat horizontal_mask(template_height,template_width,CV_8U,cv::Scalar(0));
 
         // Build the template and mask
         for(int i = 0; i< horizontal_template.rows; i++) {
             for(int j = 0; j<horizontal_template.cols; j++) {
+                if(i > 4 && i < template_height -4 && j > 4 && j < template_width-4) {
                 horizontal_template.at<uchar>(i,j) = 255;
                 horizontal_mask.at<uchar>(i,j) = 255;
+                }
             }
         }
 
@@ -219,7 +221,7 @@ std::vector<ParkingSpot> detectParkingSpotInImage2(const cv::Mat& image) {
         std::vector<cv::Point> minima;
         cv::Mat kernel = cv::getStructuringElement(cv::MORPH_RECT, cv::Size(rotated_width, rotated_height));
         cv::erode(tm_result, eroded, kernel);
-        cv::Mat localMinimaMask = (tm_result == eroded) & (tm_result <= 0.2 );
+        cv::Mat localMinimaMask = (tm_result == eroded) & (tm_result <= 0.1 );
 
         cv::imshow("TM Result, eroded", eroded);
         cv::waitKey(0);
@@ -316,7 +318,7 @@ std::vector<ParkingSpot> detectParkingSpotInImage2(const cv::Mat& image) {
         /*if(minDistance < averageMinDistance/2 || minDistance > averageMinDistance*2) {
             indices.erase(std::find(indices.begin(),indices.end(),idx));
         }*/
-        if(minDistance > averageMinDistance/2 && minDistance < averageMinDistance*2) {
+        if(minDistance < averageMinDistance*2) {
             // Draw the rotated rectangle
             cv::Point2f vertices[4];
             rect.points(vertices);
@@ -334,15 +336,106 @@ std::vector<ParkingSpot> detectParkingSpotInImage2(const cv::Mat& image) {
 
     std::vector<cv::Point2f> hull;
     cv::convexHull(verts, hull);
+    cv::Mat hull_image(image.rows, image.cols, CV_8U);
 
     // Draw the convex hull
+    std::vector<std::pair<double, std::pair<cv::Point2f, cv::Point2f>>> hullLines;    
     for (size_t i = 0; i < hull.size(); i++) {
-        cv::line(image, hull[i], hull[(i + 1) % hull.size()], cv::Scalar(255, 0, 0), 2);
+        cv::Point2f p1 = hull[i];
+        cv::Point2f p2 = hull[(i + 1) % hull.size()]; // Wrap around to form a closed hull
+        double distance = cv::norm(p1-p2);
+        hullLines.push_back(std::make_pair(distance, std::make_pair(p1, p2)));
+
+        cv::line(dilate, hull[i], hull[(i + 1) % hull.size()], 255, 2);
+        cv::line(hull_image, hull[i], hull[(i + 1) % hull.size()], 255, 2);
     }
+
+    cv::imshow("hull image",hull_image);
+
+    // Sort the lines by their length in descending order
+    std::sort(hullLines.begin(), hullLines.end(), [](const auto& a, const auto& b) {
+        return a.first > b.first;
+    });
+
+    std::vector<double> ms;
+    std::vector<double> bs;
+    
+    // Highlight the 4 longest lines in red
+    for (size_t i = 0; i < std::min(hullLines.size(), size_t(4)); i++) {
+        auto& line = hullLines[i];
+        double m = static_cast<double>(line.second.second.y - line.second.first.y) / (line.second.second.x - line.second.first.x);
+        double b = line.second.first.y - m * line.second.first.x;
+        ms.push_back(m);
+        bs.push_back(b);
+        cv::line(image, line.second.first, line.second.second, cv::Scalar(0, 0, 255), (i+1)*(i+1));
+    }
+
+    std::vector<cv::Point2f> hom_points;
+    // Check all pairs of lines for intersections
+    for (size_t i = 0; i < ms.size(); ++i) {
+        for (size_t j = i + 1; j < ms.size(); ++j) {
+            double m1 = ms[i];
+            double b1 = bs[i];
+            double m2 = ms[j];
+            double b2 = bs[j];
+
+            std::cout << "Lines " << i << " m: "<< m1 << " and " << j << " m: " << m2 << std::endl;
+            // Check if lines are parallel (have the same slope)
+            if ((m1 < 0) == (m2 < 0)) {
+                std::cout << "Lines " << i << " and " << j << " are parallel and do not intersect." << std::endl;
+                continue;
+            }
+
+            // Calculate intersection point (x, y)
+            double x = (b2 - b1) / (m1 - m2);
+            double y = m1 * x + b1;
+
+            if(x<0) x = 0;
+            if(x >= image.cols) x = image.cols-1;
+            if(y <0) y = 0;
+            if(y >= image.rows) y = image.rows -1;
+
+            // Check if the intersection point is inside the image
+            if (x >= 0 && x < image.cols && y >= 0 && y < image.rows) {
+                cv::circle(image, cv::Point(static_cast<int>(x), static_cast<int>(y)), 5, cv::Scalar(0, 0, 255), -1);
+                hom_points.push_back(cv::Point2f(static_cast<int>(x), static_cast<int>(y)));
+            } else {
+                std::cout << "Intersection of lines " << i << " and " << j 
+                          << " is at (" << x << ", " << y << ") and is outside the image." << std::endl;
+            }
+        }
+    }
+
+    // Iterate over the points to determine the corners
+    for (const auto& point : hom_points) {
+            std::cout << point << std::endl;
+    }
+
+    std::vector<cv::Point2f> to_hom_points = {cv::Point2f(999,0), cv::Point2f(999,999), cv::Point2f(0,0), cv::Point2f(0,999)};
+    cv::Mat F = cv::findHomography(hom_points, to_hom_points);
+
+    cv::Mat result(1000, 1000, CV_8U);
+    cv::warpPerspective(gs, result, F, cv::Size(1000,1000));
+    cv::imshow("result", result);
 
     // Show the image
     cv::imshow("Convex Hull", image);
     cv::waitKey(0);
+
+    cv::Mat reverse;
+    cv::threshold(dilate,reverse, 1, 255, cv::THRESH_BINARY_INV);
+    // Perform the distance transform algorithm
+    cv::Mat dist;
+    cv::distanceTransform(reverse, dist, cv::DIST_L2, 3);
+ 
+    cv::imshow("reverse",reverse);
+    
+    cv::waitKey(0);
+    
+    // Normalize the distance image for range = {0.0, 1.0}
+    // so we can visualize and threshold it
+    cv::normalize(dist, dist, 0, 1.0, cv::NORM_MINMAX);
+    cv::imshow("Distance Transform Image", dist);
 
     return parkingSpots;
 }
