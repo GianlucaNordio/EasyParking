@@ -116,24 +116,23 @@ std::vector<ParkingSpot> detectParkingSpotInImage2(const cv::Mat& image) {
     cv::imshow("gradient magnitude", grad_magn);
     cv::waitKey(0);
 
-    cv::imshow("gradient magnitude eq", grad_magneq);
-    cv::waitKey(0);
-
     cv::Mat medianblurred;
-    cv::bilateralFilter(grad_magn+normalized_abs_laplacian, medianblurred, -1, 20, 10);
-    cv::imshow("bilateral filtered2", medianblurred);
+    cv::medianBlur(grad_magn+filtered_laplacian, medianblurred, 3);
+    cv::Mat bilateralblurred;
+    cv::bilateralFilter(medianblurred, bilateralblurred, -1,20,10);
+    cv::imshow("bilateral filtered2", bilateralblurred);
     cv::waitKey(0);
 
 
     cv::Mat gmagthold;
-    cv::threshold( medianblurred, gmagthold, 125, 255,  cv::THRESH_BINARY);
+    cv::threshold( medianblurred, gmagthold, 110, 255,  cv::THRESH_BINARY);
     //cv::imshow("gmagthold", gmagthold);
     //cv::waitKey(0);
 
     cv::Mat element = cv::getStructuringElement( 
                         cv::MORPH_RECT, cv::Size(3,3)); 
     cv::Mat dilate; 
-    cv::dilate(gmagthold, dilate, element, cv::Point(-1, -1), 1); 
+    cv::dilate(gmagthold, dilate, element, cv::Point(-1, -1), 3); 
     cv::imshow("dilated", dilate);
 
 /*
@@ -163,6 +162,7 @@ std::vector<ParkingSpot> detectParkingSpotInImage2(const cv::Mat& image) {
         }
 */
 
+    // Maybe with an omography the trees are not in the middle of the dick
     std::vector<int> angles = {-8, -9, -10, -11, -12};
     std::vector<float> scales = {0.75, 1, 1.01, 1.1, 1.2};
     std::vector<cv::RotatedRect> line_boxes;
@@ -170,8 +170,8 @@ std::vector<ParkingSpot> detectParkingSpotInImage2(const cv::Mat& image) {
 
     for(int k = 0; k<angles.size(); k++) {
         // Template size
-        int template_height = 5;
-        int template_width = 120*scales[k];
+        int template_height = 70*scales[k];
+        int template_width = 70*scales[k];
 
         // Horizontal template and mask definition
         cv::Mat horizontal_template(template_height,template_width,CV_8U);
