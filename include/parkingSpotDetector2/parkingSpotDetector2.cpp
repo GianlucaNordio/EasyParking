@@ -73,13 +73,13 @@ std::vector<ParkingSpot> detectParkingSpotInImage2(const cv::Mat& image) {
     cv::waitKey(0);
 
     cv::Mat equalized_filt;
-    cv::bilateralFilter(equalized,equalized_filt, -1,40,10);
+    cv::GaussianBlur(equalized,equalized_filt, cv::Size(5,5),30);
 
     cv::Mat gxeq;
-    cv::Sobel(equalized_filt, gxeq, CV_16S, 1,1);
+    cv::Sobel(stretched, gxeq, CV_16S, 1,0);
 
     cv::Mat gyeq;
-    cv::Sobel(equalized_filt, gyeq, CV_16S, 0,1);
+    cv::Sobel(stretched, gyeq, CV_16S, 0,1);
 
     cv::Mat abs_grad_xeq;
     cv::Mat abs_grad_yeq;
@@ -218,7 +218,7 @@ std::vector<ParkingSpot> detectParkingSpotInImage2(const cv::Mat& image) {
         std::vector<cv::Point> minima;
         cv::Mat kernel = cv::getStructuringElement(cv::MORPH_RECT, cv::Size(rotated_width, rotated_height));
         cv::erode(tm_result, eroded, kernel);
-        cv::Mat localMinimaMask = (tm_result == eroded) & (tm_result <= 0.6 );
+        cv::Mat localMinimaMask = (tm_result == eroded) & (tm_result <= 0.2 );
 
         cv::imshow("TM Result, eroded", eroded);
         cv::waitKey(0);
@@ -328,6 +328,95 @@ std::vector<ParkingSpot> detectParkingSpotInImage2(const cv::Mat& image) {
     // Display the image
     cv::imshow("NMS Result", image);
     cv::waitKey(0);
+
+    cv::Mat reverse;
+    cv::threshold(dilate,reverse, 1, 255, cv::THRESH_BINARY_INV);
+    // Perform the distance transform algorithm
+    cv::Mat dist;
+    cv::distanceTransform(reverse, dist, cv::DIST_L2, 3);
+ 
+    cv::imshow("reverse",reverse);
+    cv::waitKey(0);
+    
+    // Normalize the distance image for range = {0.0, 1.0}
+    // so we can visualize and threshold it
+    cv::normalize(dist, dist, 0, 1.0, cv::NORM_MINMAX);
+    cv::imshow("Distance Transform Image", dist);
+
+    // Threshold to obtain the peaks
+    // This will be the markers for the foreground objects
+    cv::threshold(dist, dist, 0.4, 1.0, cv::THRESH_BINARY);
+ 
+    // Dilate a bit the dist image
+    cv::Mat kernel1 = cv::Mat::ones(3, 3, CV_8U);
+    cv::dilate(dist, dist, kernel1);
+    cv::imshow("Peaks", dist);
+ 
+    // Create the CV_8U version of the distance image
+    // It is needed for findContours()
+    cv::Mat dist_8u;
+    dist.convertTo(dist_8u, CV_8U);
+ 
+    // Find total markers
+    std::vector<std::vector<cv::Point> > contours;
+    cv::findContours(dist_8u, contours, cv::RETR_EXTERNAL, cv::CHAIN_APPROX_SIMPLE);
+ 
+    // Create the marker image for the watershed algorithm
+    cv::Mat markers = cv::Mat::zeros(dist.size(), CV_32S);
+ 
+    // Draw the foreground markers
+    for (size_t i = 0; i < contours.size(); i++)
+    {
+        cv::drawContours(markers, contours, static_cast<int>(i), cv::Scalar(static_cast<int>(i)+1), -1);
+    }
+ 
+    // Draw the background marker
+    cv::circle(markers, cv::Point(5,5), 3, cv::Scalar(255), -1);
+    cv::Mat markers8u;
+    markers.convertTo(markers8u, CV_8U, 10);
+    cv::imshow("Markers", markers8u);
+
+    // Perform the watershed algorithm
+    cv::watershed(image, markers);
+ 
+    cv::Mat mark;
+    markers.convertTo(mark, CV_8U);
+    cv::bitwise_not(mark, mark);
+    //    imshow("Markers_v2", mark); // uncomment this if you want to see how the mark
+    // image looks like at that point
+ 
+    // Generate random colors
+    std::vector<cv::Vec3b> colors;
+    for (size_t i = 0; i < contours.size(); i++)
+    {
+        int b = cv::theRNG().uniform(0, 256);
+        int g = cv::theRNG().uniform(0, 256);
+        int r = cv::theRNG().uniform(0, 256);
+ 
+        colors.push_back(cv::Vec3b((uchar)b, (uchar)g, (uchar)r));
+    }
+ 
+    // Create the result image
+    cv::Mat dst = cv::Mat::zeros(markers.size(), CV_8UC3);
+ 
+    // Fill labeled objects with random colors
+    for (int i = 0; i < markers.rows; i++)
+    {
+        for (int j = 0; j < markers.cols; j++)
+        {
+            int index = markers.at<int>(i,j);
+            if (index > 0 && index <= static_cast<int>(contours.size()))
+            {
+                dst.at<cv::Vec3b>(i,j) = colors[index-1];
+            }
+        }
+    }
+ 
+    // Visualize the final image
+    cv::imshow("Final Result", dst);
+ 
+    cv::waitKey();
+
     return parkingSpots;
 }
 
@@ -355,7 +444,7 @@ cv::Mat contrastStretchTransform(const cv::Mat& src) {
             p[i] = cv::saturate_cast<uchar>(i/4);
         }
         else {
-            p[i] = i;
+            p[i] = cv::saturate_cast<uchar>(i*2);
         }
         
     }
