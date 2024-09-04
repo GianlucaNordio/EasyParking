@@ -117,22 +117,26 @@ std::vector<ParkingSpot> detectParkingSpotInImage2(const cv::Mat& image) {
     cv::waitKey(0);
 
     cv::Mat medianblurred;
-    cv::medianBlur(grad_magn, medianblurred, 3);
+    cv::medianBlur(filtered_laplacian+grad_magn, medianblurred, 3);
     cv::Mat bilateralblurred;
     cv::bilateralFilter(medianblurred, bilateralblurred, -1,20,10);
     cv::imshow("bilateral filtered2", bilateralblurred);
     cv::waitKey(0);
 
+    cv::Mat element = cv::getStructuringElement( 
+                        cv::MORPH_RECT, cv::Size(3,3)); 
 
-    cv::Mat gmagthold;
-    cv::threshold( medianblurred, gmagthold, 110, 255,  cv::THRESH_BINARY);
+    cv::Mat erodeg; 
+    cv::erode(bilateralblurred, erodeg, element, cv::Point(-1, -1), 1); 
+    cv::imshow("erodeg", erodeg);
+
+    //cv::Mat gmagthold;
+    //cv::threshold( erodeg, gmagthold, 110, 255,  cv::THRESH_BINARY);
     //cv::imshow("gmagthold", gmagthold);
     //cv::waitKey(0);
 
-    cv::Mat element = cv::getStructuringElement( 
-                        cv::MORPH_RECT, cv::Size(3,3)); 
     cv::Mat dilate; 
-    cv::dilate(gmagthold, dilate, element, cv::Point(-1, -1), 4); 
+    cv::dilate(bilateralblurred, dilate, element, cv::Point(-1, -1), 5); 
     cv::imshow("dilated", dilate);
 
 /*
@@ -161,16 +165,15 @@ std::vector<ParkingSpot> detectParkingSpotInImage2(const cv::Mat& image) {
             }
         }
 */
-
     // Maybe with an omography the trees are not in the middle of the dick
-    std::vector<int> angles = {-8, -9, -10, -11, -12};
-    std::vector<float> scales = {0.75, 1, 1.01, 1.1, 1.2};
+    std::vector<int> angles = {-7,-8,-9, -10, -11, -12, -15};
+    std::vector<float> scales = {0.8, 0.8, 1, 1.05, 1.1, 1.2, 1.5};
     std::vector<cv::RotatedRect> line_boxes;
     std::vector<cv::Point2f> verts;
 
     for(int k = 0; k<angles.size(); k++) {
         // Template size
-        int template_height = 17;
+        int template_height = 39*scales[k];
         int template_width = 120*scales[k];
 
         // Horizontal template and mask definition
@@ -180,10 +183,11 @@ std::vector<ParkingSpot> detectParkingSpotInImage2(const cv::Mat& image) {
         // Build the template and mask
         for(int i = 0; i< horizontal_template.rows; i++) {
             for(int j = 0; j<horizontal_template.cols; j++) {
-                if(i > 4 && i < template_height -4 && j > 4 && j < template_width-4) {
-                horizontal_template.at<uchar>(i,j) = 255;
-                horizontal_mask.at<uchar>(i,j) = 255;
+                if(i<8 || j > template_width-8 || (i>(template_height-8)&& j > 20*scales[k]*scales[k])) {
+                    horizontal_template.at<uchar>(i,j) = 190;
+                    
                 }
+                horizontal_mask.at<uchar>(i,j) = 255;
             }
         }
 
@@ -219,9 +223,9 @@ std::vector<ParkingSpot> detectParkingSpotInImage2(const cv::Mat& image) {
         // Finding local minima
         cv::Mat eroded;
         std::vector<cv::Point> minima;
-        cv::Mat kernel = cv::getStructuringElement(cv::MORPH_RECT, cv::Size(rotated_width, rotated_height));
+        cv::Mat kernel = cv::getStructuringElement(cv::MORPH_RECT, cv::Size(rotated_width*1.5, rotated_height*1.5));
         cv::erode(tm_result, eroded, kernel);
-        cv::Mat localMinimaMask = (tm_result == eroded) & (tm_result <= 0.1 );
+        cv::Mat localMinimaMask = (tm_result == eroded) & (tm_result <= 0.15 );
 
         cv::imshow("TM Result, eroded", eroded);
         cv::waitKey(0);
@@ -239,7 +243,7 @@ std::vector<ParkingSpot> detectParkingSpotInImage2(const cv::Mat& image) {
             center.x = pt.x+rotated_width/2;
             center.y = pt.y+rotated_height/2;
 
-            cv::RotatedRect rotatedRect(center, cv::Size(template_width,template_height), -angles[k]);
+            cv::RotatedRect rotatedRect(center, cv::Size(template_width-30,template_height), -angles[k]);
             line_boxes.push_back(rotatedRect);
 
             // Draw the rotated rectangle using lines between its vertices
@@ -407,7 +411,7 @@ std::vector<ParkingSpot> detectParkingSpotInImage2(const cv::Mat& image) {
     }
 
     // Iterate over the points to determine the corners
-    for (const auto& point : hom_points) {
+    /*for (const auto& point : hom_points) {
             std::cout << point << std::endl;
     }
 
@@ -416,7 +420,7 @@ std::vector<ParkingSpot> detectParkingSpotInImage2(const cv::Mat& image) {
 
     cv::Mat result(1000, 1000, CV_8U);
     cv::warpPerspective(gs, result, F, cv::Size(1000,1000));
-    cv::imshow("result", result);
+    cv::imshow("result", result);*/
 
     // Show the image
     cv::imshow("Convex Hull", image);
