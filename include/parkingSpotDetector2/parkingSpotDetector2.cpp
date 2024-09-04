@@ -350,7 +350,7 @@ std::vector<ParkingSpot> detectParkingSpotInImage2(const cv::Mat& image) {
         cv::line(hull_image, hull[i], hull[(i + 1) % hull.size()], 255, 2);
     }
 
-    cv::imshow("hull image",hull_image);
+    // cv::imshow("hull image",hull_image);
 
     // Sort the lines by their length in descending order
     std::sort(hullLines.begin(), hullLines.end(), [](const auto& a, const auto& b) {
@@ -411,31 +411,16 @@ std::vector<ParkingSpot> detectParkingSpotInImage2(const cv::Mat& image) {
             std::cout << point << std::endl;
     }
 
-    std::vector<cv::Point2f> to_hom_points = {cv::Point2f(999,0), cv::Point2f(999,999), cv::Point2f(0,0), cv::Point2f(0,999)};
-    cv::Mat F = cv::findHomography(hom_points, to_hom_points);
+    //std::vector<cv::Point2f> to_hom_points = {cv::Point2f(999,0), cv::Point2f(999,999), cv::Point2f(0,0), cv::Point2f(0,999)};
+    //cv::Mat F = cv::findHomography(hom_points, to_hom_points);
 
-    cv::Mat result(1000, 1000, CV_8U);
-    cv::warpPerspective(gs, result, F, cv::Size(1000,1000));
-    cv::imshow("result", result);
+    //cv::Mat result(1000, 1000, CV_8U);
+    //cv::warpPerspective(gs, result, F, cv::Size(1000,1000));
+    //cv::imshow("result", result);
 
     // Show the image
     cv::imshow("Convex Hull", image);
     cv::waitKey(0);
-
-    cv::Mat reverse;
-    cv::threshold(dilate,reverse, 1, 255, cv::THRESH_BINARY_INV);
-    // Perform the distance transform algorithm
-    cv::Mat dist;
-    cv::distanceTransform(reverse, dist, cv::DIST_L2, 3);
- 
-    cv::imshow("reverse",reverse);
-    
-    cv::waitKey(0);
-    
-    // Normalize the distance image for range = {0.0, 1.0}
-    // so we can visualize and threshold it
-    cv::normalize(dist, dist, 0, 1.0, cv::NORM_MINMAX);
-    cv::imshow("Distance Transform Image", dist);
 
     return parkingSpots;
 }
