@@ -86,13 +86,13 @@ std::vector<ParkingSpot> detectParkingSpotInImage2(const cv::Mat& image) {
     cv::convertScaleAbs(gxeq, abs_grad_xeq);
     cv::convertScaleAbs(gyeq, abs_grad_yeq);
 
-    cv::imshow("gradient x eq", abs_grad_xeq);
-    cv::waitKey(0);
-    cv::imshow("gradient y eq", abs_grad_yeq);
-    cv::waitKey(0);
+    // cv::imshow("gradient x eq", abs_grad_xeq);
+    // cv::waitKey(0);
+    // cv::imshow("gradient y eq", abs_grad_yeq);
+    // cv::waitKey(0);
 
-    cv::Mat grad_magneq;
-    cv::addWeighted(abs_grad_xeq, 0.5, abs_grad_yeq, 0.5, 0, grad_magneq);
+    //cv::Mat grad_magneq;
+    //cv::addWeighted(abs_grad_xeq, 0.5, abs_grad_yeq, 0.5, 0, grad_magneq);
 
     cv::Mat laplacian;
     cv::Laplacian(equalized, laplacian, CV_32F);  // Use CV_32F to avoid overflow
