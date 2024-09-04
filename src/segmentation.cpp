@@ -4,6 +4,8 @@
 #include <opencv2/highgui.hpp>
 #include <opencv2/imgproc.hpp>
 
+const int PIXEL_SIZE_THRESHOLD = 600;
+
 Segmentation::Segmentation(const std::vector<cv::Mat> &backgroundImages) {
     // Build the background model
     // pBackSub = cv::createBackgroundSubtractorKNN();
@@ -24,15 +26,16 @@ void Segmentation::segmentImage(const cv::Mat &image, cv::Mat &outputMask) {
 
     // Currently testing with multiple values for the thresholds
     //for(int k = 20; k < 3000; k+=200) {
-        // Keeping only connected that have a dimension bigger than 2000 pixels
+
+    // Keeping only connected that have a dimension bigger than 600 pixels
     cv::Mat stats, centroids, labelImage;
     int numLabels = cv::connectedComponentsWithStats(outputMask, labelImage, stats, centroids, 8, CV_32S);
     cv::Mat mask(labelImage.size(), CV_8UC1, cv::Scalar(0));
-    int pixelThreshold = 600;
+    int pixelThreshold = PIXEL_SIZE_THRESHOLD;
     cv::Mat surfSup=stats.col(4) > pixelThreshold;
     for (int i = 1; i < numLabels; i++) {
         if (surfSup.at<uchar>(i, 0)) {
-            mask = mask | (labelImage==i);
+            mask = mask | (labelImage == i);
         }
     }
     image.copyTo(outputMask,mask);
