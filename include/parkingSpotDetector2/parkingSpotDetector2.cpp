@@ -222,6 +222,13 @@ std::vector<ParkingSpot> detectParkingSpotInImage2(const cv::Mat& image) {
 
         // use dilate or medianblurred or canny with 100-1000
         cv::matchTemplate(dilate,rotated_template,tm_result,cv::TM_SQDIFF,rotated_mask);
+        double min,max;
+        cv::Point minloc(0,0), maxloc(0,0);
+        cv::minMaxLoc(tm_result,&min,&max,&minloc,&maxloc);
+
+        std::cout << "MIN VALUE AFTER NORMALIZING: " << min/max << std::endl;
+        if(min/max > 0.25) continue;
+
         cv::normalize( tm_result, tm_result, 0, 1, cv::NORM_MINMAX, -1, cv::Mat() );
     
         cv::imshow("TM Result", tm_result);
