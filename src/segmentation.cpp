@@ -7,8 +7,13 @@
 
 Segmentation::Segmentation(const std::vector<cv::Mat> &backgroundImages) {
     // Build the background model
-    // pBackSub = cv::createBackgroundSubtractorKNN();
-    pBackSub = cv::createBackgroundSubtractorMOG2();
+    //pBackSub = cv::createBackgroundSubtractorKNN();
+
+    //pBackSub = new BackgroundSubtractorMOG();
+    const int HISTORY_DEFAULT_VALUE = 500;
+    const int SHADES_DETECTION = true; 
+    const int VAR_THRESHOLD = 400
+    pBackSub = cv::createBackgroundSubtractorMOG2(HISTORY_DEFAULT_VALUE, VAR_THRESHOLD, SHADES_DETECTION);
     cv::Mat mask;
     for(int i = 0; i < backgroundImages.size(); i++) {
         pBackSub -> apply(backgroundImages[i], mask);
@@ -16,7 +21,7 @@ Segmentation::Segmentation(const std::vector<cv::Mat> &backgroundImages) {
 }
 
 void Segmentation::segmentImage(const cv::Mat &image, cv::Mat &outputMask) {
-    const int PIXEL_SIZE_THRESHOLD = 600;   // Threshold for the minumum size of the connected component to be kept
+    const int PIXEL_SIZE_THRESHOLD = 700;   // Threshold for the minumum size of the connected component to be kept
     const int CONNECTIVITY_8 = 8;   // 8-connectivity for connectedComponentsWithStats
     const int MORPH_RECT = cv::MORPH_RECT;  // Rectangular structuring element for morphologyEx
     const int MORPH_SIZE = 2;   // Size of structuring element for closing
@@ -47,11 +52,11 @@ void Segmentation::segmentImage(const cv::Mat &image, cv::Mat &outputMask) {
         cv::Size(2 * MORPH_SIZE + 1, 2 * MORPH_SIZE + 1), 
         cv::Point(MORPH_SIZE, MORPH_SIZE));
 
-    cv::Mat closedMask;
-    cv::morphologyEx(mask, closedMask, cv::MORPH_OPEN, element);
+    //cv::Mat closedMask;
+    //cv::morphologyEx(mask, closedMask, cv::MORPH_OPEN, element);
 
     // Apply the refined mask to the input image
-    image.copyTo(outputMask, closedMask);
+    image.copyTo(outputMask, mask); //TODO use closedMask instead of mask
 
 }
 
