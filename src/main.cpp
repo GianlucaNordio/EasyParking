@@ -30,7 +30,7 @@ int main() {
     // Call the function to detect parking spots
     
     std::vector<ParkingSpot> parkingSpot;
-    detectParkingSpots(images, parkingSpot); 
+    //detectParkingSpots(images, parkingSpot); 
     
 
 
