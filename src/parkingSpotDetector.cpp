@@ -4,8 +4,9 @@
 TODO: 
 1. Preprocessing (pensare a come rendere invariante alle condizioni climatiche)
 2. Generare meglio i template
-3. Threshold iniziale sul template match normalizzando in base al massimo dell'output di matchTemplate
-4. Chiedere nel forum quanti parametri possiamo usare
+3. Chiedere nel forum quanti parametri possiamo usare
+4. Stesso size, angolo diverso: usare tm_result_unnormed come score, poi tra tutti quelli che overlappano per tipo l'80% tenere quello con score migliore
+5. Dopo il punto 4, alla fine dei due cicli for, fare non maxima suppression. A quel punto usare NMS di opencv oppure prendere quello con area maggiore
 */
 
 // Function to detect parking spots in the images
@@ -113,7 +114,7 @@ std::vector<ParkingSpot> detectParkingSpotInImage(const cv::Mat& image) {
     cv::Mat normalized_abs_laplacian;
     cv::normalize(abs_laplacian, normalized_abs_laplacian, 0, 255, cv::NORM_MINMAX, CV_8U);
 
-    cv::imshow("Normalized Absolute Laplacian", gammaCorrected2+normalized_abs_laplacian);  // Normalized for grayscale
+    cv::imshow("Normalized Absolute Laplacian", normalized_abs_laplacian);  // Normalized for grayscale
     cv::waitKey(0);  // Wait for a key press indefinitely
 
     cv::Mat filtered_laplacian;
@@ -121,7 +122,7 @@ std::vector<ParkingSpot> detectParkingSpotInImage(const cv::Mat& image) {
     cv::imshow("filtered laplacian", filtered_laplacian);
     cv::waitKey(0);
 
-    cv::imshow("gradient magnitude", grad_magn);
+    cv::imshow("gradient magnitude", grad_magn+normalized_abs_laplacian);
     cv::waitKey(0);
 
     cv::Mat grad_magn_bilateral;
@@ -185,39 +186,58 @@ std::vector<ParkingSpot> detectParkingSpotInImage(const cv::Mat& image) {
         std::vector<cv::RotatedRect> list_boxes;
         for(int k = 0; k<angles.size(); k++) {
             // Template size
+            int surplus = 20;
+            int line_width = 8;
             int template_height = 39*scales[l];
-            int template_width = 130*scales[l];
+            int template_width = 130*scales[l]+surplus;
 
             // Horizontal template and mask definition
             cv::Mat horizontal_template(template_height,template_width,CV_8U,cv::Scalar(0));
             cv::Mat horizontal_mask(template_height,template_width,CV_8U,cv::Scalar(0));
 
+/*
+for(int i = 0; i< horizontal_template.rows; i++) {
+                for(int j = 0; j<horizontal_template.cols; j++) {
+                    if(((i<line_width && j > surplus) 
+                        || (j > surplus && j < surplus+line_width)
+                        || (j > template_width-line_width) 
+                        || (i > (template_height-line_width)))){
+                        horizontal_template.at<uchar>(i,j) = 190;
+                    }
+                    horizontal_mask.at<uchar>(i,j) = 255;
+                }
+            }
+*/
+
             // Build the template and mask
             for(int i = 0; i< horizontal_template.rows; i++) {
                 for(int j = 0; j<horizontal_template.cols; j++) {
-                    if(i<8 || j > template_width-8 || (i>(template_height-8)&& j > 20*scales[l]*scales[l])) {
+                    if(((i<line_width && j > surplus) 
+                        || (j > template_width-line_width) 
+                        || (i > (template_height-line_width) && j > 20*scales[l]*scales[l]))){
                         horizontal_template.at<uchar>(i,j) = 190;
                     }
                     horizontal_mask.at<uchar>(i,j) = 255;
                 }
             }
 
-            cv::imshow("Horizontal template", horizontal_template);
-            cv::waitKey(0);
-
             // Rotate the template
             cv::Mat R = cv::getRotationMatrix2D(cv::Point2f(0,template_height-1),angles[k],1);
             cv::Mat rotated_template;
             cv::Mat rotated_mask;
 
-            float rotated_width = template_width*cos(-angles[k]*CV_PI/180)+template_height;
+            float rotated_width = template_width*cos(-angles[k]*CV_PI/180)+line_width;
             float rotated_height = template_width*sin(-angles[k]*CV_PI/180)+template_height;
 
             cv::warpAffine(horizontal_template,rotated_template,R,cv::Size(rotated_width,rotated_height));
             cv::warpAffine(horizontal_mask,rotated_mask,R,cv::Size(rotated_width,rotated_height));
 
-            cv::imshow("Rotated template", rotated_template);
-            cv::waitKey(0);
+            if(k == 0) {
+                cv::imshow("Horizontal template", horizontal_template);
+                cv::waitKey(0);
+                cv::imshow("Rotated template", rotated_template);
+                cv::waitKey(0);
+            }
 
             cv::Mat tm_result;
             //cv::filter2D(dilate, test, CV_32F, rotated);
@@ -232,12 +252,12 @@ std::vector<ParkingSpot> detectParkingSpotInImage(const cv::Mat& image) {
             cv::minMaxLoc(tm_result_unnorm,&min,&max,&minloc,&maxloc);
 
             std::cout << "MIN VALUE AFTER NORMALIZING: " << min/max << std::endl;
-            if(min/max > 0.2) continue;
+            if(min/max > 0.25) continue;
 
             cv::normalize( tm_result_unnorm, tm_result, 0, 1, cv::NORM_MINMAX, -1, cv::Mat() );
         
-            cv::imshow("TM Result", tm_result);
-            cv::waitKey(0);
+            // cv::imshow("TM Result", tm_result);
+            // cv::waitKey(0);
 
             // Finding local minima
             cv::Mat eroded;
@@ -246,8 +266,8 @@ std::vector<ParkingSpot> detectParkingSpotInImage(const cv::Mat& image) {
             cv::erode(tm_result, eroded, kernel);
             cv::Mat localMinimaMask = (tm_result == eroded) & (tm_result <= 0.025);
 
-            cv::imshow("TM Result, eroded", eroded);
-            cv::waitKey(0);
+            // cv::imshow("TM Result, eroded", eroded);
+            // cv::waitKey(0);
 
             // Find all non-zero points (local minima) in the mask
             cv::findNonZero(localMinimaMask, minima);
@@ -264,7 +284,7 @@ std::vector<ParkingSpot> detectParkingSpotInImage(const cv::Mat& image) {
                 center.x = pt.x+rotated_width/2;
                 center.y = pt.y+rotated_height/2;
 
-                cv::RotatedRect rotatedRect(center, cv::Size(template_width-30,template_height), -angles[k]);
+                cv::RotatedRect rotatedRect(center, cv::Size(template_width,template_height), -angles[k]);
                 list_boxes.push_back(rotatedRect);
 
                 // Draw the rotated rectangle using lines between its vertices
