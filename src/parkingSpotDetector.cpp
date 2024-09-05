@@ -155,7 +155,7 @@ std::vector<ParkingSpot> detectParkingSpotInImage(const cv::Mat& image) {
 /*
    std::vector<int> angles = {-8, -9, -10, -11, -12, -13};
     std::vector<float> scales = {0.75, 1, 1.05, 1.1, 1.2, 2};
-    std::vector<cv::RotatedRect> line_boxes;
+    std::vector<cv::RotatedRect> list_boxes;
 
     for(int k = 0; k<angles.size(); k++) {
         // Template size
@@ -180,10 +180,9 @@ std::vector<ParkingSpot> detectParkingSpotInImage(const cv::Mat& image) {
 */
     std::vector<int> angles = {-7,-8,-9, -10, -11, -12, -13,-14,-15};
     std::vector<float> scales = {0.7, 0.8, 1, 1.05, 1.1, 1.2, 1.5,1.6,1.7,1.8,2};
-    std::vector<cv::Point2f> verts;
 
     for(int l = 0; l<scales.size(); l++) {
-        std::vector<cv::RotatedRect> line_boxes;
+        std::vector<cv::RotatedRect> list_boxes;
         for(int k = 0; k<angles.size(); k++) {
             // Template size
             int template_height = 39*scales[l];
@@ -266,7 +265,7 @@ std::vector<ParkingSpot> detectParkingSpotInImage(const cv::Mat& image) {
                 center.y = pt.y+rotated_height/2;
 
                 cv::RotatedRect rotatedRect(center, cv::Size(template_width-30,template_height), -angles[k]);
-                line_boxes.push_back(rotatedRect);
+                list_boxes.push_back(rotatedRect);
 
                 // Draw the rotated rectangle using lines between its vertices
                 cv::Point2f vertices[4];
@@ -274,7 +273,6 @@ std::vector<ParkingSpot> detectParkingSpotInImage(const cv::Mat& image) {
 
                 for (int i = 0; i < 4; i++) {
                     cv::line(image, vertices[i], vertices[(i+1) % 4], cv::Scalar(0, 255, 0), 2);
-                    verts.push_back(vertices[i]);
                 }
             }
         }
@@ -283,14 +281,14 @@ std::vector<ParkingSpot> detectParkingSpotInImage(const cv::Mat& image) {
         float nmsThreshold = 0.5f;    // IoU threshold for NMS
         // Vector to store indices of bounding boxes to keep after NMS
         std::vector<int> indices;
-        std::vector<float> scores(line_boxes.size(),0.1);
+        std::vector<float> scores(list_boxes.size(),0.1);
 
         // Apply NMS for rotated rectangles
-        cv::dnn::NMSBoxes(line_boxes, scores, scoreThreshold, nmsThreshold, indices);
+        cv::dnn::NMSBoxes(list_boxes, scores, scoreThreshold, nmsThreshold, indices);
         
         // Draw the remaining boxes after NMS
         for (int idx : indices) {
-            cv::RotatedRect& rect = line_boxes[idx];
+            cv::RotatedRect& rect = list_boxes[idx];
             // Draw the rotated rectangle
             cv::Point2f vertices[4];
             rect.points(vertices);
