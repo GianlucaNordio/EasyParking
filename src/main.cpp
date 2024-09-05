@@ -51,9 +51,13 @@ int main() {
         // Draw bounding boxes and classification on the image
     
     // Segment car in the images
+    // Segmentation segm(images);
+    // std::vector<cv::Mat> masks;
+    // segm.segmentVectorImages(data[3], masks);
+    // cv::imshow("Test Data", produceSingleImage(masks, 3));
+    // cv::waitKey();
     
-    // test(images,data[4][0]);
-
+    // Dummy code simply to show the correct segmentation masks
     /*
     std::vector<std::vector<cv::Mat>> groundTruthMasksGray;
     loadSequencesSegMasks("../dataset", NUMBER_SEQUENCES, groundTruthMasksGray);
@@ -61,7 +65,6 @@ int main() {
     convertGreyMaskToBGR(groundTruthMasksGray, groundTruthMasksBGR);
     for(int i = 0; i < groundTruthMasksBGR.size(); i++) {
         cv::Mat test = produceSingleImage(groundTruthMasksBGR[i], 3);
-
         cv::imshow("Test Data", test);
         cv::waitKey();
     }

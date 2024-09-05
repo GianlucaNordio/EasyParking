@@ -155,7 +155,7 @@ std::vector<ParkingSpot> detectParkingSpotInImage(const cv::Mat& image) {
 /*
    std::vector<int> angles = {-8, -9, -10, -11, -12, -13};
     std::vector<float> scales = {0.75, 1, 1.05, 1.1, 1.2, 2};
-    std::vector<cv::RotatedRect> line_boxes;
+    std::vector<cv::RotatedRect> list_boxes;
 
     for(int k = 0; k<angles.size(); k++) {
         // Template size
@@ -180,12 +180,9 @@ std::vector<ParkingSpot> detectParkingSpotInImage(const cv::Mat& image) {
 */
     std::vector<int> angles = {-7,-8,-9, -10, -11, -12, -13,-14,-15};
     std::vector<float> scales = {0.7, 0.8, 1, 1.05, 1.1, 1.2, 1.5,1.6,1.7,1.8,2};
-    std::vector<cv::RotatedRect> line_boxes;
-    std::vector<cv::Point2f> verts;
-    double maxmax = 0.0;
-    std::vector<float> scores;
 
     for(int l = 0; l<scales.size(); l++) {
+        std::vector<cv::RotatedRect> list_boxes;
         for(int k = 0; k<angles.size(); k++) {
             // Template size
             int template_height = 39*scales[l];
@@ -237,10 +234,6 @@ std::vector<ParkingSpot> detectParkingSpotInImage(const cv::Mat& image) {
             std::cout << "MIN VALUE AFTER NORMALIZING: " << min/max << std::endl;
             if(min/max > 0.2) continue;
 
-            if(max > maxmax) {
-                maxmax = max;
-            }
-
             cv::normalize( tm_result_unnorm, tm_result, 0, 1, cv::NORM_MINMAX, -1, cv::Mat() );
         
             cv::imshow("TM Result", tm_result);
@@ -262,7 +255,6 @@ std::vector<ParkingSpot> detectParkingSpotInImage(const cv::Mat& image) {
             // Draw bboxes of the found lines
             for (const cv::Point& pt : minima) {
                 // Save score of local minima
-                scores.push_back(tm_result_unnorm.at<float>(pt));
 
                 // White circles at minima points
                 // cv::circle(gs, pt, 3, cv::Scalar(255), 1);
@@ -273,7 +265,7 @@ std::vector<ParkingSpot> detectParkingSpotInImage(const cv::Mat& image) {
                 center.y = pt.y+rotated_height/2;
 
                 cv::RotatedRect rotatedRect(center, cv::Size(template_width-30,template_height), -angles[k]);
-                line_boxes.push_back(rotatedRect);
+                list_boxes.push_back(rotatedRect);
 
                 // Draw the rotated rectangle using lines between its vertices
                 cv::Point2f vertices[4];
@@ -281,81 +273,22 @@ std::vector<ParkingSpot> detectParkingSpotInImage(const cv::Mat& image) {
 
                 for (int i = 0; i < 4; i++) {
                     cv::line(image, vertices[i], vertices[(i+1) % 4], cv::Scalar(0, 255, 0), 2);
-                    verts.push_back(vertices[i]);
-                }
-            }
-            cv::imshow("with lines", image);
-            cv::waitKey(0);
-        }
-    }
-
-    for(int i = 0; i < line_boxes.size(); i++) {
-        scores[i] = scores[i]/maxmax;
-    }
-
-    float scoreThreshold = 0.2f;  // Minimum score to keep
-    float nmsThreshold = 0.2f;    // IoU threshold for NMS
-
-    // Vector to store indices of bounding boxes to keep after NMS
-    std::vector<int> indices;
-
-    // Apply NMS for rotated rectangles
-    cv::dnn::NMSBoxes(line_boxes, scores, scoreThreshold, nmsThreshold, indices);
-
-    // Draw the remaining boxes after NMS
-    std::vector<cv::Point2f> nms_centers;
-
-    for (int idx : indices) {
-        cv::RotatedRect& rect = line_boxes[idx];
-        nms_centers.push_back(rect.center);
-    }
-
-    // Average min distance
-    double sumOfMinDistances = 0.0;
-    // Iterate through each point in the vector
-    for (size_t i = 0; i < nms_centers.size(); ++i) {
-        double minDistance = std::numeric_limits<double>::max(); // Initialize with the maximum possible value
-
-        // Find the minimum distance to any other point
-        for (size_t j = 0; j < nms_centers.size(); ++j) {
-            if (i != j) { // Don't compare the point to itself
-                double distance = cv::norm(nms_centers[i] - nms_centers[j]);
-                if (distance < minDistance) {
-                    minDistance = distance;
                 }
             }
         }
+        
+        float scoreThreshold = 0.0f;  // Minimum score to keep
+        float nmsThreshold = 0.5f;    // IoU threshold for NMS
+        // Vector to store indices of bounding boxes to keep after NMS
+        std::vector<int> indices;
+        std::vector<float> scores(list_boxes.size(),0.1);
 
-        sumOfMinDistances += minDistance;
-    }
-
-    // Compute the average minimum distance
-    double averageMinDistance = sumOfMinDistances / nms_centers.size();
-    std::cout << averageMinDistance << std::endl;
-
-    // Remove nms centers too close or too far from eachother
-    for (int idx : indices) {
-        cv::RotatedRect& rect = line_boxes[idx];
-        double minDistance = std::numeric_limits<double>::max(); // Initialize with the maximum possible value
-        int closest;
-
-        // Find the minimum distance to any other point
-        for (int j: indices) {
-            if (idx != j) { // Don't compare the point to itself
-                double distance = cv::norm(rect.center - line_boxes[j].center);
-                if (distance < minDistance) {
-                    minDistance = distance;
-                    closest = j;
-                }
-            }
-        }
-
-        std::cout << minDistance << std::endl;
-
-        /*if(minDistance < averageMinDistance/2 || minDistance > averageMinDistance*2) {
-            indices.erase(std::find(indices.begin(),indices.end(),idx));
-        }*/
-        if(minDistance < averageMinDistance*2) {
+        // Apply NMS for rotated rectangles
+        cv::dnn::NMSBoxes(list_boxes, scores, scoreThreshold, nmsThreshold, indices);
+        
+        // Draw the remaining boxes after NMS
+        for (int idx : indices) {
+            cv::RotatedRect& rect = list_boxes[idx];
             // Draw the rotated rectangle
             cv::Point2f vertices[4];
             rect.points(vertices);
@@ -363,6 +296,8 @@ std::vector<ParkingSpot> detectParkingSpotInImage(const cv::Mat& image) {
                 cv::line(image, vertices[j], vertices[(j + 1) % 4], cv::Scalar(0, 0, 255), 2);
             }
         }
+        cv::imshow("with lines", image);
+        cv::waitKey(0);
     }
 
     // O uso questo come centri di k-means, o non uso NMS e quando disegno un nuovo rotatedrect controllo che il suo match sia migliore di quello precedente
