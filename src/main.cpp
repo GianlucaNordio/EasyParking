@@ -26,11 +26,23 @@ int main() {
     cv::imshow("Base sequence", produceSingleImage(images, 3));
     cv::waitKey();
 
+    /*std::vector<cv::Mat> equalized_images;
+    for(auto image:images) {
+        cv::Mat grayscaled;
+        cv::cvtColor(image, grayscaled, cv::COLOR_BGR2GRAY);
+        cv::Mat equalized;
+        cv::equalizeHist(grayscaled, equalized);
+        equalized_images.push_back(equalized);
+    }
+
+    cv::imshow("Equalized sequence", produceSingleImage(equalized_images, 3));
+    cv::waitKey();
+*/
 
     // Call the function to detect parking spots
     
     std::vector<ParkingSpot> parkingSpot;
-    //detectParkingSpots(images, parkingSpot); 
+    detectParkingSpots(images, parkingSpot); 
     
 
 
@@ -55,7 +67,7 @@ int main() {
     
     // test(images,data[4][0]);
 
-    
+    /*
     std::vector<std::vector<cv::Mat>> groundTruthMasksGray;
     loadSequencesSegMasks("../dataset", NUMBER_SEQUENCES, groundTruthMasksGray);
     std::vector<std::vector<cv::Mat>> groundTruthMasksBGR = groundTruthMasksGray;
@@ -66,7 +78,7 @@ int main() {
         cv::imshow("Test Data", test);
         cv::waitKey();
     }
-
+    */
 
 
     // Performance measure
