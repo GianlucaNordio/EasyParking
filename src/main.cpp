@@ -29,10 +29,9 @@ int main() {
 
     // Call the function to detect parking spots
     
-    /*
     std::vector<ParkingSpot> parkingSpot;
-    detectParkingSpot(images, parkingSpot); 
-    */
+    detectParkingSpots(images, parkingSpot); 
+    
 
 
     // Load the other frames relative to the test sequences
@@ -53,11 +52,8 @@ int main() {
         // Draw bounding boxes and classification on the image
     
     // Segment car in the images
-    Segmentation segm(images);
-    std::vector<cv::Mat> masks;
-    segm.segmentVectorImages(data[0], masks);
-    cv::imshow("Test Data", produceSingleImage(masks, 3));
-    //cv::waitKey();
+    
+    // test(images,data[4][0]);
 
     
     std::vector<std::vector<cv::Mat>> groundTruthMasksGray;
