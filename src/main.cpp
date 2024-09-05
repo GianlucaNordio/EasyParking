@@ -26,11 +26,10 @@ int main() {
     cv::imshow("Base sequence", produceSingleImage(images, 3));
     cv::waitKey();
 
-
     // Call the function to detect parking spots
     
     std::vector<ParkingSpot> parkingSpot;
-    //detectParkingSpots(images, parkingSpot); 
+    detectParkingSpots(images, parkingSpot); 
     
 
 
