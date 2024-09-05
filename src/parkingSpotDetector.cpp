@@ -1,4 +1,4 @@
-#include "parkingSpotDetector2.hpp"
+#include "parkingSpotDetector.hpp"
 
 /*
 TODO: 
@@ -9,17 +9,17 @@ TODO:
 */
 
 // Function to detect parking spots in the images
-void detectParkingSpots2(const std::vector<cv::Mat>& images, std::vector<ParkingSpot>& parkingSpots) {
+void detectParkingSpots(const std::vector<cv::Mat>& images, std::vector<ParkingSpot>& parkingSpots) {
     
     std::vector<std::vector<ParkingSpot>> parkingSpotsPerImage;
     for(const auto& image : images) {
         // Find parking spots for each image separately
-        parkingSpotsPerImage.push_back(detectParkingSpotInImage2(image));
+        parkingSpotsPerImage.push_back(detectParkingSpotInImage(image));
     }
 }
 
 // This function detects the parking spots in a single image
-std::vector<ParkingSpot> detectParkingSpotInImage2(const cv::Mat& image) {
+std::vector<ParkingSpot> detectParkingSpotInImage(const cv::Mat& image) {
     std::vector<ParkingSpot> parkingSpots;
 
     cv::Mat filteredImage;
