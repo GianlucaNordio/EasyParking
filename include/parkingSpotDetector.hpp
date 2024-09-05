@@ -3,19 +3,17 @@
 
 #include "parkingSpot.hpp"
 #include <opencv2/opencv.hpp>
+#include <opencv2/dnn/dnn.hpp>
 #include <vector>
 #include <algorithm>
+#include <math.h>
 
-void detectParkingSpot(const std::vector<cv::Mat>& images, std::vector<ParkingSpot>& parkingSpots);
-
-bool isOverlapping(const cv::RotatedRect& spot1, const cv::RotatedRect& spot2, cv::Size imageSize);
+void detectParkingSpots(const std::vector<cv::Mat>& images, std::vector<ParkingSpot>& parkingSpots);
 
 std::vector<ParkingSpot> detectParkingSpotInImage(const cv::Mat& image);
 
-std::vector<ParkingSpot> nonMaximaSuppression(const std::vector<std::vector<ParkingSpot>>& parkingSpots, cv::Size imageSize);
-
-std::vector<cv::Point> convertToIntPoints(const std::vector<cv::Point2f>& floatPoints);
-
+cv::Mat applyGammaTransform(const cv::Mat& src, double gamma);
+cv::Mat contrastStretchTransform(const cv::Mat& src);
 
 
 #endif // PARKINGSPOTDETECTOR_HPP

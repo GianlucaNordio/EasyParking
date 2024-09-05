@@ -7,34 +7,51 @@ set(CMAKE_CXX_STANDARD_REQUIRED True)
 # Trova OpenCV
 find_package(OpenCV REQUIRED)
 
-include_directories(${OpenCV_INCLUDE_DIRS})
-include_directories(include)
+# Imposta directory di inclusione generale
+include_directories(include ${OpenCV_INCLUDE_DIRS})
 
-file(GLOB_RECURSE SOURCES
-    src/*.cpp
-    include/parkingSpot/*.cpp
-    include/parkingSpotDetector/*.cpp
-    include/parser/*.cpp
+# Raggruppa tutti i file sorgenti
+file(GLOB_RECURSE SOURCES src/*.cpp)
+
+# Definisci le librerie
+add_library(parkingSpot
+    include/parkingSpot.hpp
+    src/parkingSpot.cpp
 )
+target_link_libraries(parkingSpot ${OpenCV_LIBS})
 
-add_library(utils 
-    ./include/utils.hpp
-    ./src/utils.cpp
+add_library(parkingSpotDetector
+    include/parkingSpotDetector.hpp
+    src/parkingSpotDetector.cpp
 )
-target_include_directories(utils PRIVATE ${OpenCV_INCLUDE_DIRS})
+target_link_libraries(parkingSpotDetector ${OpenCV_LIBS})
 
-add_library(segmentation 
-    ./include/segmentation.hpp
-    ./src/segmentation.cpp
+add_library(parser
+    src/parser.cpp
 )
-target_include_directories(segmentation PRIVATE ${OpenCV_INCLUDE_DIRS})
+target_link_libraries(parser ${OpenCV_LIBS})
 
+add_library(utils
+    include/utils.hpp
+    src/utils.cpp
+)
+target_link_libraries(utils ${OpenCV_LIBS})
 
+add_library(segmentation
+    include/segmentation.hpp
+    src/segmentation.cpp
+)
+target_link_libraries(segmentation ${OpenCV_LIBS})
+
+# Aggiungi l'eseguibile
 add_executable(EasyParking ${SOURCES})
 
-target_include_directories(EasyParking PRIVATE include)
+# Linka librerie all'eseguibile
 target_link_libraries(EasyParking 
-    utils    
+    parkingSpot
+    parkingSpotDetector
+    parser
+    utils
     segmentation
     ${OpenCV_LIBS}
 )

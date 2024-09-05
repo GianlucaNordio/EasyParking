@@ -29,10 +29,9 @@ int main() {
 
     // Call the function to detect parking spots
     
-    /*
     std::vector<ParkingSpot> parkingSpot;
-    detectParkingSpot(images, parkingSpot); 
-    */
+    //detectParkingSpots(images, parkingSpot); 
+    
 
 
     // Load the other frames relative to the test sequences
