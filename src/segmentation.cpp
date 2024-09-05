@@ -4,7 +4,6 @@
 #include <opencv2/highgui.hpp>
 #include <opencv2/imgproc.hpp>
 
-const int PIXEL_SIZE_THRESHOLD = 600;
 
 Segmentation::Segmentation(const std::vector<cv::Mat> &backgroundImages) {
     // Build the background model
@@ -17,22 +16,16 @@ Segmentation::Segmentation(const std::vector<cv::Mat> &backgroundImages) {
 }
 
 void Segmentation::segmentImage(const cv::Mat &image, cv::Mat &outputMask) {
+    const int PIXEL_SIZE_THRESHOLD = 600;   // Threshold for the minumum size of the connected component to be kept
+    const int CONNECTIVITY_8 = 8;   // 8-connectivity for connectedComponentsWithStats
+    const int MORPH_RECT = cv::MORPH_RECT;  // Rectangular structuring element for morphologyEx
+    const int MORPH_SIZE = 2;   // Size of structuring element for closing
+
     pBackSub -> apply(image, outputMask, BACKGROUND_NOT_UPDATED);
     
-    // Remove the shadow parts and the noise
-    // Tried using the noShade option in the constructor but still finds shades
+    // Remove the shadow parts and the noise 
+    //(tried using the noShade option in the constructor but still finds shades, simply doesn't differentiate them)
     cv::threshold(outputMask, outputMask, 128, 255, cv::THRESH_BINARY);
-
-    // Currently testing with multiple values for the thresholds
-    //for(int k = 20; k < 3000; k+=200) {
-
-    // Keeping only connected that have a dimension bigger than 600 pixels
-    // Improved code for extracting large connected components
-
-    // Define constants for better readability
-    const int CONNECTIVITY_8 = 8;              // 8-connectivity for connectedComponentsWithStats
-    const int MORPH_RECT = cv::MORPH_RECT;     // Rectangular structuring element for morphologyEx
-    const int MORPH_SIZE = 2;                // Size of structuring element for closing
 
     // Compute connected components and their statistics
     cv::Mat stats, centroids, labelImage;
@@ -49,7 +42,7 @@ void Segmentation::segmentImage(const cv::Mat &image, cv::Mat &outputMask) {
         }
     }
 
-    // Perform morphological closing to refine the mask
+    // Perform morphological closing to refine the mask (remove white lines)
     cv::Mat element = cv::getStructuringElement(MORPH_RECT, 
         cv::Size(2 * MORPH_SIZE + 1, 2 * MORPH_SIZE + 1), 
         cv::Point(MORPH_SIZE, MORPH_SIZE));
