@@ -42,8 +42,6 @@ int main() {
         cv::waitKey();
     }
     
-    
-  
     // Classify parking spots
 
         // Read sequence 1-5 to use images to classify parking spots
