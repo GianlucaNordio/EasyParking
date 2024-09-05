@@ -57,20 +57,20 @@ int main() {
     std::vector<cv::Mat> masks;
     segm.segmentVectorImages(data[0], masks);
     cv::imshow("Test Data", produceSingleImage(masks, 3));
-    //cv::waitKey();
+    cv::waitKey();
 
-    
+    // Dummy code simply to show the correct segmentation masks
+    /*
     std::vector<std::vector<cv::Mat>> groundTruthMasksGray;
     loadSequencesSegMasks("../dataset", NUMBER_SEQUENCES, groundTruthMasksGray);
     std::vector<std::vector<cv::Mat>> groundTruthMasksBGR = groundTruthMasksGray;
     convertGreyMaskToBGR(groundTruthMasksGray, groundTruthMasksBGR);
     for(int i = 0; i < groundTruthMasksBGR.size(); i++) {
         cv::Mat test = produceSingleImage(groundTruthMasksBGR[i], 3);
-
         cv::imshow("Test Data", test);
         cv::waitKey();
     }
-
+    */
 
 
     // Performance measure
