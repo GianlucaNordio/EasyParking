@@ -12,7 +12,7 @@ Segmentation::Segmentation(const std::vector<cv::Mat> &backgroundImages) {
     //pBackSub = new BackgroundSubtractorMOG();
     const int HISTORY_DEFAULT_VALUE = 500;
     const bool SHADES_DETECTION = true; 
-    const int VAR_THRESHOLD = 80;
+    const int VAR_THRESHOLD = 50;
     pBackSub = cv::createBackgroundSubtractorMOG2(HISTORY_DEFAULT_VALUE, VAR_THRESHOLD, SHADES_DETECTION);
     cv::Mat mask;
     for(int i = 0; i < backgroundImages.size(); i++) {
