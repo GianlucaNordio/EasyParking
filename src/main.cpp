@@ -26,19 +26,6 @@ int main() {
     cv::imshow("Base sequence", produceSingleImage(images, 3));
     cv::waitKey();
 
-    /*std::vector<cv::Mat> equalized_images;
-    for(auto image:images) {
-        cv::Mat grayscaled;
-        cv::cvtColor(image, grayscaled, cv::COLOR_BGR2GRAY);
-        cv::Mat equalized;
-        cv::equalizeHist(grayscaled, equalized);
-        equalized_images.push_back(equalized);
-    }
-
-    cv::imshow("Equalized sequence", produceSingleImage(equalized_images, 3));
-    cv::waitKey();
-*/
-
     // Call the function to detect parking spots
     
     std::vector<ParkingSpot> parkingSpot;
