@@ -152,11 +152,12 @@ std::vector<ParkingSpot> detectParkingSpotInImage(const cv::Mat& image) {
     cv::Mat dilate = grad_magn+normalized_abs_laplacian; 
     // ok with 5-6 dilations for normal and flipped. Good with 8 for normal
     cv::Mat dilate_pre_filter;
-    cv::dilate(grad_magn, dilate_pre_filter, element, cv::Point(-1, -1), 4);
+    cv::dilate(grad_magn, dilate_pre_filter, element, cv::Point(-1, -1), 3);
     cv::bilateralFilter(dilate_pre_filter, dilate, -1, 20, 10);
     // dilate = grad_magn;
     //dilate = applyGammaTransform(dilate,1.2);
     dilate = dilate+erodeg;
+    dilate.setTo(0, dilate<= 20);
     cv::imshow("dilated", dilate);
 
 /*
@@ -223,10 +224,10 @@ std::vector<ParkingSpot> detectParkingSpotInImage(const cv::Mat& image) {
                         || (j > template_width-line_width/2) 
                         || (i > (template_height-line_width) && j > (20*scales[l]*scales[l]+surplus/2)))){
                         horizontal_template.at<uchar>(i,j) = 220;
-                        horizontal_mask.at<uchar>(i,j) = 100;
+                        horizontal_mask.at<uchar>(i,j) = 200;
                     }
                     else {
-                        horizontal_mask.at<uchar>(i,j) = 200;
+                        horizontal_mask.at<uchar>(i,j) = 100;
                     }
                 }
             }
