@@ -179,7 +179,7 @@ std::vector<ParkingSpot> detectParkingSpotInImage(const cv::Mat& image) {
             }
         }
 */
-    std::vector<int> angles = {-7,-8,-9, -10, -11, -12, -13,-14,-15};
+    std::vector<int> angles = {-40,-7,-8,-9, -10, -11, -12, -13,-14,-15};
     std::vector<float> scales = {0.7, 0.8, 1, 1.05, 1.1,1.15, 1.2, 1.3,1.4,1.5,1.6,1.7,1.8,2};
     std::vector<cv::RotatedRect> boxes_best_angle;
     for(int l = 0; l<scales.size(); l++) {
@@ -215,7 +215,7 @@ std::vector<ParkingSpot> detectParkingSpotInImage(const cv::Mat& image) {
                     if(((i<line_width && j > surplus) 
                         || (j > template_width-line_width) 
                         || (i > (template_height-line_width) && j > (20*scales[l]*scales[l]+surplus/2)))){
-                        horizontal_template.at<uchar>(i,j) = 190;
+                        horizontal_template.at<uchar>(i,j) = 220;
                     }
                     horizontal_mask.at<uchar>(i,j) = 255;
                 }
@@ -245,7 +245,7 @@ std::vector<ParkingSpot> detectParkingSpotInImage(const cv::Mat& image) {
 
             // use dilate or medianblurred or canny with 100-1000
             cv::Mat tm_result_unnorm;
-            cv::matchTemplate(dilate,rotated_template,tm_result_unnorm,cv::TM_SQDIFF,rotated_mask);
+            cv::matchTemplate(dilate,rotated_template,tm_result_unnorm,cv::TM_CCORR_NORMED,rotated_mask);
             double min,max;
             cv::Point minloc(0,0), maxloc(0,0);
             cv::minMaxLoc(tm_result_unnorm,&min,&max,&minloc,&maxloc);
@@ -262,8 +262,8 @@ std::vector<ParkingSpot> detectParkingSpotInImage(const cv::Mat& image) {
             cv::Mat eroded;
             std::vector<cv::Point> minima;
             cv::Mat kernel = cv::getStructuringElement(cv::MORPH_RECT, cv::Size(rotated_width, rotated_height));
-            cv::erode(tm_result, eroded, kernel);
-            cv::Mat localMinimaMask = (tm_result == eroded) & (tm_result <= 0.015);
+            cv::dilate(tm_result, eroded, kernel);
+            cv::Mat localMinimaMask = (tm_result == eroded) & (tm_result >= 0.995);
 
             // cv::imshow("TM Result, eroded", eroded);
             // cv::waitKey(0);
