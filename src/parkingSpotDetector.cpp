@@ -150,9 +150,10 @@ std::vector<ParkingSpot> detectParkingSpotInImage(const cv::Mat& image) {
     //cv::waitKey(0);
 
     cv::Mat dilate = grad_magn+normalized_abs_laplacian; 
-    // ok with 5 dilations for normal and flipped. Good with 8 for normal
-    cv::dilate(grad_magn, dilate, element, cv::Point(-1, -1), 7); 
-    dilate = applyGammaTransform(dilate,1.2);
+    // ok with 5-6 dilations for normal and flipped. Good with 8 for normal
+    cv::dilate(grad_magn, dilate, element, cv::Point(-1, -1), 4); 
+    // dilate = grad_magn;
+    //dilate = applyGammaTransform(dilate,1.2);
     cv::imshow("dilated", dilate);
 
 /*
@@ -181,7 +182,7 @@ std::vector<ParkingSpot> detectParkingSpotInImage(const cv::Mat& image) {
             }
         }
 */
-    std::vector<int> angles = {-4,-5,-6,-7,-8,-9, -10, -11, -12, -13,-14,-15};
+    std::vector<int> angles = {-4,-5,-6,-7,-8,-9, -10, -11, -12, -13,-14,-15,-16};
     std::vector<float> scales = {0.7, 0.8, 1, 1.05, 1.1,1.15, 1.2, 1.3,1.4,1.5,1.6,1.7,1.8,2};
     std::vector<cv::RotatedRect> boxes_best_angle;
     for(int l = 0; l<scales.size(); l++) {
@@ -189,39 +190,38 @@ std::vector<ParkingSpot> detectParkingSpotInImage(const cv::Mat& image) {
         for(int k = 0; k<angles.size(); k++) {
             // Template size
             int surplus = 30*scales[k];
-            int line_width = 7;
+            int line_width = 8;
             int template_height = 39*scales[l];
-            int template_width = 115*scales[l]+surplus;
+            int template_width = 130*scales[l]+surplus;
 
             // Horizontal template and mask definition
             cv::Mat horizontal_template(template_height,template_width,CV_8U,cv::Scalar(0));
             cv::Mat horizontal_mask(template_height,template_width,CV_8U,cv::Scalar(0));
-/*
             for(int i = 0; i< horizontal_template.rows; i++) {
                 for(int j = 0; j<horizontal_template.cols; j++) {
                     if((i<line_width && j > surplus) 
                         || (j > surplus && j < surplus+line_width)
                         || (j > template_width-line_width) 
                         || (i > (template_height-line_width) && (j > surplus))){
-                        horizontal_template.at<uchar>(i,j) = 170;
+                        horizontal_template.at<uchar>(i,j) = 220;
+                    }
+                    horizontal_mask.at<uchar>(i,j) = 255;
+                }
+            }
+
+/*
+            // Build the template and mask
+            for(int i = 0; i< horizontal_template.rows; i++) {
+                for(int j = 0; j<horizontal_template.cols; j++) {
+                    if(((i<line_width && j > surplus) 
+                        || (j > template_width-line_width/2) 
+                        || (i > (template_height-line_width) && j > (20*scales[l]*scales[l]+surplus/2)))){
+                        horizontal_template.at<uchar>(i,j) = 220;
                     }
                     horizontal_mask.at<uchar>(i,j) = 255;
                 }
             }
 */
-
-            // Build the template and mask
-            for(int i = 0; i< horizontal_template.rows; i++) {
-                for(int j = 0; j<horizontal_template.cols; j++) {
-                    if(((i<line_width && j > surplus) 
-                        || (j > template_width-line_width) 
-                        || (i > (template_height-line_width) && j > (20*scales[l]*scales[l]+surplus/2)))){
-                        horizontal_template.at<uchar>(i,j) = 220;
-                    }
-
-                    horizontal_mask.at<uchar>(i,j) = 255;
-                }
-            }
 
             // Rotate the template
             cv::Mat flipped;
@@ -235,10 +235,13 @@ std::vector<ParkingSpot> detectParkingSpotInImage(const cv::Mat& image) {
             float rotated_width = template_width*cos(-angles[k]*CV_PI/180)+line_width;
             float rotated_height = template_width*sin(-angles[k]*CV_PI/180)+template_height;
 
-            cv::warpAffine(horizontal_template,rotated_template,R,cv::Size(rotated_width,rotated_height));
-            cv::warpAffine(horizontal_mask,rotated_mask,R,cv::Size(rotated_width,rotated_height));
+            cv::warpAffine(flipped,rotated_template,R,cv::Size(rotated_width,rotated_height));
+            cv::warpAffine(flipped_mask,rotated_mask,R,cv::Size(rotated_width,rotated_height));
 
-             
+            if(k == 0) {
+                 cv::imshow("Horizontal template", horizontal_template);
+                 cv::imshow("Rotated template", rotated_template);
+            }
 
             cv::Mat tm_result;
             //cv::filter2D(dilate, test, CV_32F, rotated);
@@ -248,13 +251,6 @@ std::vector<ParkingSpot> detectParkingSpotInImage(const cv::Mat& image) {
             // use dilate or medianblurred or canny with 100-1000
             cv::Mat tm_result_unnorm;
             cv::matchTemplate(dilate,rotated_template,tm_result_unnorm,cv::TM_CCORR_NORMED,rotated_mask);
-            double min,max;
-            cv::Point minloc(0,0), maxloc(0,0);
-            cv::minMaxLoc(tm_result_unnorm,&min,&max,&minloc,&maxloc);
-
-            std::cout << "MIN VALUE AFTER NORMALIZING: " << min/max << std::endl;
-            if(min/max > 0.8) continue;
-
             cv::normalize( tm_result_unnorm, tm_result, 0, 1, cv::NORM_MINMAX, -1, cv::Mat() );
         
             // cv::imshow("TM Result", tm_result);
@@ -265,7 +261,7 @@ std::vector<ParkingSpot> detectParkingSpotInImage(const cv::Mat& image) {
             std::vector<cv::Point> minima;
             cv::Mat kernel = cv::getStructuringElement(cv::MORPH_RECT, cv::Size(rotated_width, rotated_height));
             cv::dilate(tm_result, eroded, kernel);
-            cv::Mat localMinimaMask = (tm_result == eroded) & (tm_result >= 0.99);
+            cv::Mat localMinimaMask = (tm_result == eroded) & (tm_result >= 0.975);
 
             // cv::imshow("TM Result, eroded", eroded);
             // cv::waitKey(0);
