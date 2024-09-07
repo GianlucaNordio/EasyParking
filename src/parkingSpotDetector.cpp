@@ -30,27 +30,27 @@ std::vector<ParkingSpot> detectParkingSpotInImage(const cv::Mat& image) {
     cv::waitKey(0);
 
     cv::Mat gs;
-    cv::cvtColor(image, gs, cv::COLOR_BGR2GRAY);
+    cv::cvtColor(filteredImage, gs, cv::COLOR_BGR2GRAY);
 
     cv::imshow("grayscale", gs);
     cv::waitKey(0);
 
     cv::Mat stretched = contrastStretchTransform(gs);
-    cv::imshow("stretched", stretched);
-    cv::waitKey(0);
+    //cv::imshow("stretched", stretched);
+    //cv::waitKey(0);
 
     // Set the gamma value
     double gammaValue = 1.25; // Example gamma value
 
     // Apply gamma transformation
     cv::Mat gammaCorrected1 = applyGammaTransform(gs, gammaValue);
-    cv::imshow("gamma tf1", gammaCorrected1);
-    cv::waitKey(0);
+    //cv::imshow("gamma tf1", gammaCorrected1);
+    //cv::waitKey(0);
 
     gammaValue = 2;
     cv::Mat gammaCorrected2 = applyGammaTransform(gammaCorrected1, gammaValue);
-    cv::imshow("gamma tf2", gammaCorrected2);
-    cv::waitKey(0);
+    //cv::imshow("gamma tf2", gammaCorrected2);
+    //cv::waitKey(0);
 
     cv::Mat gsthold;
     cv::threshold( gammaCorrected2, gsthold, 180, 255,  cv::THRESH_BINARY);
@@ -58,28 +58,28 @@ std::vector<ParkingSpot> detectParkingSpotInImage(const cv::Mat& image) {
     // cv::waitKey(0);
 
     cv::Mat gx;
-    cv::Sobel(gammaCorrected2, gx, CV_16S, 1,0);
+    cv::Sobel(gs, gx, CV_16S, 1,0);
 
     cv::Mat gy;
-    cv::Sobel(gammaCorrected1, gy, CV_16S, 0,1);
+    cv::Sobel(gs, gy, CV_16S, 0,1);
 
     cv::Mat abs_grad_x;
     cv::Mat abs_grad_y;
     cv::convertScaleAbs(gx, abs_grad_x);
     cv::convertScaleAbs(gy, abs_grad_y);
 
-    cv::imshow("gradient x gamma", abs_grad_x);
-    cv::waitKey(0);
-    cv::imshow("gradient y gamma", abs_grad_y);
-    cv::waitKey(0);
+    // cv::imshow("gradient x gamma", abs_grad_x);
+    // cv::waitKey(0);
+    // cv::imshow("gradient y gamma", abs_grad_y);
+    // cv::waitKey(0);
 
     cv::Mat grad_magn;
     cv::addWeighted(abs_grad_x, 0.5, abs_grad_y, 0.5, 0, grad_magn);
 
     cv::Mat equalized;
     cv::equalizeHist(gammaCorrected2,equalized);
-    cv::imshow("equalized", equalized);
-    cv::waitKey(0);
+    //cv::imshow("equalized", equalized);
+    //cv::waitKey(0);
 
     cv::Mat equalized_filt;
     cv::GaussianBlur(equalized,equalized_filt, cv::Size(5,5),30);
@@ -114,52 +114,42 @@ std::vector<ParkingSpot> detectParkingSpotInImage(const cv::Mat& image) {
     cv::Mat normalized_abs_laplacian;
     cv::normalize(abs_laplacian, normalized_abs_laplacian, 0, 255, cv::NORM_MINMAX, CV_8U);
 
-    cv::imshow("Normalized Absolute Laplacian", normalized_abs_laplacian);  // Normalized for grayscale
-    cv::waitKey(0);  // Wait for a key press indefinitely
+    //cv::imshow("Normalized Absolute Laplacian", normalized_abs_laplacian);  // Normalized for grayscale
+    //cv::waitKey(0);  // Wait for a key press indefinitely
 
     cv::Mat filtered_laplacian;
     cv::bilateralFilter(normalized_abs_laplacian, filtered_laplacian, -1, 40, 10);
-    cv::imshow("filtered laplacian", filtered_laplacian);
-    cv::waitKey(0);
+    //cv::imshow("filtered laplacian", filtered_laplacian);
+    //cv::waitKey(0);
 
-    cv::imshow("gradient magnitude", grad_magn+normalized_abs_laplacian);
-    cv::waitKey(0);
+    //cv::imshow("gradient magnitude", grad_magn);
+    //cv::waitKey(0);
 
     cv::Mat grad_magn_bilateral;
     cv::bilateralFilter(grad_magn, grad_magn_bilateral, -1, 20, 10);
     cv::imshow("grad magn bilateral", grad_magn_bilateral);
     cv::waitKey(0);
 
+    cv::Mat edges;
+    cv::Canny(grad_magn, edges, 50, 400);
+    cv::imshow("canny", edges);
+    cv::waitKey(0);
+
     cv::Mat medianblurred;
     cv::medianBlur(grad_magn_bilateral, medianblurred, 3);
     cv::Mat bilateralblurred;
     //cv::bilateralFilter(medianblurred, bilateralblurred, -1,20,10);
-    cv::imshow("bilateral filtered2", medianblurred);
+    //cv::imshow("bilateral filtered2", medianblurred);
     cv::waitKey(0);
 
     cv::Mat element = cv::getStructuringElement( 
-                        cv::MORPH_RECT, cv::Size(3,3)); 
+                        cv::MORPH_CROSS, cv::Size(3,3)); 
 
-    cv::Mat erodeg; 
-    cv::erode(medianblurred, erodeg, element, cv::Point(-1, -1), 1); 
-    cv::imshow("erodeg", erodeg);
+    cv::dilate(edges,edges,element,cv::Point(-1,1),2);
+    cv::imshow("dilated canny", edges);
+    cv::waitKey(0);
 
-    //cv::Mat gmagthold;
-    //cv::threshold( erodeg, gmagthold, 110, 255,  cv::THRESH_BINARY);
-    //cv::imshow("gmagthold", gmagthold);
-    //cv::waitKey(0);
-
-    cv::Mat dilate = grad_magn+normalized_abs_laplacian; 
-    // ok with 5-6 dilations for normal and flipped. Good with 8 for normal
-    cv::Mat dilate_pre_filter;
-    cv::dilate(grad_magn, dilate_pre_filter, element, cv::Point(-1, -1), 3);
-    cv::bilateralFilter(dilate_pre_filter, dilate, -1, 20, 10);
-    // dilate = grad_magn;
-    //dilate = applyGammaTransform(dilate,1.2);
-    dilate = dilate+erodeg;
-    dilate.setTo(0, dilate<= 20);
-    cv::imshow("dilated", dilate);
-
+    
 /*
    std::vector<int> angles = {-8, -9, -10, -11, -12, -13};
     std::vector<float> scales = {0.75, 1, 1.05, 1.1, 1.2, 2};
@@ -192,45 +182,34 @@ std::vector<ParkingSpot> detectParkingSpotInImage(const cv::Mat& image) {
     for(int l = 0; l<scales.size(); l++) {
         std::vector<cv::RotatedRect> list_boxes;
         for(int k = 0; k<angles.size(); k++) {
-            // Template size
-            int surplus = 30*scales[k];
-            int line_width = 8;
-            int template_height = 39*scales[l];
-            int template_width = 120*scales[l]+2*surplus;
+        // Template size
+        int template_height = 5;
+        int template_width = 100*scales[k];
 
-            // Horizontal template and mask definition
-            cv::Mat horizontal_template(template_height,template_width,CV_8U,cv::Scalar(0));
-            cv::Mat horizontal_mask(template_height,template_width,CV_8U,cv::Scalar(0));
-/*
-            for(int i = 0; i< horizontal_template.rows; i++) {
-                for(int j = 0; j<horizontal_template.cols; j++) {
-                    if((i<line_width && (j > surplus && j<template_width-surplus)) 
-                        || (j > surplus && j < surplus+line_width)
-                        || (j > template_width-line_width-surplus && j<template_width-surplus) 
-                        || (i > (template_height-line_width) && (j > surplus && j<template_width-surplus))){
-                        horizontal_template.at<uchar>(i,j) = 220;
-                        horizontal_mask.at<uchar>(i,j) = 255;
-                    }
-                    else {
-                        horizontal_mask.at<uchar>(i,j) = 127;
-                    }
-                }
+        // Horizontal template and mask definition
+        cv::Mat horizontal_template(template_height,template_width,CV_8U);
+        cv::Mat horizontal_mask(template_height,template_width,CV_8U);
+
+        // Build the template and mask
+        for(int i = 0; i< horizontal_template.rows; i++) {
+            for(int j = 0; j<horizontal_template.cols; j++) {
+                horizontal_template.at<uchar>(i,j) = 200;
+                horizontal_mask.at<uchar>(i,j) = 255;
             }
-*/
+        }
+/*
             // Build the template and mask
             for(int i = 0; i< horizontal_template.rows; i++) {
                 for(int j = 0; j<horizontal_template.cols; j++) {
                     if(((i<line_width && j > surplus) 
                         || (j > template_width-line_width/2) 
                         || (i > (template_height-line_width) && j > (20*scales[l]*scales[l]+surplus/2)))){
-                        horizontal_template.at<uchar>(i,j) = 220;
-                        horizontal_mask.at<uchar>(i,j) = 200;
-                    }
-                    else {
-                        horizontal_mask.at<uchar>(i,j) = 100;
+                        horizontal_template.at<uchar>(i,j) = 255;
+                        horizontal_mask.at<uchar>(i,j) = 255;
                     }
                 }
             }
+*/
             // Rotate the template
             cv::Mat flipped;
             cv::Mat flipped_mask;
@@ -240,7 +219,7 @@ std::vector<ParkingSpot> detectParkingSpotInImage(const cv::Mat& image) {
             cv::Mat rotated_template;
             cv::Mat rotated_mask;
 
-            float rotated_width = template_width*cos(-angles[k]*CV_PI/180)+line_width;
+            float rotated_width = template_width*cos(-angles[k]*CV_PI/180)+template_height;
             float rotated_height = template_width*sin(-angles[k]*CV_PI/180)+template_height;
 
             cv::warpAffine(flipped,rotated_template,R,cv::Size(rotated_width,rotated_height));
@@ -258,18 +237,18 @@ std::vector<ParkingSpot> detectParkingSpotInImage(const cv::Mat& image) {
 
             // use dilate or medianblurred or canny with 100-1000
             cv::Mat tm_result_unnorm;
-            cv::matchTemplate(dilate,rotated_template,tm_result_unnorm,cv::TM_CCORR_NORMED,rotated_mask);
+            cv::matchTemplate(edges,rotated_template,tm_result_unnorm,cv::TM_SQDIFF,rotated_mask);
             cv::normalize( tm_result_unnorm, tm_result, 0, 1, cv::NORM_MINMAX, -1, cv::Mat() );
         
-            // cv::imshow("TM Result", tm_result);
-            // cv::waitKey(0);
+            cv::imshow("TM Result", tm_result);
+            cv::waitKey(0);
 
             // Finding local minima
             cv::Mat eroded;
             std::vector<cv::Point> minima;
             cv::Mat kernel = cv::getStructuringElement(cv::MORPH_RECT, cv::Size(rotated_width, rotated_height));
-            cv::dilate(tm_result, eroded, kernel);
-            cv::Mat localMinimaMask = (tm_result == eroded) & (tm_result >= 0.975);
+            cv::erode(tm_result, eroded, kernel);
+            cv::Mat localMinimaMask = (tm_result == eroded) & (tm_result <= 0.1);
 
             // cv::imshow("TM Result, eroded", eroded);
             // cv::waitKey(0);
@@ -289,15 +268,15 @@ std::vector<ParkingSpot> detectParkingSpotInImage(const cv::Mat& image) {
                 center.x = pt.x+rotated_width/2;
                 center.y = pt.y+rotated_height/2;
 
-                cv::RotatedRect rotatedRect(center, cv::Size(template_width-2*surplus,template_height), -angles[k]);
+                cv::RotatedRect rotatedRect(center, cv::Size(template_width,template_height), -angles[k]);
                 list_boxes.push_back(rotatedRect);
 
-                // Draw the rotated rectangle using lines between its vertices
-                // cv::Point2f vertices[4];
-                // rotatedRect.points(vertices);
-                // for (int i = 0; i < 4; i++) {
-                //     cv::line(image, vertices[i], vertices[(i+1) % 4], cv::Scalar(0, 255, 0), 2);
-                // }
+                //Draw the rotated rectangle using lines between its vertices
+                cv::Point2f vertices[4];
+                rotatedRect.points(vertices);
+                for (int i = 0; i < 4; i++) {
+                    cv::line(image, vertices[i], vertices[(i+1) % 4], cv::Scalar(0, 255, 0), 2);
+                }
             }
         }
         
