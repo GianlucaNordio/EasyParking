@@ -9,6 +9,66 @@ TODO:
 5. Dopo il punto 4, alla fine dei due cicli for, fare non maxima suppression. A quel punto usare NMS di opencv oppure prendere quello con area maggiore
 */
 
+double computeIntersectionArea(const cv::RotatedRect& rect1, const cv::RotatedRect& rect2) {
+    // Converti i RotatedRect in vettori di punti (poligoni)
+    std::vector<cv::Point2f> points1, points2;
+    cv::Point2f vertices1[4], vertices2[4];
+
+    double area = rect1.size.area();
+    
+    rect1.points(vertices1);
+    rect2.points(vertices2);
+    
+    for (int i = 0; i < 4; i++) {
+        points1.push_back(vertices1[i]);
+        points2.push_back(vertices2[i]);
+    }
+
+    // Calcola l'intersezione tra i due poligoni
+    std::vector<cv::Point2f> intersection;
+    double intersectionArea = cv::intersectConvexConvex(points1, points2, intersection) / area;
+
+    return intersectionArea;
+}
+
+double computeIntersectionAreaAtDifferentSize(const cv::RotatedRect& rect1, const cv::RotatedRect& rect2) {
+    // Converti i RotatedRect in vettori di punti (poligoni)
+    std::vector<cv::Point2f> points1, points2;
+    cv::Point2f vertices1[4], vertices2[4];
+
+    double area1 = rect1.size.area();
+    double area2 = rect2.size.area();
+    
+    rect1.points(vertices1);
+    rect2.points(vertices2);
+    
+    for (int i = 0; i < 4; i++) {
+        points1.push_back(vertices1[i]);
+        points2.push_back(vertices2[i]);
+    }
+
+    // Calcola l'intersezione tra i due poligoni
+    std::vector<cv::Point2f> intersection;
+    double intersectionArea = cv::intersectConvexConvex(points1, points2, intersection) / std::min(area1, area2);
+
+    return intersectionArea;
+}
+
+std::vector<std::pair<cv::RotatedRect, double>>::const_iterator elementIterator(
+    const std::vector<std::pair<cv::RotatedRect, double>>& vec,
+    const std::pair<cv::RotatedRect, double>& elem) 
+{
+    for (auto it = vec.cbegin(); it != vec.cend(); ++it) {
+        if (it->second == elem.second &&
+            it->first.center.x == elem.first.center.x &&
+            it->first.center.y == elem.first.center.y) 
+        {
+            return it; // Restituiamo l'iteratore all'elemento
+        }
+    }
+    return vec.cend(); // Restituiamo end() se l'elemento non è stato trovato
+}
+
 // Function to detect parking spots in the images
 void detectParkingSpots(const std::vector<cv::Mat>& images, std::vector<ParkingSpot>& parkingSpots) {
     
@@ -189,8 +249,9 @@ std::vector<ParkingSpot> detectParkingSpotInImage(const cv::Mat& image) {
     std::vector<int> angles = {-5,-6,-7,-8,-9, -10, -11, -12, -13,-14,-15,-16};
     std::vector<float> scales = {0.7, 0.8, 1, 1.05, 1.1,1.15, 1.2, 1.3,1.4,1.5,1.6,1.7,1.8,2};
     std::vector<cv::RotatedRect> boxes_best_angle;
+    std::vector<std::pair<cv::RotatedRect, double>> final_boxes;
     for(int l = 0; l<scales.size(); l++) {
-        std::vector<cv::RotatedRect> list_boxes;
+        std::vector<std::pair<cv::RotatedRect, double>> list_boxes;
         for(int k = 0; k<angles.size(); k++) {
             // Template size
             int surplus = 30*scales[k];
@@ -290,7 +351,7 @@ std::vector<ParkingSpot> detectParkingSpotInImage(const cv::Mat& image) {
                 center.y = pt.y+rotated_height/2;
 
                 cv::RotatedRect rotatedRect(center, cv::Size(template_width-2*surplus,template_height), -angles[k]);
-                list_boxes.push_back(rotatedRect);
+                list_boxes.push_back(std::pair(rotatedRect, tm_result.at<double>(pt)));
 
                 // Draw the rotated rectangle using lines between its vertices
                 // cv::Point2f vertices[4];
@@ -300,6 +361,33 @@ std::vector<ParkingSpot> detectParkingSpotInImage(const cv::Mat& image) {
                 // }
             }
         }
+
+        for( std::pair box : list_boxes) {
+            for (std::pair box2 : list_boxes) {
+                //Check if box and box2 are in the same position on list_boxes, so are the same rect)
+                
+
+                cv::RotatedRect rect1 = box.first;
+                cv::RotatedRect rect2 = box2.first;
+
+
+                double score1 = box.second;
+                double score2 = box2.second;
+
+                if(rect1.center.x == rect2.center.x && rect1.center.y == rect2.center.y && score1 == score2) {
+                    continue;
+                }
+
+                if(computeIntersectionArea(rect1,rect2) > 0.4) {
+                    if(score1 > score2) {
+                        list_boxes.erase(elementIterator(list_boxes, box2));
+                    }
+                    else {
+                        list_boxes.erase(elementIterator(list_boxes, box));
+                    }
+                }
+            }
+        }
         
         float scoreThreshold = 0.0f;  // Minimum score to keep
         float nmsThreshold = 0.5f;    // IoU threshold for NMS
@@ -307,12 +395,27 @@ std::vector<ParkingSpot> detectParkingSpotInImage(const cv::Mat& image) {
         std::vector<int> indices;
         std::vector<float> scores(list_boxes.size(),0.1);
 
-        // Apply NMS for rotated rectangles
-        cv::dnn::NMSBoxes(list_boxes, scores, scoreThreshold, nmsThreshold, indices);
+        std::vector<cv::RotatedRect> list_boxes_onlyRect;
+        for(auto box : list_boxes) {
+            final_boxes.push_back(box);
+            list_boxes_onlyRect.push_back(box.first);
+        }
+
+        for(auto rect : list_boxes_onlyRect) {
+            // Draw the rotated rectangle
+            cv::Point2f vertices[4];
+            rect.points(vertices);
+            for (int j = 0; j < 4; j++) {
+                cv::line(image, vertices[j], vertices[(j + 1) % 4], cv::Scalar(0, 0, 255), 2);
+            }
+            
+        }
+        /* // Apply NMS for rotated rectangles
+        cv::dnn::NMSBoxes(list_boxes_onlyRect, scores, scoreThreshold, nmsThreshold, indices);
         
         // Draw the remaining boxes after NMS
         for (int idx : indices) {
-            cv::RotatedRect& rect = list_boxes[idx];
+            cv::RotatedRect& rect = list_boxes_onlyRect[idx];
             boxes_best_angle.push_back(rect);
             // Draw the rotated rectangle
             cv::Point2f vertices[4];
@@ -320,7 +423,7 @@ std::vector<ParkingSpot> detectParkingSpotInImage(const cv::Mat& image) {
             for (int j = 0; j < 4; j++) {
                 cv::line(image, vertices[j], vertices[(j + 1) % 4], cv::Scalar(0, 0, 255), 2);
             }
-        }
+        } */
         cv::imshow("with lines", image);
         cv::waitKey(0);
     }
@@ -330,7 +433,7 @@ std::vector<ParkingSpot> detectParkingSpotInImage(const cv::Mat& image) {
     std::vector<int> indices_final;
     std::vector<float> scores_final(boxes_best_angle.size(),0.1);
     // Apply NMS for rotated rectangles
-    cv::dnn::NMSBoxes(boxes_best_angle, scores_final, scoreThold, nmsThold, indices_final);
+    /* cv::dnn::NMSBoxes(boxes_best_angle, scores_final, scoreThold, nmsThold, indices_final);
         // Draw the remaining boxes after NMS
         for (int idx : indices_final) {
             cv::RotatedRect& rect = boxes_best_angle[idx];
@@ -343,7 +446,49 @@ std::vector<ParkingSpot> detectParkingSpotInImage(const cv::Mat& image) {
         }
     // O uso questo come centri di k-means, o non uso NMS e quando disegno un nuovo rotatedrect controllo che il suo match sia migliore di quello precedente
     // rispetto al bbox che gli è più vicino
-    // Display the image
+    // Display the image */
+
+    for( std::pair box : final_boxes) {
+            for (std::pair box2 : final_boxes) {
+                //Check if box and box2 are in the same position on list_boxes, so are the same rect)
+                
+
+                cv::RotatedRect rect1 = box.first;
+                cv::RotatedRect rect2 = box2.first;
+
+
+                double score1 = box.second;
+                double score2 = box2.second;
+
+                if(rect1.center.x == rect2.center.x && rect1.center.y == rect2.center.y && score1 == score2) {
+                    continue;
+                }
+
+                if(computeIntersectionAreaAtDifferentSize(rect1,rect2) > 0.4) {
+                    if( rect1.size.area() > rect2.size.area()) {
+                        final_boxes.erase(elementIterator(final_boxes, box2));
+                    }
+                    else {
+                        final_boxes.erase(elementIterator(final_boxes, box));
+                    }
+                }
+            }
+        }
+    std::vector<cv::RotatedRect> list_boxes_onlyRect;
+    for(auto box : final_boxes) {
+        list_boxes_onlyRect.push_back(box.first);
+    }
+
+    for(auto rect : list_boxes_onlyRect) {
+        // Draw the rotated rectangle
+        cv::Point2f vertices[4];
+        rect.points(vertices);
+        for (int j = 0; j < 4; j++) {
+            cv::line(image, vertices[j], vertices[(j + 1) % 4], cv::Scalar(0, 0, 255), 2);
+        }
+        
+    }
+
     cv::imshow("NMS Result", image);
     cv::waitKey(0);
 
