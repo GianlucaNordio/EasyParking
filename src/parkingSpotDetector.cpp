@@ -23,11 +23,207 @@ void detectParkingSpots(const std::vector<cv::Mat>& images, std::vector<ParkingS
 std::vector<ParkingSpot> detectParkingSpotInImage(const cv::Mat& image) {
     std::vector<ParkingSpot> parkingSpots;
 
-    cv::Mat filteredImage;
-    cv::bilateralFilter(image, filteredImage, -1, 40, 10);
+    cv::Mat preprocessed = preprocess(image);
+    
+    std::vector<int> angles = {-5,-6,-7,-8,-9, -10, -11, -12, -13,-14,-15,-16};
+    std::vector<float> scales = {1};
+    std::vector<cv::RotatedRect> list_boxes;
 
-    cv::imshow("bilateral filtered", filteredImage);
+    for(int l = 0; l<scales.size(); l++) {
+        for(int k = 0; k<angles.size(); k++) {
+        // Template size
+        int template_height = 5;
+        int template_width = 80*scales[l];
+
+        // Horizontal template and mask definition
+        cv::Mat horizontal_template(template_height,template_width,CV_8U);
+        cv::Mat horizontal_mask(template_height,template_width,CV_8U);
+
+        // Build the template and mask
+        for(int i = 0; i< horizontal_template.rows; i++) {
+            for(int j = 0; j<horizontal_template.cols; j++) {
+                horizontal_template.at<uchar>(i,j) = 200;
+                horizontal_mask.at<uchar>(i,j) = 255;
+            }
+        }
+
+            // Rotate the template
+            cv::Mat flipped;
+            cv::Mat flipped_mask;
+            cv::flip(horizontal_template,flipped,-1);
+            cv::flip(horizontal_mask,flipped_mask,-1);
+            cv::Mat R = cv::getRotationMatrix2D(cv::Point2f(0,template_height-1),angles[k],1);
+            cv::Mat rotated_template;
+            cv::Mat rotated_mask;
+
+            float rotated_width = template_width*cos(-angles[k]*CV_PI/180)+template_height;
+            float rotated_height = template_width*sin(-angles[k]*CV_PI/180)+template_height;
+
+            cv::warpAffine(flipped,rotated_template,R,cv::Size(rotated_width,rotated_height));
+            cv::warpAffine(flipped_mask,rotated_mask,R,cv::Size(rotated_width,rotated_height));
+
+            if(k == 0) {
+                 cv::imshow("Horizontal template", horizontal_template);
+                 cv::imshow("Rotated template", rotated_template);
+            }
+
+            cv::Mat tm_result;
+            //cv::filter2D(dilate, test, CV_32F, rotated);
+            //cv::imshow("test", test);
+            //cv::waitKey(0);
+
+            // use dilate or medianblurred or canny with 100-1000
+            cv::Mat tm_result_unnorm;
+            cv::matchTemplate(preprocessed,rotated_template,tm_result_unnorm,cv::TM_SQDIFF,rotated_mask);
+            cv::normalize( tm_result_unnorm, tm_result, 0, 1, cv::NORM_MINMAX, -1, cv::Mat() );
+        
+            cv::imshow("TM Result", tm_result);
+            cv::waitKey(0);
+
+            // Finding local minima
+            cv::Mat eroded;
+            std::vector<cv::Point> minima;
+            cv::Mat kernel = cv::getStructuringElement(cv::MORPH_RECT, cv::Size(rotated_width, rotated_height));
+            cv::erode(tm_result, eroded, kernel);
+            cv::Mat localMinimaMask = (tm_result == eroded) & (tm_result <= 0.05);
+
+            // cv::imshow("TM Result, eroded", eroded);
+            // cv::waitKey(0);
+
+            // Find all non-zero points (local minima) in the mask
+            cv::findNonZero(localMinimaMask, minima);
+
+            // Draw bboxes of the found lines
+            for (const cv::Point& pt : minima) {
+                // Save score of local minima
+                // Get center of the bbox to draw the rotated rect
+                cv::Point center;
+                center.x = pt.x+rotated_width/2;
+                center.y = pt.y+rotated_height/2;
+
+                cv::RotatedRect rotatedRect(center, cv::Size(template_width,template_height), -angles[k]);
+                list_boxes.push_back(rotatedRect);
+
+                //Draw the rotated rectangle using lines between its vertices
+                cv::Point2f vertices[4];
+                rotatedRect.points(vertices);
+                for (int i = 0; i < 4; i++) {
+                    cv::line(image, vertices[i], vertices[(i+1) % 4], cv::Scalar(0, 255, 0), 2);
+                }
+            }
+        }
+        cv::imshow("with lines", image);
+        cv::waitKey(0);
+    }
+
+    // O uso questo come centri di k-means, o non uso NMS e quando disegno un nuovo rotatedrect controllo che il suo match sia migliore di quello precedente
+    // rispetto al bbox che gli è più vicino
+    // Display the image
+
+    cv::Point2f topRightCorner(image.cols - 1, 0);
+    double distanceThreshold = 300.0;
+    std::vector<cv::Point2f> filtered_verts;
+    // Filter the rectangles based on the distance to the top-right corner
+    for (const auto& rect : list_boxes) {
+        double dist =  std::sqrt(std::pow(rect.center.x - topRightCorner.x, 2) + std::pow(rect.center.y - topRightCorner.y, 2));;
+        if (dist > distanceThreshold) {
+            cv::Point2f vertices[4];
+            rect.points(vertices);
+            for (int i = 0; i < 4; i++) {
+                cv::line(image, vertices[i], vertices[(i+1) % 4], cv::Scalar(0, 255, 0), 2);
+                filtered_verts.push_back(vertices[i]);
+            }
+        }
+    }
+
+    std::vector<cv::Point2f> hull;
+    cv::convexHull(filtered_verts, hull);
+
+    std::vector<std::pair<double, std::pair<cv::Point2f, cv::Point2f>>> hullLines;    
+    // Draw the convex hull
+    for (size_t i = 0; i < hull.size(); i++) {
+        cv::line(image, hull[i], hull[(i + 1) % hull.size()], cv::Scalar(255, 0, 0), 2);
+        cv::Point2f p1 = hull[i];
+        cv::Point2f p2 = hull[(i + 1) % hull.size()]; // Wrap around to form a closed hull
+        double distance = cv::norm(p1-p2);
+        hullLines.push_back(std::make_pair(distance, std::make_pair(p1, p2)));
+    }
+
+    // Sort the lines by their length in descending order
+    std::sort(hullLines.begin(), hullLines.end(), [](const auto& a, const auto& b) {
+        return a.first > b.first;
+    });
+
+    std::vector<double> ms;
+    std::vector<double> bs;
+    
+    // Highlight the 4 longest lines in red
+    for (size_t i = 0; i < std::min(hullLines.size(), size_t(4)); i++) {
+        auto& line = hullLines[i];
+        double m = static_cast<double>(line.second.second.y - line.second.first.y) / (line.second.second.x - line.second.first.x);
+        double b = line.second.first.y - m * line.second.first.x;
+        ms.push_back(m);
+        bs.push_back(b);
+        cv::line(image, line.second.first, line.second.second, cv::Scalar(0, 0, 255), (i+1)*(i+1));
+    }
+
+    std::vector<cv::Point2f> hom_points;
+    // Check all pairs of lines for intersections
+    for (size_t i = 0; i < ms.size(); ++i) {
+        for (size_t j = i + 1; j < ms.size(); ++j) {
+            double m1 = ms[i];
+            double b1 = bs[i];
+            double m2 = ms[j];
+            double b2 = bs[j];
+
+            std::cout << "Lines " << i << " m: "<< m1 << " and " << j << " m: " << m2 << std::endl;
+            // Check if lines are parallel (have the same slope)
+            if ((m1 < 0) == (m2 < 0)) {
+                std::cout << "Lines " << i << " and " << j << " are parallel and do not intersect." << std::endl;
+                continue;
+            }
+
+            // Calculate intersection point (x, y)
+            double x = (b2 - b1) / (m1 - m2);
+            double y = m1 * x + b1;
+
+            if(x<0) x = 0;
+            if(x >= image.cols) x = image.cols-1;
+            if(y <0) y = 0;
+            if(y >= image.rows) y = image.rows -1;
+
+            // Check if the intersection point is inside the image
+            if (x >= 0 && x < image.cols && y >= 0 && y < image.rows) {
+                cv::circle(image, cv::Point(static_cast<int>(x), static_cast<int>(y)), 5, cv::Scalar(0, 0, 255), -1);
+                hom_points.push_back(cv::Point2f(static_cast<int>(x), static_cast<int>(y)));
+            } else {
+                std::cout << "Intersection of lines " << i << " and " << j 
+                          << " is at (" << x << ", " << y << ") and is outside the image." << std::endl;
+            }
+        }
+    }
+
+    // Iterate over the points to determine the corners
+    for (const auto& point : hom_points) {
+            std::cout << point << std::endl;
+    }
+    cv::imshow("NMS Result", image);
     cv::waitKey(0);
+
+    std::vector<cv::Point2f> to_hom_points = {cv::Point2f(999,0), cv::Point2f(999,999), cv::Point2f(0,0), cv::Point2f(0,999)};
+    cv::Mat F = cv::findHomography(hom_points, to_hom_points);
+    cv::Mat result(1000, 1000, CV_8U);
+    cv::warpPerspective(preprocessed, result, F, cv::Size(1000,1000));
+    cv::imshow("result", result);
+
+    return parkingSpots;
+}
+
+cv::Mat preprocess(const cv::Mat& src) {
+    cv::Mat gaussianFilteredImage;
+    cv::GaussianBlur(src,gaussianFilteredImage,cv::Size(3,3),20);
+    cv::Mat filteredImage;
+    cv::bilateralFilter(src, filteredImage, -1, 40, 10);
 
     cv::Mat gs;
     cv::cvtColor(filteredImage, gs, cv::COLOR_BGR2GRAY);
@@ -127,8 +323,6 @@ std::vector<ParkingSpot> detectParkingSpotInImage(const cv::Mat& image) {
 
     cv::Mat grad_magn_bilateral;
     cv::bilateralFilter(grad_magn, grad_magn_bilateral, -1, 20, 10);
-    cv::imshow("grad magn bilateral", grad_magn_bilateral);
-    cv::waitKey(0);
 
     cv::Mat edges;
     cv::Canny(grad_magn, edges, 50, 400);
@@ -149,184 +343,7 @@ std::vector<ParkingSpot> detectParkingSpotInImage(const cv::Mat& image) {
     cv::imshow("dilated canny", edges);
     cv::waitKey(0);
 
-    
-/*
-   std::vector<int> angles = {-8, -9, -10, -11, -12, -13};
-    std::vector<float> scales = {0.75, 1, 1.05, 1.1, 1.2, 2};
-    std::vector<cv::RotatedRect> list_boxes;
-
-    for(int k = 0; k<angles.size(); k++) {
-        // Template size
-        int template_height = 5*2+20*scale*scale;
-        int template_width = 100*scale;
-
-        // Horizontal template and mask definition
-        cv::Mat horizontal_template(template_height,template_width,CV_8U);
-        cv::Mat horizontal_mask(template_height,template_width,CV_8U);
-
-        // Build the template and mask
-        for(int i = 0; i< horizontal_template.rows; i++) {
-            for(int j = 0; j<horizontal_template.cols; j++) {
-                uchar val = 0;
-                if(i < 5 || (i > template_height-5) || j > template_width-5) {
-                    val = 255;
-                }
-                horizontal_mask.at<uchar>(i,j) = val;
-                horizontal_template.at<uchar>(i,j) = val;
-            }
-        }
-*/
-    std::vector<int> angles = {-5,-6,-7,-8,-9, -10, -11, -12, -13,-14,-15,-16};
-    std::vector<float> scales = {0.7, 0.8, 1, 1.05, 1.1,1.15, 1.2, 1.3,1.4,1.5,1.6,1.7,1.8,2};
-    std::vector<cv::RotatedRect> boxes_best_angle;
-    for(int l = 0; l<scales.size(); l++) {
-        std::vector<cv::RotatedRect> list_boxes;
-        for(int k = 0; k<angles.size(); k++) {
-        // Template size
-        int template_height = 5;
-        int template_width = 100*scales[k];
-
-        // Horizontal template and mask definition
-        cv::Mat horizontal_template(template_height,template_width,CV_8U);
-        cv::Mat horizontal_mask(template_height,template_width,CV_8U);
-
-        // Build the template and mask
-        for(int i = 0; i< horizontal_template.rows; i++) {
-            for(int j = 0; j<horizontal_template.cols; j++) {
-                horizontal_template.at<uchar>(i,j) = 200;
-                horizontal_mask.at<uchar>(i,j) = 255;
-            }
-        }
-/*
-            // Build the template and mask
-            for(int i = 0; i< horizontal_template.rows; i++) {
-                for(int j = 0; j<horizontal_template.cols; j++) {
-                    if(((i<line_width && j > surplus) 
-                        || (j > template_width-line_width/2) 
-                        || (i > (template_height-line_width) && j > (20*scales[l]*scales[l]+surplus/2)))){
-                        horizontal_template.at<uchar>(i,j) = 255;
-                        horizontal_mask.at<uchar>(i,j) = 255;
-                    }
-                }
-            }
-*/
-            // Rotate the template
-            cv::Mat flipped;
-            cv::Mat flipped_mask;
-            cv::flip(horizontal_template,flipped,-1);
-            cv::flip(horizontal_mask,flipped_mask,-1);
-            cv::Mat R = cv::getRotationMatrix2D(cv::Point2f(0,template_height-1),angles[k],1);
-            cv::Mat rotated_template;
-            cv::Mat rotated_mask;
-
-            float rotated_width = template_width*cos(-angles[k]*CV_PI/180)+template_height;
-            float rotated_height = template_width*sin(-angles[k]*CV_PI/180)+template_height;
-
-            cv::warpAffine(flipped,rotated_template,R,cv::Size(rotated_width,rotated_height));
-            cv::warpAffine(flipped_mask,rotated_mask,R,cv::Size(rotated_width,rotated_height));
-
-            if(k == 0) {
-                 cv::imshow("Horizontal template", horizontal_template);
-                 cv::imshow("Rotated template", rotated_template);
-            }
-
-            cv::Mat tm_result;
-            //cv::filter2D(dilate, test, CV_32F, rotated);
-            //cv::imshow("test", test);
-            //cv::waitKey(0);
-
-            // use dilate or medianblurred or canny with 100-1000
-            cv::Mat tm_result_unnorm;
-            cv::matchTemplate(edges,rotated_template,tm_result_unnorm,cv::TM_SQDIFF,rotated_mask);
-            cv::normalize( tm_result_unnorm, tm_result, 0, 1, cv::NORM_MINMAX, -1, cv::Mat() );
-        
-            cv::imshow("TM Result", tm_result);
-            cv::waitKey(0);
-
-            // Finding local minima
-            cv::Mat eroded;
-            std::vector<cv::Point> minima;
-            cv::Mat kernel = cv::getStructuringElement(cv::MORPH_RECT, cv::Size(rotated_width, rotated_height));
-            cv::erode(tm_result, eroded, kernel);
-            cv::Mat localMinimaMask = (tm_result == eroded) & (tm_result <= 0.1);
-
-            // cv::imshow("TM Result, eroded", eroded);
-            // cv::waitKey(0);
-
-            // Find all non-zero points (local minima) in the mask
-            cv::findNonZero(localMinimaMask, minima);
-
-            // Draw bboxes of the found lines
-            for (const cv::Point& pt : minima) {
-                // Save score of local minima
-
-                // White circles at minima points
-                // cv::circle(gs, pt, 3, cv::Scalar(255), 1);
-
-                // Get center of the bbox to draw the rotated rect
-                cv::Point center;
-                center.x = pt.x+rotated_width/2;
-                center.y = pt.y+rotated_height/2;
-
-                cv::RotatedRect rotatedRect(center, cv::Size(template_width,template_height), -angles[k]);
-                list_boxes.push_back(rotatedRect);
-
-                //Draw the rotated rectangle using lines between its vertices
-                cv::Point2f vertices[4];
-                rotatedRect.points(vertices);
-                for (int i = 0; i < 4; i++) {
-                    cv::line(image, vertices[i], vertices[(i+1) % 4], cv::Scalar(0, 255, 0), 2);
-                }
-            }
-        }
-        
-        float scoreThreshold = 0.0f;  // Minimum score to keep
-        float nmsThreshold = 0.5f;    // IoU threshold for NMS
-        // Vector to store indices of bounding boxes to keep after NMS
-        std::vector<int> indices;
-        std::vector<float> scores(list_boxes.size(),0.1);
-
-        // Apply NMS for rotated rectangles
-        cv::dnn::NMSBoxes(list_boxes, scores, scoreThreshold, nmsThreshold, indices);
-        
-        // Draw the remaining boxes after NMS
-        for (int idx : indices) {
-            cv::RotatedRect& rect = list_boxes[idx];
-            boxes_best_angle.push_back(rect);
-            // Draw the rotated rectangle
-            cv::Point2f vertices[4];
-            rect.points(vertices);
-            for (int j = 0; j < 4; j++) {
-                cv::line(image, vertices[j], vertices[(j + 1) % 4], cv::Scalar(0, 0, 255), 2);
-            }
-        }
-        cv::imshow("with lines", image);
-        cv::waitKey(0);
-    }
-
-    float scoreThold = 0.0f;
-    float nmsThold = 0.5f;
-    std::vector<int> indices_final;
-    std::vector<float> scores_final(boxes_best_angle.size(),0.1);
-    // Apply NMS for rotated rectangles
-    cv::dnn::NMSBoxes(boxes_best_angle, scores_final, scoreThold, nmsThold, indices_final);
-        // Draw the remaining boxes after NMS
-        for (int idx : indices_final) {
-            cv::RotatedRect& rect = boxes_best_angle[idx];
-            // Draw the rotated rectangle
-            cv::Point2f vertices[4];
-            rect.points(vertices);
-            for (int j = 0; j < 4; j++) {
-                cv::line(image, vertices[j], vertices[(j + 1) % 4], cv::Scalar(255, 0, 0), 2);
-            }
-        }
-    // O uso questo come centri di k-means, o non uso NMS e quando disegno un nuovo rotatedrect controllo che il suo match sia migliore di quello precedente
-    // rispetto al bbox che gli è più vicino
-    // Display the image
-    cv::imshow("NMS Result", image);
-    cv::waitKey(0);
-
-    return parkingSpots;
+    return edges;
 }
 
 cv::Mat applyGammaTransform(const cv::Mat& src, double gamma) {
