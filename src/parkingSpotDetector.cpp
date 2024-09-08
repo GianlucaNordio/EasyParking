@@ -107,8 +107,17 @@ std::vector<ParkingSpot> detectParkingSpotInImage(const cv::Mat& image) {
         cv::waitKey(0);
     }
 
-    // O uso questo come centri di k-means, o non uso NMS e quando disegno un nuovo rotatedrect controllo che il suo match sia migliore di quello precedente
-    // rispetto al bbox che gli è più vicino
+/* Procedimento: 
+    1-Filtro bbox in alto a destra (unica cosa che si può fare a mano)
+    2-Convex hull con i bbox rimanenti
+    3-Trovo le linee più lunghe del convex hull, le prolungo e calcolo le loro intersezioni ottenendo 4 punti da proiettare tramite omografia
+    4-Faccio l'omografia
+    Problemino: 
+        Alcune linee dei convex hull sono consecutive e quasi parallele, quindi 2 delle 4 linee più lunghe possono appartenere allo stesso "lato".
+        Quello che faccio ora è selezionare le 5 linee più lunghe, estenderle, trovare intersezioni e togliere quei punti di intersezione 
+        che sono troppo vicini tra loro. L'immagine 3 non ha questo problema, pertanto la soluzione attuale scompiglia tutto.
+        La vera soluzione sarebbe questa: se due delle 4 linee più lunghe sono consecutive e quasi parallele, allora le considero come una.
+*/
 
     // Manually filter the rectangles based on the distance to the top-right corner (allowed)
     cv::Point2f topRightCorner(image.cols - 1, 0);
@@ -193,7 +202,7 @@ std::vector<ParkingSpot> detectParkingSpotInImage(const cv::Mat& image) {
     // Remove points that are too close together
     std::vector<cv::Point2f> filteredPoints = removeClosePoints(hom_points, pointsDistanceThreshold);
 
-    // Iterate over the points to determine the corners
+    // Iterate over the points to show the corners
     for (const auto& point : filteredPoints) {
             cv::circle(image, cv::Point(static_cast<int>(point.x), static_cast<int>(point.y)), 5, cv::Scalar(0, 0, 255), -1);
             std::cout << point << std::endl;
