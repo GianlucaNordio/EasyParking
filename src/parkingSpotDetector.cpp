@@ -28,6 +28,8 @@ double computeIntersectionArea(const cv::RotatedRect& rect1, const cv::RotatedRe
     std::vector<cv::Point2f> intersection;
     double intersectionArea = cv::intersectConvexConvex(points1, points2, intersection) / area;
 
+    std::cout << "Intersection area: " << intersectionArea << std::endl;
+
     return intersectionArea;
 }
 
@@ -247,7 +249,7 @@ std::vector<ParkingSpot> detectParkingSpotInImage(const cv::Mat& image) {
         }
 */
     std::vector<float> angles = {-5, -5.5, -6, -6.5, -7, -7.5, -8, -8.5, -9, -9.5, -10, -10.5, -11, -11.5, -12, -12.5, -13, -13.5, -14, -14.5, -15, -15.5, -16};
-    std::vector<float> scales = {0.6, 0.65, 0.7, 0.75, 0.8, 0.85, 0.9, 0.95, 1, 1.05, 1.1, 1.15, 1.2, 1.25, 1.3, 1.35, 1.4, 1.45, 1.5, 1.55, 1.6, 1.65, 1.7, 1.75, 1.8, 1.85, 1.9, 1.95, 2};
+    std::vector<float> scales = {0.75, 0.8, 0.85, 0.9, 0.95, 1, 1.05, 1.1, 1.15, 1.2, 1.25, 1.3, 1.35, 1.4, 1.45, 1.5, 1.55, 1.6, 1.65, 1.7, 1.75, 1.8, 1.85, 1.9, 1.95, 2};
     std::vector<cv::RotatedRect> boxes_best_angle;
     std::vector<std::pair<cv::RotatedRect, double>> final_boxes;
     for(int l = 0; l<scales.size(); l++) {
@@ -330,7 +332,7 @@ std::vector<ParkingSpot> detectParkingSpotInImage(const cv::Mat& image) {
             std::vector<cv::Point> minima;
             cv::Mat kernel = cv::getStructuringElement(cv::MORPH_RECT, cv::Size(rotated_width, rotated_height));
             cv::dilate(tm_result, eroded, kernel);
-            cv::Mat localMinimaMask = (tm_result == eroded) & (tm_result >= 0.950);
+            cv::Mat localMinimaMask = (tm_result == eroded) & (tm_result >= 0.975);
 
             // cv::imshow("TM Result, eroded", eroded);
             // cv::waitKey(0);
@@ -362,30 +364,36 @@ std::vector<ParkingSpot> detectParkingSpotInImage(const cv::Mat& image) {
             }
         }
 
-        for( std::pair box : list_boxes) {
-            for (std::pair box2 : list_boxes) {
-                //Check if box and box2 are in the same position on list_boxes, so are the same rect)
-                
+        std::cout << "Number of boxes: " << list_boxes.size() << std::endl;
 
+        std::vector<std::pair<cv::RotatedRect, double>> elementsToRemove;
+
+        for (const auto& box : list_boxes) {
+            for (const auto& box2 : list_boxes) {
                 cv::RotatedRect rect1 = box.first;
                 cv::RotatedRect rect2 = box2.first;
-
 
                 double score1 = box.second;
                 double score2 = box2.second;
 
-                if(rect1.center.x == rect2.center.x && rect1.center.y == rect2.center.y && score1 == score2) {
-                    continue;
+                if (rect1.center.x == rect2.center.x && rect1.center.y == rect2.center.y && score1 == score2) {
+                    std::cout << "same rect" << std::endl;
+                } else if (computeIntersectionArea(rect1, rect2) > 0.4) {
+                    if (score1 >= score2) {
+                        elementsToRemove.push_back(box2);
+                    } else {
+                        elementsToRemove.push_back(box);
+                    }
                 }
+            }
+        }
 
-                if(computeIntersectionArea(rect1,rect2) > 0.4) {
-                    if(score1 > score2) {
-                        list_boxes.erase(elementIterator(list_boxes, box2));
-                    }
-                    else {
-                        list_boxes.erase(elementIterator(list_boxes, box));
-                    }
-                }
+
+        // Rimuovi tutti gli elementi raccolti
+        for (std::pair element : elementsToRemove) {
+            std::vector<std::pair<cv::RotatedRect, double>>::const_iterator iterator = elementIterator(list_boxes, element);
+            if (iterator != list_boxes.cend()) {
+                list_boxes.erase(iterator);
             }
         }
         
@@ -400,7 +408,7 @@ std::vector<ParkingSpot> detectParkingSpotInImage(const cv::Mat& image) {
             final_boxes.push_back(box);
             list_boxes_onlyRect.push_back(box.first);
         }
-
+/* 
         for(auto rect : list_boxes_onlyRect) {
             // Draw the rotated rectangle
             cv::Point2f vertices[4];
@@ -409,7 +417,7 @@ std::vector<ParkingSpot> detectParkingSpotInImage(const cv::Mat& image) {
                 cv::line(image, vertices[j], vertices[(j + 1) % 4], cv::Scalar(0, 0, 255), 2);
             }
             
-        }
+        } */
         /* // Apply NMS for rotated rectangles
         cv::dnn::NMSBoxes(list_boxes_onlyRect, scores, scoreThreshold, nmsThreshold, indices);
         
@@ -424,8 +432,8 @@ std::vector<ParkingSpot> detectParkingSpotInImage(const cv::Mat& image) {
                 cv::line(image, vertices[j], vertices[(j + 1) % 4], cv::Scalar(0, 0, 255), 2);
             }
         } */
-        cv::imshow("with lines", image);
-        cv::waitKey(0);
+        /* cv::imshow("with lines", image);
+        cv::waitKey(0); */
     }
 
     float scoreThold = 0.0f;
@@ -447,9 +455,11 @@ std::vector<ParkingSpot> detectParkingSpotInImage(const cv::Mat& image) {
     // O uso questo come centri di k-means, o non uso NMS e quando disegno un nuovo rotatedrect controllo che il suo match sia migliore di quello precedente
     // rispetto al bbox che gli è più vicino
     // Display the image */
+    
+    std::vector<std::pair<cv::RotatedRect, double>> elementsToRemove;
 
-    for( std::pair box : final_boxes) {
-            for (std::pair box2 : final_boxes) {
+    for(const auto& box : final_boxes) {
+            for (const auto& box2 : final_boxes) {
                 //Check if box and box2 are in the same position on list_boxes, so are the same rect)
                 
 
@@ -461,19 +471,25 @@ std::vector<ParkingSpot> detectParkingSpotInImage(const cv::Mat& image) {
                 double score2 = box2.second;
 
                 if(rect1.center.x == rect2.center.x && rect1.center.y == rect2.center.y && score1 == score2) {
-                    continue;
-                }
-
-                if(computeIntersectionAreaAtDifferentSize(rect1,rect2) > 0.4) {
-                    if( rect1.size.area() > rect2.size.area()) {
-                        final_boxes.erase(elementIterator(final_boxes, box2));
+                    std::cout << "same rect" << std::endl;
+                } else if(computeIntersectionAreaAtDifferentSize(rect1,rect2) > 0.4) {
+                    if( rect1.size.area() >= rect2.size.area()) {
+                        elementsToRemove.push_back(box2);
                     }
                     else {
-                        final_boxes.erase(elementIterator(final_boxes, box));
+                        elementsToRemove.push_back(box);
                     }
                 }
             }
         }
+
+    for (std::pair element : elementsToRemove) {
+            std::vector<std::pair<cv::RotatedRect, double>>::const_iterator iterator = elementIterator(final_boxes, element);
+            if (iterator != final_boxes.cend()) {
+                final_boxes.erase(iterator);
+            }
+        }
+
     std::vector<cv::RotatedRect> list_boxes_onlyRect;
     for(auto box : final_boxes) {
         list_boxes_onlyRect.push_back(box.first);
@@ -484,7 +500,7 @@ std::vector<ParkingSpot> detectParkingSpotInImage(const cv::Mat& image) {
         cv::Point2f vertices[4];
         rect.points(vertices);
         for (int j = 0; j < 4; j++) {
-            cv::line(image, vertices[j], vertices[(j + 1) % 4], cv::Scalar(0, 0, 255), 2);
+            cv::line(image, vertices[j], vertices[(j + 1) % 4], cv::Scalar(0, 255, 0), 2);
         }
         
     }
