@@ -26,13 +26,13 @@ std::vector<ParkingSpot> detectParkingSpotInImage(const cv::Mat& image) {
     cv::Mat preprocessed = preprocess(image);
     
     std::vector<int> angles = {-5,-6,-7,-8,-9, -10, -11, -12, -13,-14,-15,-16};
-    std::vector<float> scales = {1};
+    std::vector<float> scales = {1,0.75,0.5};
     std::vector<cv::RotatedRect> list_boxes;
 
     for(int l = 0; l<scales.size(); l++) {
         for(int k = 0; k<angles.size(); k++) {
         // Template size
-        int template_height = 5;
+        int template_height = 5*scales[l];
         int template_width = 110*scales[l];
 
         // Horizontal template and mask definition
