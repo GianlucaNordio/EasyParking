@@ -33,7 +33,7 @@ std::vector<ParkingSpot> detectParkingSpotInImage(const cv::Mat& image) {
         for(int k = 0; k<angles.size(); k++) {
         // Template size
         int template_height = 5;
-        int template_width = 80*scales[l];
+        int template_width = 110*scales[l];
 
         // Horizontal template and mask definition
         cv::Mat horizontal_template(template_height,template_width,CV_8U);
@@ -142,7 +142,7 @@ std::vector<ParkingSpot> detectParkingSpotInImage(const cv::Mat& image) {
     std::vector<std::pair<double, std::pair<cv::Point2f, cv::Point2f>>> hullLines;    
     // Draw the convex hull
     for (size_t i = 0; i < hull.size(); i++) {
-        cv::line(image, hull[i], hull[(i + 1) % hull.size()], cv::Scalar(255, 0, 0), 2);
+        cv::line(image, hull[i], hull[(i + 1) % hull.size()], cv::Scalar(0, 255, 0), 2);
         cv::Point2f p1 = hull[i];
         cv::Point2f p2 = hull[(i + 1) % hull.size()]; // Wrap around to form a closed hull
         double distance = cv::norm(p1-p2);
@@ -179,7 +179,6 @@ std::vector<ParkingSpot> detectParkingSpotInImage(const cv::Mat& image) {
             std::cout << "Lines " << i << " m: "<< m1 << " and " << j << " m: " << m2 << std::endl;
             // Check if lines are parallel (have the same slope)
             if ((m1 < 0) == (m2 < 0)) {
-                std::cout << "Lines " << i << " and " << j << " are parallel and do not intersect." << std::endl;
                 continue;
             }
 
@@ -210,12 +209,13 @@ std::vector<ParkingSpot> detectParkingSpotInImage(const cv::Mat& image) {
     cv::imshow("NMS Result", image);
     cv::waitKey(0);
 
+/*
     std::vector<cv::Point2f> to_hom_points = {cv::Point2f(999,0), cv::Point2f(999,999), cv::Point2f(0,0), cv::Point2f(0,999)};
     cv::Mat F = cv::findHomography(hom_points, to_hom_points);
     cv::Mat result(1000, 1000, CV_8U);
     cv::warpPerspective(preprocessed, result, F, cv::Size(1000,1000));
     cv::imshow("result", result);
-
+*/
     return parkingSpots;
 }
 
@@ -325,7 +325,7 @@ cv::Mat preprocess(const cv::Mat& src) {
     cv::bilateralFilter(grad_magn, grad_magn_bilateral, -1, 20, 10);
 
     cv::Mat edges;
-    cv::Canny(grad_magn, edges, 50, 400);
+    cv::Canny(grad_magn, edges,100, 400);
     cv::imshow("canny", edges);
     cv::waitKey(0);
 
@@ -339,7 +339,8 @@ cv::Mat preprocess(const cv::Mat& src) {
     cv::Mat element = cv::getStructuringElement( 
                         cv::MORPH_CROSS, cv::Size(3,3)); 
 
-    cv::dilate(edges,edges,element,cv::Point(-1,1),2);
+    cv::dilate(edges,edges,element,cv::Point(-1,-1),2);
+    cv::erode(edges,edges,element,cv::Point(-1,-1),1);
     cv::imshow("dilated canny", edges);
     cv::waitKey(0);
 

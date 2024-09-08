@@ -15,6 +15,4 @@ std::vector<ParkingSpot> detectParkingSpotInImage(const cv::Mat& image);
 cv::Mat applyGammaTransform(const cv::Mat& src, double gamma);
 cv::Mat contrastStretchTransform(const cv::Mat& src);
 cv::Mat preprocess(const cv::Mat& src);
-
-
 #endif // PARKINGSPOTDETECTOR_HPP
