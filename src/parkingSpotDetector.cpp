@@ -24,6 +24,7 @@ std::vector<ParkingSpot> detectParkingSpotInImage(const cv::Mat& image) {
     std::vector<ParkingSpot> parkingSpots;
 
     cv::Mat preprocessed = preprocess(image);
+    cv::Mat intermediate_results = image.clone();
     
     std::vector<int> angles = {-5,-6,-7,-8,-9, -10, -11, -12, -13,-14,-15,-16};
     std::vector<float> scales = {1,0.75,0.5};
@@ -99,11 +100,11 @@ std::vector<ParkingSpot> detectParkingSpotInImage(const cv::Mat& image) {
                 cv::Point2f vertices[4];
                 rotatedRect.points(vertices);
                 for (int i = 0; i < 4; i++) {
-                    cv::line(image, vertices[i], vertices[(i+1) % 4], cv::Scalar(0, 255, 0), 2);
+                    cv::line(intermediate_results, vertices[i], vertices[(i+1) % 4], cv::Scalar(0, 255, 0), 2);
                 }
             }
         }
-        cv::imshow("with lines", image);
+        cv::imshow("with lines", intermediate_results);
         cv::waitKey(0);
     }
 
@@ -129,7 +130,7 @@ std::vector<ParkingSpot> detectParkingSpotInImage(const cv::Mat& image) {
             cv::Point2f vertices[4];
             rect.points(vertices);
             for (int i = 0; i < 4; i++) {
-                cv::line(image, vertices[i], vertices[(i+1) % 4], cv::Scalar(0, 255, 0), 2);
+                cv::line(intermediate_results, vertices[i], vertices[(i+1) % 4], cv::Scalar(0, 255, 0), 2);
                 filtered_verts.push_back(vertices[i]);
             }
         }
@@ -142,7 +143,7 @@ std::vector<ParkingSpot> detectParkingSpotInImage(const cv::Mat& image) {
     // Draw the convex hull and save its lines
     std::vector<std::pair<double, std::pair<cv::Point2f, cv::Point2f>>> hullLines;    
     for (size_t i = 0; i < hull.size(); i++) {
-        cv::line(image, hull[i], hull[(i + 1) % hull.size()], cv::Scalar(0, 255, 0), 2);
+        cv::line(intermediate_results, hull[i], hull[(i + 1) % hull.size()], cv::Scalar(0, 255, 0), 2);
         cv::Point2f p1 = hull[i];
         cv::Point2f p2 = hull[(i + 1) % hull.size()]; // Wrap around to form a closed hull
         double distance = cv::norm(p1-p2);
@@ -164,7 +165,7 @@ std::vector<ParkingSpot> detectParkingSpotInImage(const cv::Mat& image) {
         ms.push_back(m);
         bs.push_back(b);
         
-        cv::line(image, line.second.first, line.second.second, cv::Scalar(0, 0, 255), (i+1)*(i+1));
+        cv::line(intermediate_results, line.second.first, line.second.second, cv::Scalar(0, 0, 255), (i+1)*(i+1));
     }
 
     // Find the points to transform by extending the longest lines and finding their intersection
@@ -204,17 +205,102 @@ std::vector<ParkingSpot> detectParkingSpotInImage(const cv::Mat& image) {
 
     // Iterate over the points to show the corners
     for (const auto& point : filteredPoints) {
-            cv::circle(image, cv::Point(static_cast<int>(point.x), static_cast<int>(point.y)), 5, cv::Scalar(0, 0, 255), -1);
+            cv::circle(intermediate_results, cv::Point(static_cast<int>(point.x), static_cast<int>(point.y)), 5, cv::Scalar(0, 0, 255), -1);
             std::cout << point << std::endl;
     }
-    cv::imshow("image with homography points", image);
+    cv::imshow("image with homography points", intermediate_results);
     cv::waitKey(0);
 
-    std::vector<cv::Point2f> to_hom_points = {cv::Point2f(999,0), cv::Point2f(899,999), cv::Point2f(0,0), cv::Point2f(100,999)};
+    std::vector<cv::Point2f> to_hom_points = {cv::Point2f(1099,20), cv::Point2f(1099,699), cv::Point2f(20,20), cv::Point2f(100,699)};
     cv::Mat F = cv::findHomography(filteredPoints, to_hom_points);
-    cv::Mat result(1000, 1000, CV_8U);
-    cv::warpPerspective(preprocessed, result, F, cv::Size(1000,1000));
-    cv::imshow("result", result);
+    cv::Mat result_original;
+    cv::Mat result_preproccesed;
+    cv::warpPerspective(image, result_original, F, cv::Size(1200,700));
+    cv::warpPerspective(preprocessed, result_preproccesed, F, cv::Size(1200,700));
+    cv::imshow("result", result_preproccesed+preprocess(result_original));
+    cv::waitKey(0);
+
+    std::vector<int> angles_2 = {-40};
+    std::vector<float> scales_2 = {1};
+
+    for(int l = 0; l<scales_2.size(); l++) {
+        for(int k = 0; k<angles_2.size(); k++) {
+            // Template size
+            int line_width = 4;
+            int template_height = 70*scales_2[l];
+            int template_width = 100*scales_2[l];
+
+            // Horizontal template and mask definition
+            cv::Mat horizontal_template(template_height,template_width,CV_8U,cv::Scalar(0));
+            cv::Mat horizontal_mask(template_height,template_width,CV_8U,cv::Scalar(0));
+
+            for(int i = 0; i< horizontal_template.rows; i++) {
+                for(int j = 0; j<horizontal_template.cols; j++) {
+                    if(((i<line_width) 
+                        
+                        || (i > (template_height-line_width) && j > (20*scales_2[l]*scales_2[l])))){
+                        horizontal_template.at<uchar>(i,j) = 220;
+                        horizontal_mask.at<uchar>(i,j) = 255;
+                    }
+                    
+                }
+            }
+
+            // Rotate
+            cv::Mat R = cv::getRotationMatrix2D(cv::Point2f(template_width/2,template_height/2),angles_2[k],1);
+            cv::Mat rotated_template;
+            cv::Mat rotated_mask;
+
+            float rotated_width = template_width*cos(-angles_2[k]*CV_PI/180);
+            float rotated_height = template_width*sin(-angles_2[k]*CV_PI/180);
+
+            cv::warpAffine(horizontal_template,rotated_template,R,cv::Size(rotated_width,rotated_height));
+            cv::warpAffine(horizontal_mask,rotated_mask,R,cv::Size(rotated_width,rotated_height));
+
+            if(k == 0) {
+                    cv::imshow("Horizontal template", horizontal_template);
+                    cv::imshow("Rotated template", rotated_template);
+            }
+
+            cv::Mat tm_result_unnorm;
+            cv::Mat tm_result;
+            cv::matchTemplate(result_preproccesed,rotated_template,tm_result_unnorm,cv::TM_SQDIFF,rotated_mask);
+            cv::normalize( tm_result_unnorm, tm_result, 0, 1, cv::NORM_MINMAX, -1, cv::Mat() );
+        
+            cv::imshow("TM Result", tm_result);
+            cv::waitKey(0);
+
+            // Finding local minima
+            cv::Mat eroded;
+            std::vector<cv::Point> minima;
+            cv::Mat kernel = cv::getStructuringElement(cv::MORPH_RECT, cv::Size(rotated_width, rotated_height));
+            cv::erode(tm_result, eroded, kernel);
+            cv::Mat localMinimaMask = (tm_result == eroded) & (tm_result <= 0.25);
+
+            // Find all non-zero points (local minima) in the mask
+            cv::findNonZero(localMinimaMask, minima);
+
+            // Draw bboxes of the found lines
+            for (const cv::Point& pt : minima) {
+                // Get center of the bbox to draw the rotated rect
+                cv::Point center;
+                center.x = pt.x+rotated_width/2;
+                center.y = pt.y+rotated_height/2;
+
+                cv::RotatedRect rotatedRect(center, cv::Size(template_width,template_height), -angles_2[k]);
+                list_boxes.push_back(rotatedRect);
+
+                //Draw the rotated rectangle using lines between its vertices
+                cv::Point2f vertices[4];
+                rotatedRect.points(vertices);
+                for (int i = 0; i < 4; i++) {
+                    cv::line(result_original, vertices[i], vertices[(i+1) % 4], cv::Scalar(0, 255, 0), 2);
+                }
+            }
+        }
+        cv::imshow("with lines", result_original);
+        cv::waitKey(0);
+    }
 
     return parkingSpots;
 }
@@ -317,16 +403,16 @@ cv::Mat preprocess(const cv::Mat& src) {
 
     cv::Mat edges;
     cv::Canny(grad_magn, edges,150, 400);
-    cv::imshow("canny", edges);
-    cv::waitKey(0);
+    // cv::imshow("canny", edges);
+    // cv::waitKey(0);
 
     cv::Mat element = cv::getStructuringElement( 
                         cv::MORPH_CROSS, cv::Size(3,3)); 
 
     cv::dilate(edges,edges,element,cv::Point(-1,-1),2);
     cv::erode(edges,edges,element,cv::Point(-1,-1),1);
-    cv::imshow("dilated canny", edges);
-    cv::waitKey(0);
+    // cv::imshow("dilated canny", edges);
+    // cv::waitKey(0);
 
     return edges;
 }
