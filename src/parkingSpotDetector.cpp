@@ -31,23 +31,23 @@ std::vector<ParkingSpot> detectParkingSpotInImage(const cv::Mat& image) {
 
     for(int l = 0; l<scales.size(); l++) {
         for(int k = 0; k<angles.size(); k++) {
-        // Template size
-        int template_height = 5*scales[l];
-        int template_width = 110*scales[l];
+            // Template size
+            int template_height = 5*scales[l];
+            int template_width = 100*scales[l];
 
-        // Horizontal template and mask definition
-        cv::Mat horizontal_template(template_height,template_width,CV_8U);
-        cv::Mat horizontal_mask(template_height,template_width,CV_8U);
+            // Horizontal template and mask definition
+            cv::Mat horizontal_template(template_height,template_width,CV_8U);
+            cv::Mat horizontal_mask(template_height,template_width,CV_8U);
 
-        // Build the template and mask
-        for(int i = 0; i< horizontal_template.rows; i++) {
-            for(int j = 0; j<horizontal_template.cols; j++) {
-                horizontal_template.at<uchar>(i,j) = 200;
-                horizontal_mask.at<uchar>(i,j) = 255;
+            // Build the template and mask
+            for(int i = 0; i< horizontal_template.rows; i++) {
+                for(int j = 0; j<horizontal_template.cols; j++) {
+                    horizontal_template.at<uchar>(i,j) = 200;
+                    horizontal_mask.at<uchar>(i,j) = 255;
+                }
             }
-        }
 
-            // Rotate the template
+            // Rotate and flip the template
             cv::Mat flipped;
             cv::Mat flipped_mask;
             cv::flip(horizontal_template,flipped,-1);
@@ -63,17 +63,12 @@ std::vector<ParkingSpot> detectParkingSpotInImage(const cv::Mat& image) {
             cv::warpAffine(flipped_mask,rotated_mask,R,cv::Size(rotated_width,rotated_height));
 
             if(k == 0) {
-                 cv::imshow("Horizontal template", horizontal_template);
-                 cv::imshow("Rotated template", rotated_template);
+                    cv::imshow("Horizontal template", horizontal_template);
+                    cv::imshow("Rotated template", rotated_template);
             }
 
-            cv::Mat tm_result;
-            //cv::filter2D(dilate, test, CV_32F, rotated);
-            //cv::imshow("test", test);
-            //cv::waitKey(0);
-
-            // use dilate or medianblurred or canny with 100-1000
             cv::Mat tm_result_unnorm;
+            cv::Mat tm_result;
             cv::matchTemplate(preprocessed,rotated_template,tm_result_unnorm,cv::TM_SQDIFF,rotated_mask);
             cv::normalize( tm_result_unnorm, tm_result, 0, 1, cv::NORM_MINMAX, -1, cv::Mat() );
         
@@ -85,17 +80,13 @@ std::vector<ParkingSpot> detectParkingSpotInImage(const cv::Mat& image) {
             std::vector<cv::Point> minima;
             cv::Mat kernel = cv::getStructuringElement(cv::MORPH_RECT, cv::Size(rotated_width, rotated_height));
             cv::erode(tm_result, eroded, kernel);
-            cv::Mat localMinimaMask = (tm_result == eroded) & (tm_result <= 0.05);
-
-            // cv::imshow("TM Result, eroded", eroded);
-            // cv::waitKey(0);
+            cv::Mat localMinimaMask = (tm_result == eroded) & (tm_result <= 0.065);
 
             // Find all non-zero points (local minima) in the mask
             cv::findNonZero(localMinimaMask, minima);
 
             // Draw bboxes of the found lines
             for (const cv::Point& pt : minima) {
-                // Save score of local minima
                 // Get center of the bbox to draw the rotated rect
                 cv::Point center;
                 center.x = pt.x+rotated_width/2;
@@ -118,12 +109,11 @@ std::vector<ParkingSpot> detectParkingSpotInImage(const cv::Mat& image) {
 
     // O uso questo come centri di k-means, o non uso NMS e quando disegno un nuovo rotatedrect controllo che il suo match sia migliore di quello precedente
     // rispetto al bbox che gli è più vicino
-    // Display the image
 
+    // Manually filter the rectangles based on the distance to the top-right corner (allowed)
     cv::Point2f topRightCorner(image.cols - 1, 0);
     double distanceThreshold = 300.0;
     std::vector<cv::Point2f> filtered_verts;
-    // Filter the rectangles based on the distance to the top-right corner
     for (const auto& rect : list_boxes) {
         double dist =  std::sqrt(std::pow(rect.center.x - topRightCorner.x, 2) + std::pow(rect.center.y - topRightCorner.y, 2));;
         if (dist > distanceThreshold) {
@@ -136,11 +126,12 @@ std::vector<ParkingSpot> detectParkingSpotInImage(const cv::Mat& image) {
         }
     }
 
+    // Get convex hull of every line that has been found
     std::vector<cv::Point2f> hull;
     cv::convexHull(filtered_verts, hull);
 
+    // Draw the convex hull and save its lines
     std::vector<std::pair<double, std::pair<cv::Point2f, cv::Point2f>>> hullLines;    
-    // Draw the convex hull
     for (size_t i = 0; i < hull.size(); i++) {
         cv::line(image, hull[i], hull[(i + 1) % hull.size()], cv::Scalar(0, 255, 0), 2);
         cv::Point2f p1 = hull[i];
@@ -153,22 +144,22 @@ std::vector<ParkingSpot> detectParkingSpotInImage(const cv::Mat& image) {
     std::sort(hullLines.begin(), hullLines.end(), [](const auto& a, const auto& b) {
         return a.first > b.first;
     });
-
-    std::vector<double> ms;
-    std::vector<double> bs;
     
     // Highlight the 4 longest lines in red
-    for (size_t i = 0; i < std::min(hullLines.size(), size_t(4)); i++) {
+    std::vector<double> ms; // angular coefficients
+    std::vector<double> bs; // intercepts
+    for (size_t i = 0; i < std::min(hullLines.size(), size_t(5)); i++) {
         auto& line = hullLines[i];
         double m = static_cast<double>(line.second.second.y - line.second.first.y) / (line.second.second.x - line.second.first.x);
         double b = line.second.first.y - m * line.second.first.x;
         ms.push_back(m);
         bs.push_back(b);
+        
         cv::line(image, line.second.first, line.second.second, cv::Scalar(0, 0, 255), (i+1)*(i+1));
     }
 
+    // Find the points to transform by extending the longest lines and finding their intersection
     std::vector<cv::Point2f> hom_points;
-    // Check all pairs of lines for intersections
     for (size_t i = 0; i < ms.size(); ++i) {
         for (size_t j = i + 1; j < ms.size(); ++j) {
             double m1 = ms[i];
@@ -186,37 +177,66 @@ std::vector<ParkingSpot> detectParkingSpotInImage(const cv::Mat& image) {
             double x = (b2 - b1) / (m1 - m2);
             double y = m1 * x + b1;
 
+            // Check if the intersection point is inside the image
             if(x<0) x = 0;
             if(x >= image.cols) x = image.cols-1;
             if(y <0) y = 0;
             if(y >= image.rows) y = image.rows -1;
-
-            // Check if the intersection point is inside the image
-            if (x >= 0 && x < image.cols && y >= 0 && y < image.rows) {
-                cv::circle(image, cv::Point(static_cast<int>(x), static_cast<int>(y)), 5, cv::Scalar(0, 0, 255), -1);
-                hom_points.push_back(cv::Point2f(static_cast<int>(x), static_cast<int>(y)));
-            } else {
-                std::cout << "Intersection of lines " << i << " and " << j 
-                          << " is at (" << x << ", " << y << ") and is outside the image." << std::endl;
-            }
+            
+            hom_points.push_back(cv::Point2f(static_cast<int>(x), static_cast<int>(y)));
         }
     }
 
+    // Distance threshold (adjust as needed)
+    float pointsDistanceThreshold = 100.f;
+
+    // Remove points that are too close together
+    std::vector<cv::Point2f> filteredPoints = removeClosePoints(hom_points, pointsDistanceThreshold);
+
     // Iterate over the points to determine the corners
-    for (const auto& point : hom_points) {
+    for (const auto& point : filteredPoints) {
+            cv::circle(image, cv::Point(static_cast<int>(point.x), static_cast<int>(point.y)), 5, cv::Scalar(0, 0, 255), -1);
             std::cout << point << std::endl;
     }
-    cv::imshow("NMS Result", image);
+    cv::imshow("image with homography points", image);
     cv::waitKey(0);
 
-/*
-    std::vector<cv::Point2f> to_hom_points = {cv::Point2f(999,0), cv::Point2f(999,999), cv::Point2f(0,0), cv::Point2f(0,999)};
-    cv::Mat F = cv::findHomography(hom_points, to_hom_points);
+    std::vector<cv::Point2f> to_hom_points = {cv::Point2f(999,0), cv::Point2f(899,999), cv::Point2f(0,0), cv::Point2f(100,999)};
+    cv::Mat F = cv::findHomography(filteredPoints, to_hom_points);
     cv::Mat result(1000, 1000, CV_8U);
     cv::warpPerspective(preprocessed, result, F, cv::Size(1000,1000));
     cv::imshow("result", result);
-*/
+
     return parkingSpots;
+}
+
+// Function to calculate the Euclidean distance between two points
+float calculateDistance(const cv::Point2f& p1, const cv::Point2f& p2) {
+    return std::sqrt(std::pow(p2.x - p1.x, 2) + std::pow(p2.y - p1.y, 2));
+}
+
+// Function to remove points that are very close together
+std::vector<cv::Point2f> removeClosePoints(const std::vector<cv::Point2f>& points, float distanceThreshold) {
+    std::vector<cv::Point2f> result;
+
+    for (size_t i = 0; i < points.size(); ++i) {
+        bool isTooClose = false;
+
+        // Compare the current point with the points already in the result vector
+        for (size_t j = 0; j < result.size(); ++j) {
+            if (calculateDistance(points[i], result[j]) < distanceThreshold) {
+                isTooClose = true;
+                break;
+            }
+        }
+
+        // If the point is not too close to any point in the result, add it
+        if (!isTooClose) {
+            result.push_back(points[i]);
+        }
+    }
+
+    return result;
 }
 
 cv::Mat preprocess(const cv::Mat& src) {
@@ -248,11 +268,6 @@ cv::Mat preprocess(const cv::Mat& src) {
     //cv::imshow("gamma tf2", gammaCorrected2);
     //cv::waitKey(0);
 
-    cv::Mat gsthold;
-    cv::threshold( gammaCorrected2, gsthold, 180, 255,  cv::THRESH_BINARY);
-    // cv::imshow("gsthold", gsthold);
-    // cv::waitKey(0);
-
     cv::Mat gx;
     cv::Sobel(gs, gx, CV_16S, 1,0);
 
@@ -264,11 +279,6 @@ cv::Mat preprocess(const cv::Mat& src) {
     cv::convertScaleAbs(gx, abs_grad_x);
     cv::convertScaleAbs(gy, abs_grad_y);
 
-    // cv::imshow("gradient x gamma", abs_grad_x);
-    // cv::waitKey(0);
-    // cv::imshow("gradient y gamma", abs_grad_y);
-    // cv::waitKey(0);
-
     cv::Mat grad_magn;
     cv::addWeighted(abs_grad_x, 0.5, abs_grad_y, 0.5, 0, grad_magn);
 
@@ -276,28 +286,6 @@ cv::Mat preprocess(const cv::Mat& src) {
     cv::equalizeHist(gammaCorrected2,equalized);
     //cv::imshow("equalized", equalized);
     //cv::waitKey(0);
-
-    cv::Mat equalized_filt;
-    cv::GaussianBlur(equalized,equalized_filt, cv::Size(5,5),30);
-
-    cv::Mat gxeq;
-    cv::Sobel(stretched, gxeq, CV_16S, 1,0);
-
-    cv::Mat gyeq;
-    cv::Sobel(stretched, gyeq, CV_16S, 0,1);
-
-    cv::Mat abs_grad_xeq;
-    cv::Mat abs_grad_yeq;
-    cv::convertScaleAbs(gxeq, abs_grad_xeq);
-    cv::convertScaleAbs(gyeq, abs_grad_yeq);
-
-    // cv::imshow("gradient x eq", abs_grad_xeq);
-    // cv::waitKey(0);
-    // cv::imshow("gradient y eq", abs_grad_yeq);
-    // cv::waitKey(0);
-
-    //cv::Mat grad_magneq;
-    //cv::addWeighted(abs_grad_xeq, 0.5, abs_grad_yeq, 0.5, 0, grad_magneq);
 
     cv::Mat laplacian;
     cv::Laplacian(equalized, laplacian, CV_32F);  // Use CV_32F to avoid overflow
@@ -310,30 +298,17 @@ cv::Mat preprocess(const cv::Mat& src) {
     cv::Mat normalized_abs_laplacian;
     cv::normalize(abs_laplacian, normalized_abs_laplacian, 0, 255, cv::NORM_MINMAX, CV_8U);
 
-    //cv::imshow("Normalized Absolute Laplacian", normalized_abs_laplacian);  // Normalized for grayscale
-    //cv::waitKey(0);  // Wait for a key press indefinitely
+    //cv::imshow("Normalized Absolute Laplacian", normalized_abs_laplacian);
+    //cv::waitKey(0);
 
     cv::Mat filtered_laplacian;
     cv::bilateralFilter(normalized_abs_laplacian, filtered_laplacian, -1, 40, 10);
     //cv::imshow("filtered laplacian", filtered_laplacian);
     //cv::waitKey(0);
 
-    //cv::imshow("gradient magnitude", grad_magn);
-    //cv::waitKey(0);
-
-    cv::Mat grad_magn_bilateral;
-    cv::bilateralFilter(grad_magn, grad_magn_bilateral, -1, 20, 10);
-
     cv::Mat edges;
-    cv::Canny(grad_magn, edges,100, 400);
+    cv::Canny(grad_magn, edges,150, 400);
     cv::imshow("canny", edges);
-    cv::waitKey(0);
-
-    cv::Mat medianblurred;
-    cv::medianBlur(grad_magn_bilateral, medianblurred, 3);
-    cv::Mat bilateralblurred;
-    //cv::bilateralFilter(medianblurred, bilateralblurred, -1,20,10);
-    //cv::imshow("bilateral filtered2", medianblurred);
     cv::waitKey(0);
 
     cv::Mat element = cv::getStructuringElement( 

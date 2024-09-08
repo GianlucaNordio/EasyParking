@@ -15,4 +15,6 @@ std::vector<ParkingSpot> detectParkingSpotInImage(const cv::Mat& image);
 cv::Mat applyGammaTransform(const cv::Mat& src, double gamma);
 cv::Mat contrastStretchTransform(const cv::Mat& src);
 cv::Mat preprocess(const cv::Mat& src);
+float calculateDistance(const cv::Point2f& p1, const cv::Point2f& p2);
+std::vector<cv::Point2f> removeClosePoints(const std::vector<cv::Point2f>& points, float distanceThreshold);
 #endif // PARKINGSPOTDETECTOR_HPP
