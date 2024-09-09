@@ -211,7 +211,7 @@ std::vector<ParkingSpot> detectParkingSpotInImage(const cv::Mat& image) {
     cv::imshow("image with homography points", intermediate_results);
     cv::waitKey(0);
 
-    std::vector<cv::Point2f> to_hom_points = {cv::Point2f(1099,20), cv::Point2f(1099,699), cv::Point2f(20,20), cv::Point2f(100,699)};
+    std::vector<cv::Point2f> to_hom_points = {cv::Point2f(1199,50), cv::Point2f(1099,699), cv::Point2f(20,50), cv::Point2f(100,699)};
     cv::Mat F = cv::findHomography(filteredPoints, to_hom_points);
     cv::Mat result_original;
     cv::Mat result_preproccesed;
@@ -257,15 +257,16 @@ std::vector<ParkingSpot> detectParkingSpotInImage(const cv::Mat& image) {
     cv::imshow("grad magn homo thold", grad_magn_thold);
     cv::waitKey(0);
 
-std::vector<int> angles_2 = {-40};
+std::vector<int> angles_2 = {-36,-37,-38,-39,-40};
     std::vector<float> scales_2 = {1};
+    std::vector<cv::RotatedRect> list_boxes_2;
 
     for(int l = 0; l<scales_2.size(); l++) {
         for(int k = 0; k<angles_2.size(); k++) {
             // Template size
             int line_width = 8;
             int template_height = 70*scales_2[l];
-            int template_width = 150*scales_2[l];
+            int template_width = 140*scales_2[l];
 
             // Horizontal template and mask definition
             cv::Mat horizontal_template(template_height,template_width,CV_8U,cv::Scalar(0));
@@ -274,8 +275,8 @@ std::vector<int> angles_2 = {-40};
             for(int i = 0; i< horizontal_template.rows; i++) {
                 for(int j = 0; j<horizontal_template.cols; j++) {
                     if(((i<line_width) 
-                        || (j > template_width-line_width) 
-                        || (i > (template_height-line_width) && j > (20*scales_2[l]*scales_2[l])))){
+                        || (j > template_width-line_width || j < line_width) 
+                        || (i > (template_height-line_width)))){
                         horizontal_template.at<uchar>(i,j) = 220;
                         horizontal_mask.at<uchar>(i,j) = 254;
                     }
@@ -298,8 +299,8 @@ std::vector<int> angles_2 = {-40};
             float rotated_width = template_width*cos(-angles_2[k]*CV_PI/180)+template_height;
             float rotated_height = template_width*sin(-angles_2[k]*CV_PI/180)+template_height;
 
-            cv::warpAffine(flipped,rotated_template,R,cv::Size(rotated_width,rotated_height));
-            cv::warpAffine(flipped_mask,rotated_mask,R,cv::Size(rotated_width,rotated_height));
+            cv::warpAffine(horizontal_template,rotated_template,R,cv::Size(rotated_width,rotated_height));
+            cv::warpAffine(horizontal_mask,rotated_mask,R,cv::Size(rotated_width,rotated_height));
 
             if(k == 0) {
                     cv::imshow("Horizontal template", flipped);
@@ -317,9 +318,9 @@ std::vector<int> angles_2 = {-40};
             // Finding local minima
             cv::Mat eroded;
             std::vector<cv::Point> minima;
-            cv::Mat kernel = cv::getStructuringElement(cv::MORPH_RECT, cv::Size(rotated_height, rotated_height));
+            cv::Mat kernel = cv::getStructuringElement(cv::MORPH_RECT, cv::Size(rotated_height*0.5, rotated_height*0.5));
             cv::erode(tm_result, eroded, kernel);
-            cv::Mat localMinimaMask = (tm_result == eroded) & (tm_result < 0.5);
+            cv::Mat localMinimaMask = (tm_result == eroded) & (tm_result < 0.2);
             cv::imshow("homo TM Result eroded", eroded);
             cv::waitKey(0);
 
@@ -334,7 +335,7 @@ std::vector<int> angles_2 = {-40};
                 center.y = pt.y+rotated_height/2;
 
                 cv::RotatedRect rotatedRect(center, cv::Size(template_width,template_height), -angles_2[k]);
-                list_boxes.push_back(rotatedRect);
+                list_boxes_2.push_back(rotatedRect);
 
                 //Draw the rotated rectangle using lines between its vertices
                 cv::Point2f vertices[4];
@@ -348,7 +349,57 @@ std::vector<int> angles_2 = {-40};
         cv::waitKey(0);
     }
 
+    // Filter out the boxes that have more than half of their content black
+    filterBoundingBoxes(grad_magn_thold, list_boxes_2);
+
+    // Draw the remaining bounding boxes on the image
+    for (const auto& box : list_boxes_2) {
+        cv::Point2f vertices[4];
+        box.points(vertices);
+        for (int i = 0; i < 4; i++) {
+            cv::line(result_original, vertices[i], vertices[(i + 1) % 4], cv::Scalar(0, 0, 255), 2);
+        }
+    }
+
+    // Display the result
+    cv::imshow("Filtered Bounding Boxes", result_original);
+    cv::waitKey(0);
+
     return parkingSpots;
+}
+
+bool isMoreThanHalfBlack(const cv::Mat& image, const cv::RotatedRect& box) {
+    // Create a mask for the RotatedRect
+    cv::Mat mask = cv::Mat::zeros(image.size(), CV_8UC1);
+
+    // Get the vertices of the RotatedRect
+    cv::Point2f vertices[4];
+    box.points(vertices);
+
+    // Fill the mask with white color where the bounding box is
+    std::vector<cv::Point> pts;
+    for (int i = 0; i < 4; i++) {
+        pts.push_back(vertices[i]);
+    }
+    cv::fillConvexPoly(mask, pts, cv::Scalar(255));
+
+    // Count the non-black pixels inside the bounding box
+    cv::Mat roi;
+    image.copyTo(roi, mask);
+
+    int totalPixels = cv::countNonZero(mask);
+    int blackPixels = totalPixels - cv::countNonZero(roi);
+
+    // Return true if more than half of the pixels inside the bounding box are black
+    return blackPixels > (totalPixels * 0.85);
+}
+
+void filterBoundingBoxes(cv::Mat& image, std::vector<cv::RotatedRect>& boxes) {
+    boxes.erase(std::remove_if(boxes.begin(), boxes.end(),
+                               [&image](const cv::RotatedRect& box) {
+                                   return isMoreThanHalfBlack(image, box);
+                               }),
+                boxes.end());
 }
 
 // Function to calculate the Euclidean distance between two points
