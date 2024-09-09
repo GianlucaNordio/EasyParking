@@ -257,16 +257,15 @@ std::vector<ParkingSpot> detectParkingSpotInImage(const cv::Mat& image) {
     cv::imshow("grad magn homo thold", grad_magn_thold);
     cv::waitKey(0);
 
-std::vector<int> angles_2 = {-36,-37,-38,-39,-40, -43,-45,-47};
-    std::vector<float> scales_2 = {0.9,1};
+std::vector<int> angles_2 = {-35,-36,-37,-38,-39,-40, -43,-45,-47,-52};
+    std::vector<float> scales_2 = {0.85,0.9,1};
     std::vector<cv::RotatedRect> list_boxes_2;
-
     for(int l = 0; l<scales_2.size(); l++) {
         for(int k = 0; k<angles_2.size(); k++) {
             // Template size
             int line_width = 8;
-            int template_height = 80*scales_2[l];
-            int template_width = 140*scales_2[l];
+            int template_height = 90*scales_2[l];
+            int template_width = 145*scales_2[l];
 
             // Horizontal template and mask definition
             cv::Mat horizontal_template(template_height,template_width,CV_8U,cv::Scalar(0));
@@ -302,9 +301,12 @@ std::vector<int> angles_2 = {-36,-37,-38,-39,-40, -43,-45,-47};
             cv::warpAffine(horizontal_template,rotated_template,R,cv::Size(rotated_width,rotated_height));
             cv::warpAffine(horizontal_mask,rotated_mask,R,cv::Size(rotated_width,rotated_height));
 
+            cv::flip(rotated_template,flipped,1);
+            cv::flip(rotated_mask,flipped_mask,1);
+
             if(k == 0) {
                     cv::imshow("Horizontal template", flipped);
-                    cv::imshow("Rotated template", rotated_template);
+                    cv::imshow("Rotated template", flipped_mask);
             }
 
             cv::Mat tm_result_unnorm;
@@ -391,7 +393,7 @@ bool isMoreThanHalfBlack(const cv::Mat& image, const cv::RotatedRect& box) {
     int blackPixels = totalPixels - cv::countNonZero(roi);
 
     // Return true if more than half of the pixels inside the bounding box are black
-    return blackPixels > (totalPixels * 0.9);
+    return blackPixels > (totalPixels * 0.85);
 }
 
 void filterBoundingBoxes(cv::Mat& image, std::vector<cv::RotatedRect>& boxes) {
