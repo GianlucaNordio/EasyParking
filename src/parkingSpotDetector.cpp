@@ -73,8 +73,8 @@ std::vector<ParkingSpot> detectParkingSpotInImage(const cv::Mat& image) {
             cv::matchTemplate(preprocessed,rotated_template,tm_result_unnorm,cv::TM_SQDIFF,rotated_mask);
             cv::normalize( tm_result_unnorm, tm_result, 0, 1, cv::NORM_MINMAX, -1, cv::Mat() );
         
-            cv::imshow("TM Result", tm_result);
-            cv::waitKey(0);
+            // cv::imshow("TM Result", tm_result);
+            // cv::waitKey(0);
 
             // Finding local minima
             cv::Mat eroded;
@@ -220,15 +220,52 @@ std::vector<ParkingSpot> detectParkingSpotInImage(const cv::Mat& image) {
     cv::imshow("result", result_preproccesed+preprocess(result_original));
     cv::waitKey(0);
 
-    std::vector<int> angles_2 = {-40};
+    cv::Mat result_gs;
+    cv::cvtColor(result_original,result_gs,cv::COLOR_BGR2GRAY);
+
+    cv::Mat adaptivethold;
+    cv::adaptiveThreshold(result_gs, adaptivethold, 255, cv::ADAPTIVE_THRESH_GAUSSIAN_C, cv::THRESH_BINARY_INV, 15, 5);    
+    cv::imshow("adaptive tholded", adaptivethold);
+    cv::waitKey(0);
+
+    cv::Mat gammatf = applyGammaTransform(result_gs, 0.4);
+    cv::imshow("gamma homo", gammatf);
+
+    cv::Mat gx;
+    cv::Sobel(result_gs, gx, CV_16S, 1,0);
+
+    cv::Mat gy;
+    cv::Sobel(result_gs, gy, CV_16S, 0,1);
+
+    cv::Mat abs_grad_x;
+    cv::Mat abs_grad_y;
+    cv::convertScaleAbs(gx, abs_grad_x);
+    cv::convertScaleAbs(gy, abs_grad_y);
+
+    cv::Mat grad_magn;
+    cv::addWeighted(abs_grad_x, 0.5, abs_grad_y, 0.5, 0, grad_magn);
+    cv::imshow("grad magn homo", grad_magn);
+
+    cv::Mat element = cv::getStructuringElement( 
+                        cv::MORPH_RECT, cv::Size(3,3)); 
+
+    cv::Mat grad_magn_thold;
+    cv::threshold(grad_magn,grad_magn_thold,20,255,cv::THRESH_BINARY);
+    cv::erode(grad_magn_thold,grad_magn_thold,element,cv::Point(-1,-1),1);
+    cv::dilate(grad_magn_thold,grad_magn_thold,element,cv::Point(-1,-1),2);
+    cv::erode(grad_magn_thold,grad_magn_thold,element,cv::Point(-1,-1),1);
+    cv::imshow("grad magn homo thold", grad_magn_thold);
+    cv::waitKey(0);
+
+std::vector<int> angles_2 = {-40};
     std::vector<float> scales_2 = {1};
 
     for(int l = 0; l<scales_2.size(); l++) {
         for(int k = 0; k<angles_2.size(); k++) {
             // Template size
-            int line_width = 4;
+            int line_width = 8;
             int template_height = 70*scales_2[l];
-            int template_width = 100*scales_2[l];
+            int template_width = 150*scales_2[l];
 
             // Horizontal template and mask definition
             cv::Mat horizontal_template(template_height,template_width,CV_8U,cv::Scalar(0));
@@ -237,45 +274,54 @@ std::vector<ParkingSpot> detectParkingSpotInImage(const cv::Mat& image) {
             for(int i = 0; i< horizontal_template.rows; i++) {
                 for(int j = 0; j<horizontal_template.cols; j++) {
                     if(((i<line_width) 
-                        
+                        || (j > template_width-line_width) 
                         || (i > (template_height-line_width) && j > (20*scales_2[l]*scales_2[l])))){
                         horizontal_template.at<uchar>(i,j) = 220;
-                        horizontal_mask.at<uchar>(i,j) = 255;
+                        horizontal_mask.at<uchar>(i,j) = 254;
                     }
-                    
+                    else {
+                        horizontal_mask.at<uchar>(i,j) = 1;
+                    }
                 }
             }
 
+
             // Rotate
-            cv::Mat R = cv::getRotationMatrix2D(cv::Point2f(template_width/2,template_height/2),angles_2[k],1);
+            cv::Mat flipped;
+            cv::Mat flipped_mask;
+            cv::flip(horizontal_template,flipped,1);
+            cv::flip(horizontal_mask,flipped_mask,1);
+            cv::Mat R = cv::getRotationMatrix2D(cv::Point2f(0,template_height),angles_2[k],1);
             cv::Mat rotated_template;
             cv::Mat rotated_mask;
 
-            float rotated_width = template_width*cos(-angles_2[k]*CV_PI/180);
-            float rotated_height = template_width*sin(-angles_2[k]*CV_PI/180);
+            float rotated_width = template_width*cos(-angles_2[k]*CV_PI/180)+template_height;
+            float rotated_height = template_width*sin(-angles_2[k]*CV_PI/180)+template_height;
 
-            cv::warpAffine(horizontal_template,rotated_template,R,cv::Size(rotated_width,rotated_height));
-            cv::warpAffine(horizontal_mask,rotated_mask,R,cv::Size(rotated_width,rotated_height));
+            cv::warpAffine(flipped,rotated_template,R,cv::Size(rotated_width,rotated_height));
+            cv::warpAffine(flipped_mask,rotated_mask,R,cv::Size(rotated_width,rotated_height));
 
             if(k == 0) {
-                    cv::imshow("Horizontal template", horizontal_template);
+                    cv::imshow("Horizontal template", flipped);
                     cv::imshow("Rotated template", rotated_template);
             }
 
             cv::Mat tm_result_unnorm;
             cv::Mat tm_result;
-            cv::matchTemplate(result_preproccesed,rotated_template,tm_result_unnorm,cv::TM_SQDIFF,rotated_mask);
+            cv::matchTemplate(grad_magn_thold,rotated_template,tm_result_unnorm,cv::TM_SQDIFF,rotated_mask);
             cv::normalize( tm_result_unnorm, tm_result, 0, 1, cv::NORM_MINMAX, -1, cv::Mat() );
         
-            cv::imshow("TM Result", tm_result);
+            cv::imshow("homo TM Result", tm_result);
             cv::waitKey(0);
 
             // Finding local minima
             cv::Mat eroded;
             std::vector<cv::Point> minima;
-            cv::Mat kernel = cv::getStructuringElement(cv::MORPH_RECT, cv::Size(rotated_width, rotated_height));
+            cv::Mat kernel = cv::getStructuringElement(cv::MORPH_RECT, cv::Size(rotated_height, rotated_height));
             cv::erode(tm_result, eroded, kernel);
-            cv::Mat localMinimaMask = (tm_result == eroded) & (tm_result <= 0.25);
+            cv::Mat localMinimaMask = (tm_result == eroded) & (tm_result < 0.5);
+            cv::imshow("homo TM Result eroded", eroded);
+            cv::waitKey(0);
 
             // Find all non-zero points (local minima) in the mask
             cv::findNonZero(localMinimaMask, minima);
@@ -298,7 +344,7 @@ std::vector<ParkingSpot> detectParkingSpotInImage(const cv::Mat& image) {
                 }
             }
         }
-        cv::imshow("with lines", result_original);
+        cv::imshow("homo with lines", result_original);
         cv::waitKey(0);
     }
 
@@ -451,4 +497,22 @@ cv::Mat contrastStretchTransform(const cv::Mat& src) {
     cv::LUT(src, lookupTable, dst);
 
     return dst;
+}
+
+void addSaltPepperNoise(cv::Mat& src, cv::Mat& dst, double noise_amount) {
+    dst = src.clone();
+    int num_salt = noise_amount * src.total();
+    int num_pepper = noise_amount * src.total();
+
+    for (int i = 0; i < num_salt; i++) {
+        int x = rand() % src.cols;
+        int y = rand() % src.rows;
+        dst.at<uchar>(y, x) = 255; // Pixel bianco
+    }
+
+    for (int i = 0; i < num_pepper; i++) {
+        int x = rand() % src.cols;
+        int y = rand() % src.rows;
+        dst.at<uchar>(y, x) = 0; // Pixel nero
+    }
 }

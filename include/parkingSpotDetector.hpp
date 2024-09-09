@@ -17,4 +17,5 @@ cv::Mat contrastStretchTransform(const cv::Mat& src);
 cv::Mat preprocess(const cv::Mat& src);
 float calculateDistance(const cv::Point2f& p1, const cv::Point2f& p2);
 std::vector<cv::Point2f> removeClosePoints(const std::vector<cv::Point2f>& points, float distanceThreshold);
+void addSaltPepperNoise(cv::Mat& src, cv::Mat& dst, double noise_amount);
 #endif // PARKINGSPOTDETECTOR_HPP
