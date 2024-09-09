@@ -211,12 +211,12 @@ std::vector<ParkingSpot> detectParkingSpotInImage(const cv::Mat& image) {
     cv::imshow("image with homography points", intermediate_results);
     cv::waitKey(0);
 
-    std::vector<cv::Point2f> to_hom_points = {cv::Point2f(1199,50), cv::Point2f(1099,699), cv::Point2f(20,50), cv::Point2f(100,699)};
+    std::vector<cv::Point2f> to_hom_points = {cv::Point2f(1199,60), cv::Point2f(1099,799), cv::Point2f(20,60), cv::Point2f(100,799)};
     cv::Mat F = cv::findHomography(filteredPoints, to_hom_points);
     cv::Mat result_original;
     cv::Mat result_preproccesed;
-    cv::warpPerspective(image, result_original, F, cv::Size(1200,700));
-    cv::warpPerspective(preprocessed, result_preproccesed, F, cv::Size(1200,700));
+    cv::warpPerspective(image, result_original, F, cv::Size(1200,800));
+    cv::warpPerspective(preprocessed, result_preproccesed, F, cv::Size(1200,800));
     cv::imshow("result", result_preproccesed+preprocess(result_original));
     cv::waitKey(0);
 
@@ -257,15 +257,15 @@ std::vector<ParkingSpot> detectParkingSpotInImage(const cv::Mat& image) {
     cv::imshow("grad magn homo thold", grad_magn_thold);
     cv::waitKey(0);
 
-std::vector<int> angles_2 = {-36,-37,-38,-39,-40};
-    std::vector<float> scales_2 = {1};
+std::vector<int> angles_2 = {-36,-37,-38,-39,-40, -43,-45,-47};
+    std::vector<float> scales_2 = {0.9,1};
     std::vector<cv::RotatedRect> list_boxes_2;
 
     for(int l = 0; l<scales_2.size(); l++) {
         for(int k = 0; k<angles_2.size(); k++) {
             // Template size
             int line_width = 8;
-            int template_height = 70*scales_2[l];
+            int template_height = 80*scales_2[l];
             int template_width = 140*scales_2[l];
 
             // Horizontal template and mask definition
@@ -290,8 +290,8 @@ std::vector<int> angles_2 = {-36,-37,-38,-39,-40};
             // Rotate
             cv::Mat flipped;
             cv::Mat flipped_mask;
-            cv::flip(horizontal_template,flipped,1);
-            cv::flip(horizontal_mask,flipped_mask,1);
+            cv::flip(horizontal_template,flipped,0);
+            cv::flip(horizontal_mask,flipped_mask,0);
             cv::Mat R = cv::getRotationMatrix2D(cv::Point2f(0,template_height),angles_2[k],1);
             cv::Mat rotated_template;
             cv::Mat rotated_mask;
@@ -391,7 +391,7 @@ bool isMoreThanHalfBlack(const cv::Mat& image, const cv::RotatedRect& box) {
     int blackPixels = totalPixels - cv::countNonZero(roi);
 
     // Return true if more than half of the pixels inside the bounding box are black
-    return blackPixels > (totalPixels * 0.85);
+    return blackPixels > (totalPixels * 0.9);
 }
 
 void filterBoundingBoxes(cv::Mat& image, std::vector<cv::RotatedRect>& boxes) {
