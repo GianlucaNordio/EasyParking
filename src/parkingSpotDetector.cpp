@@ -287,10 +287,6 @@ std::vector<int> angles_2 = {-35,-36,-37,-38,-39,-40, -43,-45,-47,-52};
 
 
             // Rotate
-            cv::Mat flipped;
-            cv::Mat flipped_mask;
-            cv::flip(horizontal_template,flipped,0);
-            cv::flip(horizontal_mask,flipped_mask,0);
             cv::Mat R = cv::getRotationMatrix2D(cv::Point2f(0,template_height),angles_2[k],1);
             cv::Mat rotated_template;
             cv::Mat rotated_mask;
@@ -301,6 +297,9 @@ std::vector<int> angles_2 = {-35,-36,-37,-38,-39,-40, -43,-45,-47,-52};
             cv::warpAffine(horizontal_template,rotated_template,R,cv::Size(rotated_width,rotated_height));
             cv::warpAffine(horizontal_mask,rotated_mask,R,cv::Size(rotated_width,rotated_height));
 
+            // Flip
+            cv::Mat flipped;
+            cv::Mat flipped_mask;
             cv::flip(rotated_template,flipped,1);
             cv::flip(rotated_mask,flipped_mask,1);
 
@@ -311,7 +310,7 @@ std::vector<int> angles_2 = {-35,-36,-37,-38,-39,-40, -43,-45,-47,-52};
 
             cv::Mat tm_result_unnorm;
             cv::Mat tm_result;
-            cv::matchTemplate(grad_magn_thold,rotated_template,tm_result_unnorm,cv::TM_SQDIFF,rotated_mask);
+            cv::matchTemplate(adaptivethold,flipped,tm_result_unnorm,cv::TM_SQDIFF,flipped_mask);
             cv::normalize( tm_result_unnorm, tm_result, 0, 1, cv::NORM_MINMAX, -1, cv::Mat() );
         
             cv::imshow("homo TM Result", tm_result);
@@ -336,7 +335,7 @@ std::vector<int> angles_2 = {-35,-36,-37,-38,-39,-40, -43,-45,-47,-52};
                 center.x = pt.x+rotated_width/2;
                 center.y = pt.y+rotated_height/2;
 
-                cv::RotatedRect rotatedRect(center, cv::Size(template_width,template_height), -angles_2[k]);
+                cv::RotatedRect rotatedRect(center, cv::Size(template_width,template_height), -angles_2[k]-90);
                 list_boxes_2.push_back(rotatedRect);
 
                 //Draw the rotated rectangle using lines between its vertices
