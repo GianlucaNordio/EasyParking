@@ -223,6 +223,8 @@ std::vector<ParkingSpot> detectParkingSpotInImage(const cv::Mat& image) {
     cv::Mat result_gs;
     cv::cvtColor(result_original,result_gs,cv::COLOR_BGR2GRAY);
 
+    cv::GaussianBlur(result_gs,result_gs,cv::Size(3,3),10);
+
     cv::Mat adaptivethold;
     cv::adaptiveThreshold(result_gs, adaptivethold, 255, cv::ADAPTIVE_THRESH_GAUSSIAN_C, cv::THRESH_BINARY_INV, 15, 5);    
     cv::imshow("adaptive tholded", adaptivethold);
@@ -257,13 +259,14 @@ std::vector<ParkingSpot> detectParkingSpotInImage(const cv::Mat& image) {
     cv::imshow("grad magn homo thold", grad_magn_thold);
     cv::waitKey(0);
 
-std::vector<int> angles_2 = {-35,-36,-37,-38,-39,-40, -43,-45,-47,-52};
-    std::vector<float> scales_2 = {0.85,0.9,1};
+    std::vector<int> angles_2 = {-35,-36,-37,-38,-39,-40, -43,-45,-47,-52};
+    std::vector<float> scales_2 = {0.85,1};
     std::vector<cv::RotatedRect> list_boxes_2;
+
     for(int l = 0; l<scales_2.size(); l++) {
         for(int k = 0; k<angles_2.size(); k++) {
             // Template size
-            int line_width = 8;
+            int line_width = 10;
             int template_height = 90*scales_2[l];
             int template_width = 145*scales_2[l];
 
@@ -281,6 +284,7 @@ std::vector<int> angles_2 = {-35,-36,-37,-38,-39,-40, -43,-45,-47,-52};
                     }
                     else {
                         horizontal_mask.at<uchar>(i,j) = 1;
+                    
                     }
                 }
             }

@@ -20,4 +20,6 @@ std::vector<cv::Point2f> removeClosePoints(const std::vector<cv::Point2f>& point
 void addSaltPepperNoise(cv::Mat& src, cv::Mat& dst, double noise_amount);
 bool isMoreThanHalfBlack(const cv::Mat& image, const cv::RotatedRect& box);
 void filterBoundingBoxes(cv::Mat& image, std::vector<cv::RotatedRect>& boxes);
+cv::Vec2f get_direction(cv::Vec4f segm,bool blueStart);
+cv::Vec2f get_segm_params(cv::Vec4f segm);
 #endif // PARKINGSPOTDETECTOR_HPP
