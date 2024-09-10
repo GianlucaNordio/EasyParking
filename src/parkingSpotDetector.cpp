@@ -260,18 +260,30 @@ cv::Mat preprocess(const cv::Mat& src) {
 
     cv::Mat adpt;
     cv::adaptiveThreshold(gs,adpt,255, cv::ADAPTIVE_THRESH_MEAN_C ,cv::THRESH_BINARY, 9,-20);
-    
+
+    cv::Mat gr_x;
+    cv::Sobel(adpt, gr_x, CV_8U, 1,0);
+
+    cv::Mat gr_y;
+    cv::Sobel(adpt, gr_y, CV_8U, 0,1);
+
+    cv::Mat magnitude = gr_x + gr_y;
+
+    cv::imshow("grayscale", magnitude);
+    cv::waitKey(0);
+
     cv::Mat element = cv::getStructuringElement( 
                         cv::MORPH_CROSS, cv::Size(3,3)); 
 
     // dil 2 erode 1
-    cv::dilate(adpt,adpt,element,cv::Point(-1,-1),4);
+    cv::dilate(magnitude,adpt,element,cv::Point(-1,-1),4);
     cv::erode(adpt,adpt,element,cv::Point(-1,-1),3);
 
     cv::imshow("grayscale", adpt);
     cv::waitKey(0);
     return adpt;
 
+    
     cv::Mat stretched = contrastStretchTransform(gs);
     //cv::imshow("stretched", stretched);
     //cv::waitKey(0);
