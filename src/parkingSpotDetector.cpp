@@ -134,49 +134,25 @@ std::vector<ParkingSpot> detectParkingSpotInImage(const cv::Mat& image) {
         }
 */
     std::vector<float> angles = {-5, -6, -7, -8, -9, -10, -11, -12, -13, -14, -15, -16};
-    std::vector<float> scales = {0.7, 0.8,0.9, 1, 1.05, 1.1, 1.2, 1.3, 1.4, 1.5, 1.6, 1.7, 1.8, 1.9};
+    std::vector<float> scales = {0.5, 1, 1.5};
     std::vector<cv::RotatedRect> boxes_best_angle;
     std::vector<std::pair<cv::RotatedRect, double>> final_boxes;
     for(int l = 0; l<scales.size(); l++) {
         std::vector<std::pair<cv::RotatedRect, double>> list_boxes;
         for(int k = 0; k<angles.size(); k++) {
-            // Template size
-            int surplus = 30*scales[k];
-            int line_width = 4;
-            int template_height = 39*scales[l];
-            int template_width = 120*scales[l]+2*surplus;
+             // Template size
+            int template_height = 5*scales[l];
+            int template_width = 100*scales[l];
 
             // Horizontal template and mask definition
-            cv::Mat horizontal_template(template_height,template_width,CV_8U,cv::Scalar(0));
-            cv::Mat horizontal_mask(template_height,template_width,CV_8U,cv::Scalar(0));
-/*
-            for(int i = 0; i< horizontal_template.rows; i++) {
-                for(int j = 0; j<horizontal_template.cols; j++) {
-                    if((i<line_width && (j > surplus && j<template_width-surplus)) 
-                        || (j > surplus && j < surplus+line_width)
-                        || (j > template_width-line_width-surplus && j<template_width-surplus) 
-                        || (i > (template_height-line_width) && (j > surplus && j<template_width-surplus))){
-                        horizontal_template.at<uchar>(i,j) = 220;
-                        horizontal_mask.at<uchar>(i,j) = 255;
-                    }
-                    else {
-                        horizontal_mask.at<uchar>(i,j) = 127;
-                    }
-                }
-            }
-*/
+            cv::Mat horizontal_template(template_height,template_width,CV_8U);
+            cv::Mat horizontal_mask(template_height,template_width,CV_8U);
+
             // Build the template and mask
             for(int i = 0; i< horizontal_template.rows; i++) {
                 for(int j = 0; j<horizontal_template.cols; j++) {
-                    if(((i<line_width && j > surplus) 
-                        || (j > template_width-line_width/2) 
-                        || (i > (template_height-line_width) && j > (20*scales[l]*scales[l]+surplus/2)))){
-                        horizontal_template.at<uchar>(i,j) = 220;
-                        horizontal_mask.at<uchar>(i,j) = 200;
-                    }
-                    else {
-                        horizontal_mask.at<uchar>(i,j) = 1;
-                    }
+                    horizontal_template.at<uchar>(i,j) = 200;
+                    horizontal_mask.at<uchar>(i,j) = 255;
                 }
             }
             // Rotate the template
@@ -188,7 +164,7 @@ std::vector<ParkingSpot> detectParkingSpotInImage(const cv::Mat& image) {
             cv::Mat rotated_template;
             cv::Mat rotated_mask;
 
-            float rotated_width = template_width*cos(-angles[k]*CV_PI/180)+line_width;
+            float rotated_width = template_width*cos(-angles[k]*CV_PI/180)+template_height;
             float rotated_height = template_width*sin(-angles[k]*CV_PI/180)+template_height;
 
             cv::warpAffine(flipped,rotated_template,R,cv::Size(rotated_width,rotated_height));
@@ -237,7 +213,7 @@ std::vector<ParkingSpot> detectParkingSpotInImage(const cv::Mat& image) {
                 center.x = pt.x+rotated_width/2;
                 center.y = pt.y+rotated_height/2;
 
-                cv::RotatedRect rotatedRect(center, cv::Size(template_width-2*surplus,template_height), -angles[k]);
+                cv::RotatedRect rotatedRect(center, cv::Size(template_width,template_height), -angles[k]);
                 list_boxes.push_back(std::pair(rotatedRect, tm_result.at<double>(pt)));
 
                 // Draw the rotated rectangle using lines between its vertices
