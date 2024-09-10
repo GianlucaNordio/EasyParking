@@ -1,53 +1,5 @@
 #include "parkingSpotDetector.hpp"
 
-/*
-TODO: 
-1. Preprocessing (pensare a come rendere invariante alle condizioni climatiche)
-2. Generare meglio i template
-3. Chiedere nel forum quanti parametri possiamo usare
-4. Stesso size, angolo diverso: usare tm_result_unnormed come score, poi tra tutti quelli che overlappano per tipo l'80% tenere quello con score migliore
-5. Dopo il punto 4, alla fine dei due cicli for, fare non maxima suppression. A quel punto usare NMS di opencv oppure prendere quello con area maggiore
-*/
-
-double computeIntersectionArea(const cv::RotatedRect& rect1, const cv::RotatedRect& rect2) {
-    // Converti i RotatedRect in vettori di punti (poligoni)
-    std::vector<cv::Point2f> points1, points2;
-    cv::Point2f vertices1[4], vertices2[4];
-
-    double area = rect1.size.area();
-    
-    rect1.points(vertices1);
-    rect2.points(vertices2);
-    
-    for (int i = 0; i < 4; i++) {
-        points1.push_back(vertices1[i]);
-        points2.push_back(vertices2[i]);
-    }
-
-    // Calcola l'intersezione tra i due poligoni
-    std::vector<cv::Point2f> intersection;
-    double intersectionArea = cv::intersectConvexConvex(points1, points2, intersection) / area;
-
-    std::cout << "Intersection area: " << intersectionArea << std::endl;
-
-    return intersectionArea;
-}
-
-std::vector<std::pair<cv::RotatedRect, double>>::const_iterator elementIterator(
-    const std::vector<std::pair<cv::RotatedRect, double>>& vec,
-    const std::pair<cv::RotatedRect, double>& elem) 
-{
-    for (auto it = vec.cbegin(); it != vec.cend(); ++it) {
-        if (it->second == elem.second &&
-            it->first.center.x == elem.first.center.x &&
-            it->first.center.y == elem.first.center.y) 
-        {
-            return it; // Restituiamo l'iteratore all'elemento
-        }
-    }
-    return vec.cend(); // Restituiamo end() se l'elemento non è stato trovato
-}
-
 // Function to detect parking spots in the images
 void detectParkingSpots(const std::vector<cv::Mat>& images, std::vector<ParkingSpot>& parkingSpots) {
     
@@ -147,19 +99,7 @@ std::vector<ParkingSpot> detectParkingSpotInImage(const cv::Mat& image) {
         cv::waitKey(0);
     }
 
-/* Procedimento: 
-    1-Filtro bbox in alto a destra (unica cosa che si può fare a mano)
-    2-Convex hull con i bbox rimanenti
-    3-Trovo le linee più lunghe del convex hull, le prolungo e calcolo le loro intersezioni ottenendo 4 punti da proiettare tramite omografia
-    4-Faccio l'omografia
-    Problemino: 
-        Alcune linee dei convex hull sono consecutive e quasi parallele, quindi 2 delle 4 linee più lunghe possono appartenere allo stesso "lato".
-        Quello che faccio ora è selezionare le 5 linee più lunghe, estenderle, trovare intersezioni e togliere quei punti di intersezione 
-        che sono troppo vicini tra loro. L'immagine 3 non ha questo problema, pertanto la soluzione attuale scompiglia tutto.
-        La vera soluzione sarebbe questa: se due delle 4 linee più lunghe sono consecutive e quasi parallele, allora le considero come una.
-*/
-
-    // Manually filter the rectangles based on the distance to the top-right corner (allowed)
+    // Manually filter the rectangles based on the distance to the top-right corner
     cv::Point2f topRightCorner(image.cols - 1, 0);
     double distanceThreshold = 300.0;
     std::vector<cv::Point2f> filtered_verts;
@@ -175,26 +115,31 @@ std::vector<ParkingSpot> detectParkingSpotInImage(const cv::Mat& image) {
         }
     }
 
-    // Get convex hull of every line that has been found
+    // Convex hull of bouding boxes that have been found
     std::vector<cv::Point2f> hull;
     cv::convexHull(filtered_verts, hull);
 
-    // Draw the convex hull and save its lines
-    std::vector<std::pair<double, std::pair<cv::Point2f, cv::Point2f>>> hullLines;    
+    // Draw the convex hull and save its lines with their lengths so that we can sort them based on length
+    std::vector<std::pair<double, std::pair<cv::Point2f, cv::Point2f>>> hullLines;   
     for (size_t i = 0; i < hull.size(); i++) {
-        cv::line(intermediate_results, hull[i], hull[(i + 1) % hull.size()], cv::Scalar(0, 255, 0), 2);
+        // Line endpoints
         cv::Point2f p1 = hull[i];
-        cv::Point2f p2 = hull[(i + 1) % hull.size()]; // Wrap around to form a closed hull
-        double distance = cv::norm(p1-p2);
-        hullLines.push_back(std::make_pair(distance, std::make_pair(p1, p2)));
+        cv::Point2f p2 = hull[(i + 1) % hull.size()];
+
+        //Draw the line
+        cv::line(intermediate_results, p1, p2, cv::Scalar(0, 255, 0), 2);
+        
+        // Put its length in the vector of pairs
+        double length = cv::norm(p1-p2);
+        hullLines.push_back(std::make_pair(length, std::make_pair(p1, p2)));
     }
 
-    // Sort the lines by their length in descending order
+    // Sort the lines by their length, longest ones are first
     std::sort(hullLines.begin(), hullLines.end(), [](const auto& a, const auto& b) {
         return a.first > b.first;
     });
     
-    // Highlight the 4 longest lines in red
+    // Compute mathematical properties of the longest lines
     std::vector<double> ms; // angular coefficients
     std::vector<double> bs; // intercepts
     for (size_t i = 0; i < std::min(hullLines.size(), size_t(5)); i++) {
@@ -207,7 +152,7 @@ std::vector<ParkingSpot> detectParkingSpotInImage(const cv::Mat& image) {
         cv::line(intermediate_results, line.second.first, line.second.second, cv::Scalar(0, 0, 255), (i+1)*(i+1));
     }
 
-    // Find the points to transform by extending the longest lines and finding their intersection
+    // Extend the longest lines and find their intersection. Such intersection will be the points to be used to find the homography
     std::vector<cv::Point2f> hom_points;
     for (size_t i = 0; i < ms.size(); ++i) {
         for (size_t j = i + 1; j < ms.size(); ++j) {
@@ -216,42 +161,46 @@ std::vector<ParkingSpot> detectParkingSpotInImage(const cv::Mat& image) {
             double m2 = ms[j];
             double b2 = bs[j];
 
-            std::cout << "Lines " << i << " m: "<< m1 << " and " << j << " m: " << m2 << std::endl;
-            // Check if lines are parallel (have the same slope)
+            // Since we consider only the longest lines, they are considered to be parallel if they have the same angular coefficient
             if ((m1 < 0) == (m2 < 0)) {
                 continue;
             }
 
-            // Calculate intersection point (x, y)
+            // Intersection point
             double x = (b2 - b1) / (m1 - m2);
             double y = m1 * x + b1;
 
-            // Check if the intersection point is inside the image
+            // If the intersection point is not inside the image, then put it inside
             if(x<0) x = 0;
             if(x >= image.cols) x = image.cols-1;
             if(y <0) y = 0;
             if(y >= image.rows) y = image.rows -1;
             
-            hom_points.push_back(cv::Point2f(static_cast<int>(x), static_cast<int>(y)));
+            // Save the intersection point
+            hom_points.push_back(cv::Point2f(x, y));
         }
     }
 
-    // Distance threshold (adjust as needed)
+    // Distance threshold to keep only one intersection point if two are too close
     float pointsDistanceThreshold = 100.f;
 
-    // Remove points that are too close together
+    // Remove intersection points that are too close
     std::vector<cv::Point2f> filteredPoints = removeClosePoints(hom_points, pointsDistanceThreshold);
 
-    // Iterate over the points to show the corners
+    // Iterate over the points to show the corners of the "extended convex jull"
     for (const auto& point : filteredPoints) {
             cv::circle(intermediate_results, cv::Point(static_cast<int>(point.x), static_cast<int>(point.y)), 5, cv::Scalar(0, 0, 255), -1);
-            std::cout << point << std::endl;
+            std::cout << point << std::endl; // Debug
     }
-    cv::imshow("image with homography points", intermediate_results);
+
+    cv::imshow("Image with homography points", intermediate_results);
     cv::waitKey(0);
 
+    // Compute the homography
     std::vector<cv::Point2f> to_hom_points = {cv::Point2f(1199,60), cv::Point2f(1099,799), cv::Point2f(20,60), cv::Point2f(100,799)};
     cv::Mat F = cv::findHomography(filteredPoints, to_hom_points);
+    
+    // Apply the homography to the original image and the preprocessed one
     cv::Mat result_original;
     cv::Mat result_preproccesed;
     cv::warpPerspective(image, result_original, F, cv::Size(1200,800));
@@ -259,10 +208,11 @@ std::vector<ParkingSpot> detectParkingSpotInImage(const cv::Mat& image) {
     cv::imshow("result", result_preproccesed+preprocess(result_original));
     cv::waitKey(0);
 
+    // Preprocess the transformed image
     cv::Mat result_gs;
     cv::cvtColor(result_original,result_gs,cv::COLOR_BGR2GRAY);
-
     cv::GaussianBlur(result_gs,result_gs,cv::Size(3,3),30);
+
     cv::Mat adaptivethold;
     cv::adaptiveThreshold(result_gs, adaptivethold, 255, cv::ADAPTIVE_THRESH_GAUSSIAN_C, cv::THRESH_BINARY_INV, 15, 5);    
     cv::imshow("adaptive tholded", adaptivethold);
@@ -483,34 +433,46 @@ std::vector<int> angles_2 = {-35,-36,-37,-38,-39,-40, -43,-45,-47,-52};
     return parkingSpots;
 }
 
-// Function to check if more than half of the content within the rotated rect is white
-bool isMoreThanHalfWhite(const cv::Mat& image, const cv::RotatedRect& box) {
-    // Create a mask for the RotatedRect
-    cv::Mat mask = cv::Mat::zeros(image.size(), CV_8UC1);
+double computeIntersectionArea(const cv::RotatedRect& rect1, const cv::RotatedRect& rect2) {
+    // Converti i RotatedRect in vettori di punti (poligoni)
+    std::vector<cv::Point2f> points1, points2;
+    cv::Point2f vertices1[4], vertices2[4];
 
-    // Get the vertices of the RotatedRect
-    cv::Point2f vertices[4];
-    box.points(vertices);
-
-    // Fill the mask with white color where the bounding box is
-    std::vector<cv::Point> pts;
+    double area = rect1.size.area();
+    
+    rect1.points(vertices1);
+    rect2.points(vertices2);
+    
     for (int i = 0; i < 4; i++) {
-        pts.push_back(vertices[i]);
+        points1.push_back(vertices1[i]);
+        points2.push_back(vertices2[i]);
     }
-    cv::fillConvexPoly(mask, pts, cv::Scalar(255));
 
-    // Count the white pixels inside the bounding box
-    cv::Mat roi;
-    image.copyTo(roi, mask);
+    // Calcola l'intersezione tra i due poligoni
+    std::vector<cv::Point2f> intersection;
+    double intersectionArea = cv::intersectConvexConvex(points1, points2, intersection) / area;
 
-    int totalPixels = cv::countNonZero(mask);
-    int whitePixels = cv::countNonZero(roi);
+    std::cout << "Intersection area: " << intersectionArea << std::endl;
 
-    // Return true if more than half of the pixels inside the bounding box are white
-    return whitePixels > (totalPixels *0.3);
+    return intersectionArea;
 }
 
-bool isMoreThanHalfBlack(const cv::Mat& image, const cv::RotatedRect& box) {
+std::vector<std::pair<cv::RotatedRect, double>>::const_iterator elementIterator(
+    const std::vector<std::pair<cv::RotatedRect, double>>& vec,
+    const std::pair<cv::RotatedRect, double>& elem) 
+{
+    for (auto it = vec.cbegin(); it != vec.cend(); ++it) {
+        if (it->second == elem.second &&
+            it->first.center.x == elem.first.center.x &&
+            it->first.center.y == elem.first.center.y) 
+        {
+            return it; // Restituiamo l'iteratore all'elemento
+        }
+    }
+    return vec.cend(); // Restituiamo end() se l'elemento non è stato trovato
+}
+
+bool isDarkerThanThreshold(const cv::Mat& image, const cv::RotatedRect& box, double threshold) {
     // Create a mask for the RotatedRect
     cv::Mat mask = cv::Mat::zeros(image.size(), CV_8UC1);
 
@@ -533,13 +495,13 @@ bool isMoreThanHalfBlack(const cv::Mat& image, const cv::RotatedRect& box) {
     int blackPixels = totalPixels - cv::countNonZero(roi);
 
     // Return true if more than half of the pixels inside the bounding box are black
-    return blackPixels > (totalPixels * 0.85);
+    return blackPixels > (totalPixels * threshold);
 }
 
 void filterBoundingBoxes(cv::Mat& image, std::vector<std::pair<cv::RotatedRect, double>>& boxes) {
     boxes.erase(std::remove_if(boxes.begin(), boxes.end(),
                                [&image](const std::pair<cv::RotatedRect, double>& boxPair) {
-                                   return isMoreThanHalfBlack(image, boxPair.first);
+                                   return isDarkerThanThreshold(image, boxPair.first, 0.85);
                                }),
                 boxes.end());
 }
@@ -573,34 +535,20 @@ std::vector<cv::Point2f> removeClosePoints(const std::vector<cv::Point2f>& point
     return result;
 }
 
+/*  Function that preprocesses the original images of sequence0.
+    Pipeline:
+        - Bilateral filter to smooth out some road imperfections and keep white lines and the edges of the space between lines of parking slots
+        - Gradient magnitude to highlight the outline of the parking slots as much as possible across the different images of sequence0
+        - Double dilation to fill in weak and double lines
+        - Erosion to reduce the thickness of the lines
+*/
+
 cv::Mat preprocess(const cv::Mat& src) {
-    cv::Mat gaussianFilteredImage;
-    cv::GaussianBlur(src,gaussianFilteredImage,cv::Size(3,3),20);
     cv::Mat filteredImage;
     cv::bilateralFilter(src, filteredImage, -1, 40, 10);
 
     cv::Mat gs;
     cv::cvtColor(filteredImage, gs, cv::COLOR_BGR2GRAY);
-
-    cv::imshow("grayscale", gs);
-    cv::waitKey(0);
-
-    cv::Mat stretched = contrastStretchTransform(gs);
-    //cv::imshow("stretched", stretched);
-    //cv::waitKey(0);
-
-    // Set the gamma value
-    double gammaValue = 1.25; // Example gamma value
-
-    // Apply gamma transformation
-    cv::Mat gammaCorrected1 = applyGammaTransform(gs, gammaValue);
-    //cv::imshow("gamma tf1", gammaCorrected1);
-    //cv::waitKey(0);
-
-    gammaValue = 2;
-    cv::Mat gammaCorrected2 = applyGammaTransform(gammaCorrected1, gammaValue);
-    //cv::imshow("gamma tf2", gammaCorrected2);
-    //cv::waitKey(0);
 
     cv::Mat gx;
     cv::Sobel(gs, gx, CV_16S, 1,0);
@@ -616,96 +564,31 @@ cv::Mat preprocess(const cv::Mat& src) {
     cv::Mat grad_magn;
     cv::addWeighted(abs_grad_x, 0.5, abs_grad_y, 0.5, 0, grad_magn);
 
-    cv::Mat equalized;
-    cv::equalizeHist(gammaCorrected2,equalized);
-    //cv::imshow("equalized", equalized);
-    //cv::waitKey(0);
-
-    cv::Mat laplacian;
-    cv::Laplacian(equalized, laplacian, CV_32F);  // Use CV_32F to avoid overflow
-
-    // Compute the absolute value of the Laplacian
-    cv::Mat abs_laplacian;
-    cv::convertScaleAbs(laplacian, abs_laplacian); // Convert to absolute value
-
-    // Normalize the result to range [0, 255] for visualization
-    cv::Mat normalized_abs_laplacian;
-    cv::normalize(abs_laplacian, normalized_abs_laplacian, 0, 255, cv::NORM_MINMAX, CV_8U);
-
-    //cv::imshow("Normalized Absolute Laplacian", normalized_abs_laplacian);
-    //cv::waitKey(0);
-
-    cv::Mat filtered_laplacian;
-    cv::bilateralFilter(normalized_abs_laplacian, filtered_laplacian, -1, 40, 10);
-    //cv::imshow("filtered laplacian", filtered_laplacian);
-    //cv::waitKey(0);
-
     cv::Mat edges;
     cv::Canny(grad_magn, edges,150, 400);
-    // cv::imshow("canny", edges);
-    // cv::waitKey(0);
 
     cv::Mat element = cv::getStructuringElement( 
                         cv::MORPH_CROSS, cv::Size(3,3)); 
 
     cv::dilate(edges,edges,element,cv::Point(-1,-1),2);
     cv::erode(edges,edges,element,cv::Point(-1,-1),1);
-    // cv::imshow("dilated canny", edges);
-    // cv::waitKey(0);
 
     return edges;
 }
 
+/*  Function that computes the Gamma transform of the desired image. */
 cv::Mat applyGammaTransform(const cv::Mat& src, double gamma) {
-    // Create a lookup table for faster processing
+    // Lookup table for the gamma transform
     cv::Mat lookupTable(1, 256, CV_8U);
     uchar* p = lookupTable.ptr();
+
     for (int i = 0; i < 256; ++i) {
         p[i] = cv::saturate_cast<uchar>(pow(i / 255.0, gamma) * 255.0);
     }
 
+    // Apply table to the desired image
     cv::Mat dst;
-    // Apply the lookup table to the source image
     cv::LUT(src, lookupTable, dst);
 
     return dst;
-}
-
-cv::Mat contrastStretchTransform(const cv::Mat& src) {
-    // Create a lookup table for faster processing
-    cv::Mat lookupTable(1, 256, CV_8U);
-    uchar* p = lookupTable.ptr();
-    for (int i = 0; i < 256; ++i) {
-        if(i < 80) {
-            p[i] = cv::saturate_cast<uchar>(i/4);
-        }
-        else {
-            p[i] = cv::saturate_cast<uchar>(i*2);
-        }
-        
-    }
-
-    cv::Mat dst;
-    // Apply the lookup table to the source image
-    cv::LUT(src, lookupTable, dst);
-
-    return dst;
-}
-
-void addSaltPepperNoise(cv::Mat& src, cv::Mat& dst, double noise_amount) {
-    dst = src.clone();
-    int num_salt = noise_amount * src.total();
-    int num_pepper = noise_amount * src.total();
-
-    for (int i = 0; i < num_salt; i++) {
-        int x = rand() % src.cols;
-        int y = rand() % src.rows;
-        dst.at<uchar>(y, x) = 255; // Pixel bianco
-    }
-
-    for (int i = 0; i < num_pepper; i++) {
-        int x = rand() % src.cols;
-        int y = rand() % src.rows;
-        dst.at<uchar>(y, x) = 0; // Pixel nero
-    }
 }
