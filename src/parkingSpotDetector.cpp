@@ -99,8 +99,8 @@ std::vector<ParkingSpot> detectParkingSpotInImage(const cv::Mat& image) {
             float rotated_width = template_width*cos(-angles[k]*CV_PI/180)+template_height;
             float rotated_height = template_width*sin(-angles[k]*CV_PI/180)+template_height;
 
-            cv::warpAffine(flipped,rotated_template,R,cv::Size(rotated_width,rotated_height));
-            cv::warpAffine(flipped_mask,rotated_mask,R,cv::Size(rotated_width,rotated_height));
+            cv::warpAffine(horizontal_template,rotated_template,R,cv::Size(rotated_width,rotated_height));
+            cv::warpAffine(horizontal_mask,rotated_mask,R,cv::Size(rotated_width,rotated_height));
 
             if(k == 0) {
                     cv::imshow("Horizontal template", horizontal_template);
@@ -297,7 +297,7 @@ std::vector<ParkingSpot> detectParkingSpotInImage(const cv::Mat& image) {
     cv::waitKey(0);
 
 std::vector<int> angles_2 = {-35,-36,-37,-38,-39,-40, -43,-45,-47,-52};
-    std::vector<float> scales_2 = {0.85,0.9,1};
+    std::vector<float> scales_2 = {0.7, 0.85,0.9,1};
     std::vector<std::pair<cv::RotatedRect, double>> list_boxes_2;
     for(int l = 0; l<scales_2.size(); l++) {
         for(int k = 0; k<angles_2.size(); k++) {
@@ -406,6 +406,10 @@ std::vector<int> angles_2 = {-35,-36,-37,-38,-39,-40, -43,-45,-47,-52};
 
             if (rect1.center.x == rect2.center.x && rect1.center.y == rect2.center.y && score1 == score2) {
                 std::cout << "same rect" << std::endl;
+            } else if (computeIntersectionArea(rect1,rect2) > rect1.size.area()*0.75 && rect1.size.area() < rect2.size.area()*0.5){
+                elementsToRemove.push_back(box);
+            } else if(computeIntersectionArea(rect1,rect2) > rect2.size.area()*0.75 && rect2.size.area() < rect1.size.area()*0.5){
+                elementsToRemove.push_back(box2);
             } else if (computeIntersectionArea(rect1, rect2) > 0.5) {
                 if (score1 >= score2) {
                     elementsToRemove.push_back(box2);
