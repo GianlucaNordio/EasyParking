@@ -389,6 +389,8 @@ std::vector<int> angles_2 = {-35,-36,-37,-38,-39,-40, -43,-45,-47,-52};
         cv::waitKey(0);
     }
 
+    std::cout << "Arrivato alla nms" << std::endl;
+
     // Apply NMS filtering to the boxes found
     std::vector<std::pair<cv::RotatedRect, double>> elementsToRemove;
 
@@ -411,7 +413,6 @@ std::vector<int> angles_2 = {-35,-36,-37,-38,-39,-40, -43,-45,-47,-52};
             }
         }
     }
-
 
     // Rimuovi tutti gli elementi raccolti
     for (std::pair element : elementsToRemove) {
