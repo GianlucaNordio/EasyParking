@@ -85,141 +85,26 @@ void detectParkingSpots(const std::vector<cv::Mat>& images, std::vector<ParkingS
 std::vector<ParkingSpot> detectParkingSpotInImage(const cv::Mat& image) {
     std::vector<ParkingSpot> parkingSpots;
 
+    cv::Mat gaussianFilteredImage;
+    cv::GaussianBlur(image,gaussianFilteredImage,cv::Size(3,3),20);
     cv::Mat filteredImage;
     cv::bilateralFilter(image, filteredImage, -1, 40, 10);
 
-    //cv::imshow("bilateral filtered", filteredImage);
-    //cv::waitKey(0);
-
     cv::Mat gs;
-    cv::cvtColor(image, gs, cv::COLOR_BGR2GRAY);
+    cv::cvtColor(filteredImage, gs, cv::COLOR_BGR2GRAY);
 
-    /* cv::imshow("grayscale", gs);
-    cv::waitKey(0); */
-
-    cv::Mat stretched = contrastStretchTransform(gs);
-    /* cv::imshow("stretched", stretched);
-    cv::waitKey(0); */
-
-    // Set the gamma value
-    double gammaValue = 1.25; // Example gamma value
-
-    // Apply gamma transformation
-    cv::Mat gammaCorrected1 = applyGammaTransform(gs, gammaValue);
-   /*  cv::imshow("gamma tf1", gammaCorrected1);
-    cv::waitKey(0); */
-
-    gammaValue = 2;
-    cv::Mat gammaCorrected2 = applyGammaTransform(gammaCorrected1, gammaValue);
-    /* cv::imshow("gamma tf2", gammaCorrected2);
-    cv::waitKey(0);
- */
-    cv::Mat gsthold;
-    cv::threshold( gammaCorrected2, gsthold, 180, 255,  cv::THRESH_BINARY);
-    // cv::imshow("gsthold", gsthold);
-    // cv::waitKey(0);
-
-    cv::Mat gx;
-    cv::Sobel(gammaCorrected2, gx, CV_16S, 1,0);
-
-    cv::Mat gy;
-    cv::Sobel(gammaCorrected1, gy, CV_16S, 0,1);
-
-    cv::Mat abs_grad_x;
-    cv::Mat abs_grad_y;
-    cv::convertScaleAbs(gx, abs_grad_x);
-    cv::convertScaleAbs(gy, abs_grad_y);
-
-    /* cv::imshow("gradient x gamma", abs_grad_x);
-    cv::waitKey(0);
-    cv::imshow("gradient y gamma", abs_grad_y);
-    cv::waitKey(0); */
-
-    cv::Mat grad_magn;
-    cv::addWeighted(abs_grad_x, 0.5, abs_grad_y, 0.5, 0, grad_magn);
-
-    cv::Mat equalized;
-    cv::equalizeHist(gammaCorrected2,equalized);
-   /*  cv::imshow("equalized", equalized);
-    cv::waitKey(0); */
-
-    cv::Mat equalized_filt;
-    cv::GaussianBlur(equalized,equalized_filt, cv::Size(5,5),30);
-
-    cv::Mat gxeq;
-    cv::Sobel(stretched, gxeq, CV_16S, 1,0);
-
-    cv::Mat gyeq;
-    cv::Sobel(stretched, gyeq, CV_16S, 0,1);
-
-    cv::Mat abs_grad_xeq;
-    cv::Mat abs_grad_yeq;
-    cv::convertScaleAbs(gxeq, abs_grad_xeq);
-    cv::convertScaleAbs(gyeq, abs_grad_yeq);
-
-    // cv::imshow("gradient x eq", abs_grad_xeq);
-    // cv::waitKey(0);
-    // cv::imshow("gradient y eq", abs_grad_yeq);
-    // cv::waitKey(0);
-
-    //cv::Mat grad_magneq;
-    //cv::addWeighted(abs_grad_xeq, 0.5, abs_grad_yeq, 0.5, 0, grad_magneq);
-
-    cv::Mat laplacian;
-    cv::Laplacian(equalized, laplacian, CV_32F);  // Use CV_32F to avoid overflow
-
-    // Compute the absolute value of the Laplacian
-    cv::Mat abs_laplacian;
-    cv::convertScaleAbs(laplacian, abs_laplacian); // Convert to absolute value
-
-    // Normalize the result to range [0, 255] for visualization
-    cv::Mat normalized_abs_laplacian;
-    cv::normalize(abs_laplacian, normalized_abs_laplacian, 0, 255, cv::NORM_MINMAX, CV_8U);
-
-    /* cv::imshow("Normalized Absolute Laplacian", normalized_abs_laplacian);  // Normalized for grayscale
-    cv::waitKey(0); */  // Wait for a key press indefinitely
-
-    cv::Mat filtered_laplacian;
-    cv::bilateralFilter(normalized_abs_laplacian, filtered_laplacian, -1, 40, 10);
-    /* cv::imshow("filtered laplacian", filtered_laplacian);
-    cv::waitKey(0); */
-
-    /* cv::imshow("gradient magnitude", grad_magn+normalized_abs_laplacian);
-    cv::waitKey(0); */
-
-    cv::Mat grad_magn_bilateral;
-    cv::bilateralFilter(grad_magn, grad_magn_bilateral, -1, 20, 10);
-   /*  cv::imshow("grad magn bilateral", grad_magn_bilateral);
-    cv::waitKey(0);
- */
-    cv::Mat medianblurred;
-    cv::medianBlur(grad_magn_bilateral, medianblurred, 3);
-    cv::Mat bilateralblurred;
-    //cv::bilateralFilter(medianblurred, bilateralblurred, -1,20,10);
-    /* cv::imshow("bilateral filtered2", medianblurred);
-    cv::waitKey(0); */
-
+    cv::Mat adpt;
+    cv::adaptiveThreshold(gs,adpt,255, cv::ADAPTIVE_THRESH_MEAN_C ,cv::THRESH_BINARY, 9,-20);
+    
     cv::Mat element = cv::getStructuringElement( 
-                        cv::MORPH_RECT, cv::Size(3,3)); 
+                        cv::MORPH_CROSS, cv::Size(3,3)); 
 
-    cv::Mat erodeg; 
-    cv::erode(medianblurred, erodeg, element, cv::Point(-1, -1), 1); 
-/*     cv::imshow("erodeg", erodeg);
- */
-    //cv::Mat gmagthold;
-    //cv::threshold( erodeg, gmagthold, 110, 255,  cv::THRESH_BINARY);
-    //cv::imshow("gmagthold", gmagthold);
-    //cv::waitKey(0);
+    // dil 2 erode 1
+    cv::dilate(adpt,adpt,element,cv::Point(-1,-1),4);
+    cv::erode(adpt,adpt,element,cv::Point(-1,-1),3);
 
-    cv::Mat dilate = grad_magn+normalized_abs_laplacian; 
-    // ok with 5-6 dilations for normal and flipped. Good with 8 for normal
-    cv::Mat dilate_pre_filter;
-    cv::dilate(grad_magn, dilate_pre_filter, element, cv::Point(-1, -1), 3);
-    cv::bilateralFilter(dilate_pre_filter, dilate, -1, 20, 10);
-    // dilate = grad_magn;
-    //dilate = applyGammaTransform(dilate,1.2);
-    dilate = dilate+erodeg;
-    dilate.setTo(0, dilate<= 20);
+    cv::imshow("grayscale", adpt);
+    cv::waitKey(0);
 /*     cv::imshow("dilated", dilate);
  */
 /*
@@ -248,8 +133,8 @@ std::vector<ParkingSpot> detectParkingSpotInImage(const cv::Mat& image) {
             }
         }
 */
-    std::vector<float> angles = {-5, -5.5, -6, -6.5, -7, -7.5, -8, -8.5, -9, -9.5, -10, -10.5, -11, -11.5, -12, -12.5, -13, -13.5, -14, -14.5, -15, -15.5, -16};
-    std::vector<float> scales = {0.75, 0.8, 0.85, 0.9, 0.95, 1, 1.05, 1.1, 1.15, 1.2, 1.25, 1.3, 1.35, 1.4, 1.45, 1.5, 1.55, 1.6, 1.65, 1.7, 1.75, 1.8, 1.85, 1.9, 1.95, 2};
+    std::vector<float> angles = {-5, -6, -7, -8, -9, -10, -11, -12, -13, -14, -15, -16};
+    std::vector<float> scales = {0.7, 0.8,0.9, 1, 1.05, 1.1, 1.2, 1.3, 1.4, 1.5, 1.6, 1.7, 1.8, 1.9};
     std::vector<cv::RotatedRect> boxes_best_angle;
     std::vector<std::pair<cv::RotatedRect, double>> final_boxes;
     for(int l = 0; l<scales.size(); l++) {
@@ -257,7 +142,7 @@ std::vector<ParkingSpot> detectParkingSpotInImage(const cv::Mat& image) {
         for(int k = 0; k<angles.size(); k++) {
             // Template size
             int surplus = 30*scales[k];
-            int line_width = 8;
+            int line_width = 4;
             int template_height = 39*scales[l];
             int template_width = 120*scales[l]+2*surplus;
 
@@ -290,7 +175,7 @@ std::vector<ParkingSpot> detectParkingSpotInImage(const cv::Mat& image) {
                         horizontal_mask.at<uchar>(i,j) = 200;
                     }
                     else {
-                        horizontal_mask.at<uchar>(i,j) = 100;
+                        horizontal_mask.at<uchar>(i,j) = 1;
                     }
                 }
             }
@@ -321,21 +206,21 @@ std::vector<ParkingSpot> detectParkingSpotInImage(const cv::Mat& image) {
 
             // use dilate or medianblurred or canny with 100-1000
             cv::Mat tm_result_unnorm;
-            cv::matchTemplate(dilate,rotated_template,tm_result_unnorm,cv::TM_CCORR_NORMED,rotated_mask);
+            cv::matchTemplate(adpt,rotated_template,tm_result_unnorm,cv::TM_SQDIFF,rotated_mask);
             cv::normalize( tm_result_unnorm, tm_result, 0, 1, cv::NORM_MINMAX, -1, cv::Mat() );
         
-            // cv::imshow("TM Result", tm_result);
-            // cv::waitKey(0);
+            cv::imshow("TM Result", tm_result);
+            cv::waitKey(0);
 
             // Finding local minima
             cv::Mat eroded;
             std::vector<cv::Point> minima;
             cv::Mat kernel = cv::getStructuringElement(cv::MORPH_RECT, cv::Size(rotated_width, rotated_height));
-            cv::dilate(tm_result, eroded, kernel);
-            cv::Mat localMinimaMask = (tm_result == eroded) & (tm_result >= 0.975);
+            cv::erode(tm_result, eroded, kernel);
+            cv::Mat localMinimaMask = (tm_result == eroded) & (tm_result < 0.2);
 
-            // cv::imshow("TM Result, eroded", eroded);
-            // cv::waitKey(0);
+            cv::imshow("TM Result, eroded", eroded);
+            cv::waitKey(0);
 
             // Find all non-zero points (local minima) in the mask
             cv::findNonZero(localMinimaMask, minima);
@@ -356,12 +241,14 @@ std::vector<ParkingSpot> detectParkingSpotInImage(const cv::Mat& image) {
                 list_boxes.push_back(std::pair(rotatedRect, tm_result.at<double>(pt)));
 
                 // Draw the rotated rectangle using lines between its vertices
-                // cv::Point2f vertices[4];
-                // rotatedRect.points(vertices);
-                // for (int i = 0; i < 4; i++) {
-                //     cv::line(image, vertices[i], vertices[(i+1) % 4], cv::Scalar(0, 255, 0), 2);
-                // }
+                cv::Point2f vertices[4];
+                rotatedRect.points(vertices);
+                for (int i = 0; i < 4; i++) {
+                    cv::line(image, vertices[i], vertices[(i+1) % 4], cv::Scalar(0, 255, 0), 2);
+                }
             }
+            cv::imshow("tm result image", image);
+            cv::waitKey(0);
         }
 
         std::cout << "Number of boxes: " << list_boxes.size() << std::endl;
@@ -379,7 +266,7 @@ std::vector<ParkingSpot> detectParkingSpotInImage(const cv::Mat& image) {
                 if (rect1.center.x == rect2.center.x && rect1.center.y == rect2.center.y && score1 == score2) {
                     std::cout << "same rect" << std::endl;
                 } else if (computeIntersectionArea(rect1, rect2) > 0.4) {
-                    if (score1 >= score2) {
+                    if (score1 <= score2) {
                         elementsToRemove.push_back(box2);
                     } else {
                         elementsToRemove.push_back(box);
