@@ -19,5 +19,6 @@ float calculateDistance(const cv::Point2f& p1, const cv::Point2f& p2);
 std::vector<cv::Point2f> removeClosePoints(const std::vector<cv::Point2f>& points, float distanceThreshold);
 void addSaltPepperNoise(cv::Mat& src, cv::Mat& dst, double noise_amount);
 bool isMoreThanHalfBlack(const cv::Mat& image, const cv::RotatedRect& box);
+bool isMoreThanHalfWhite(const cv::Mat& image, const cv::RotatedRect& box);
 void filterBoundingBoxes(cv::Mat& image, std::vector<std::pair<cv::RotatedRect, double>>& boxes);
 #endif // PARKINGSPOTDETECTOR_HPP

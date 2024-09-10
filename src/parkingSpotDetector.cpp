@@ -262,6 +262,7 @@ std::vector<ParkingSpot> detectParkingSpotInImage(const cv::Mat& image) {
     cv::Mat result_gs;
     cv::cvtColor(result_original,result_gs,cv::COLOR_BGR2GRAY);
 
+    cv::GaussianBlur(result_gs,result_gs,cv::Size(3,3),30);
     cv::Mat adaptivethold;
     cv::adaptiveThreshold(result_gs, adaptivethold, 255, cv::ADAPTIVE_THRESH_GAUSSIAN_C, cv::THRESH_BINARY_INV, 15, 5);    
     cv::imshow("adaptive tholded", adaptivethold);
@@ -297,92 +298,99 @@ std::vector<ParkingSpot> detectParkingSpotInImage(const cv::Mat& image) {
     cv::waitKey(0);
 
 std::vector<int> angles_2 = {-35,-36,-37,-38,-39,-40, -43,-45,-47,-52};
-    std::vector<float> scales_2 = {0.7, 0.85,0.9,1};
+    std::vector<float> scales_2 = {0.85,0.9,1};
     std::vector<std::pair<cv::RotatedRect, double>> list_boxes_2;
     for(int l = 0; l<scales_2.size(); l++) {
         for(int k = 0; k<angles_2.size(); k++) {
-            // Template size
-            int line_width = 8;
-            int template_height = 90*scales_2[l];
-            int template_width = 145*scales_2[l];
+            for(int f = 0; f<2; f++) {
+                // Template size
+                int line_width = 10;
+                int template_height = 90*scales_2[l];
+                int template_width = 145*scales_2[l];
 
-            // Horizontal template and mask definition
-            cv::Mat horizontal_template(template_height,template_width,CV_8U,cv::Scalar(0));
-            cv::Mat horizontal_mask(template_height,template_width,CV_8U,cv::Scalar(0));
+                // Horizontal template and mask definition
+                cv::Mat horizontal_template(template_height,template_width,CV_8U,cv::Scalar(0));
+                cv::Mat horizontal_mask(template_height,template_width,CV_8U,cv::Scalar(0));
 
-            for(int i = 0; i< horizontal_template.rows; i++) {
-                for(int j = 0; j<horizontal_template.cols; j++) {
-                    if(((i<line_width) 
-                        || (j > template_width-line_width || j < line_width) 
-                        || (i > (template_height-line_width)))){
-                        horizontal_template.at<uchar>(i,j) = 220;
-                        horizontal_mask.at<uchar>(i,j) = 254;
-                    }
-                    else {
-                        horizontal_mask.at<uchar>(i,j) = 1;
+                for(int i = 0; i< horizontal_template.rows; i++) {
+                    for(int j = 0; j<horizontal_template.cols; j++) {
+                        if(((i<line_width) 
+                            || (j > template_width-line_width || j < line_width) 
+                            || (i > (template_height-line_width)))){
+                            horizontal_template.at<uchar>(i,j) = 220;
+                            horizontal_mask.at<uchar>(i,j) = 254;
+                        }
+                        else {
+                            horizontal_mask.at<uchar>(i,j) = 1;
+                        }
                     }
                 }
-            }
 
 
-            // Rotate
-            cv::Mat R = cv::getRotationMatrix2D(cv::Point2f(0,template_height),angles_2[k],1);
-            cv::Mat rotated_template;
-            cv::Mat rotated_mask;
+                // Rotate
+                cv::Mat R = cv::getRotationMatrix2D(cv::Point2f(0,template_height),angles_2[k],1);
+                cv::Mat rotated_template;
+                cv::Mat rotated_mask;
 
-            float rotated_width = template_width*cos(-angles_2[k]*CV_PI/180)+template_height;
-            float rotated_height = template_width*sin(-angles_2[k]*CV_PI/180)+template_height;
+                float rotated_width = template_width*cos(-angles_2[k]*CV_PI/180)+template_height;
+                float rotated_height = template_width*sin(-angles_2[k]*CV_PI/180)+template_height;
 
-            cv::warpAffine(horizontal_template,rotated_template,R,cv::Size(rotated_width,rotated_height));
-            cv::warpAffine(horizontal_mask,rotated_mask,R,cv::Size(rotated_width,rotated_height));
+                cv::warpAffine(horizontal_template,rotated_template,R,cv::Size(rotated_width,rotated_height));
+                cv::warpAffine(horizontal_mask,rotated_mask,R,cv::Size(rotated_width,rotated_height));
 
-            // Flip
-            cv::Mat flipped;
-            cv::Mat flipped_mask;
-            cv::flip(rotated_template,flipped,1);
-            cv::flip(rotated_mask,flipped_mask,1);
+                // Flip
+                cv::Mat flipped;
+                cv::Mat flipped_mask;
+                cv::flip(rotated_template,flipped,1);
+                cv::flip(rotated_mask,flipped_mask,1);
 
-            if(k == 0) {
-                    cv::imshow("Horizontal template", flipped);
-                    cv::imshow("Rotated template", flipped_mask);
-            }
+                if(k == 0) {
+                        cv::imshow("Horizontal template", flipped);
+                        cv::imshow("Rotated template", flipped_mask);
+                }
 
-            cv::Mat tm_result_unnorm;
-            cv::Mat tm_result;
-            cv::matchTemplate(adaptivethold,rotated_template ,tm_result_unnorm,cv::TM_SQDIFF,rotated_mask);
-            cv::normalize( tm_result_unnorm, tm_result, 0, 1, cv::NORM_MINMAX, -1, cv::Mat() );
-        
-            cv::imshow("homo TM Result", tm_result);
-            cv::waitKey(0);
+                if(f == 1) {
+                    rotated_template = flipped;
+                    rotated_mask = flipped_mask;
+                }
 
-            // Finding local minima
-            cv::Mat eroded;
-            std::vector<cv::Point> minima;
-            cv::Mat kernel = cv::getStructuringElement(cv::MORPH_RECT, cv::Size(rotated_height*0.5, rotated_height*0.5));
-            cv::erode(tm_result, eroded, kernel);
-            cv::Mat localMinimaMask = (tm_result == eroded) & (tm_result < 0.2);
-            cv::imshow("homo TM Result eroded", eroded);
-            cv::waitKey(0);
+                cv::Mat tm_result_unnorm;
+                cv::Mat tm_result;
+                cv::matchTemplate(adaptivethold,rotated_template,tm_result_unnorm,cv::TM_SQDIFF,rotated_mask);
+                cv::normalize( tm_result_unnorm, tm_result, 0, 1, cv::NORM_MINMAX, -1, cv::Mat() );
+            
+                // cv::imshow("homo TM Result", tm_result);
+                // cv::waitKey(0);
 
-            // Find all non-zero points (local minima) in the mask
-            cv::findNonZero(localMinimaMask, minima);
+                // Finding local minima
+                cv::Mat eroded;
+                std::vector<cv::Point> minima;
+                cv::Mat kernel = cv::getStructuringElement(cv::MORPH_RECT, cv::Size(rotated_height*0.5, rotated_height*0.5));
+                cv::erode(tm_result, eroded, kernel);
+                cv::Mat localMinimaMask = (tm_result == eroded) & (tm_result < 0.2);
+                // cv::imshow("homo TM Result eroded", eroded);
+                // cv::waitKey(0);
 
-            // Draw bboxes of the found lines
-            for (const cv::Point& pt : minima) {
-                // Get center of the bbox to draw the rotated rect
-                cv::Point center;
-                center.x = pt.x+rotated_width/2;
-                center.y = pt.y+rotated_height/2;
+                // Find all non-zero points (local minima) in the mask
+                cv::findNonZero(localMinimaMask, minima);
 
-                cv::RotatedRect rotatedRect(center, cv::Size(template_width,template_height), -angles_2[k]);
-                list_boxes_2.push_back(std::pair(rotatedRect, tm_result_unnorm.at<double>(pt)));
+                // Draw bboxes of the found lines
+                for (const cv::Point& pt : minima) {
+                    // Get center of the bbox to draw the rotated rect
+                    cv::Point center;
+                    center.x = pt.x+rotated_width/2;
+                    center.y = pt.y+rotated_height/2;
 
-                //Draw the rotated rectangle using lines between its vertices
-                cv::Point2f vertices[4];
-                rotatedRect.points(vertices);
-                /* for (int i = 0; i < 4; i++) {
-                    cv::line(result_original, vertices[i], vertices[(i+1) % 4], cv::Scalar(0, 255, 0), 2);
-                } */
+                    cv::RotatedRect rotatedRect(center, cv::Size(template_width,template_height), -angles_2[k] - (f == 1 ? 90 : 0));
+                    list_boxes_2.push_back(std::pair(rotatedRect, tm_result_unnorm.at<double>(pt)));
+
+                    //Draw the rotated rectangle using lines between its vertices
+                    cv::Point2f vertices[4];
+                    rotatedRect.points(vertices);
+                    /* for (int i = 0; i < 4; i++) {
+                        cv::line(result_original, vertices[i], vertices[(i+1) % 4], cv::Scalar(0, 255, 0), 2);
+                    } */
+                }
             }
         }
         /* cv::imshow("homo with lines", result_original);
@@ -406,11 +414,7 @@ std::vector<int> angles_2 = {-35,-36,-37,-38,-39,-40, -43,-45,-47,-52};
 
             if (rect1.center.x == rect2.center.x && rect1.center.y == rect2.center.y && score1 == score2) {
                 std::cout << "same rect" << std::endl;
-            } else if (computeIntersectionArea(rect1,rect2) > rect1.size.area()*0.75 && rect1.size.area() < rect2.size.area()*0.5){
-                elementsToRemove.push_back(box);
-            } else if(computeIntersectionArea(rect1,rect2) > rect2.size.area()*0.75 && rect2.size.area() < rect1.size.area()*0.5){
-                elementsToRemove.push_back(box2);
-            } else if (computeIntersectionArea(rect1, rect2) > 0.5) {
+            } else if (computeIntersectionArea(rect1, rect2) > 0.4) {
                 if (score1 >= score2) {
                     elementsToRemove.push_back(box2);
                 } else {
@@ -448,7 +452,62 @@ std::vector<int> angles_2 = {-35,-36,-37,-38,-39,-40, -43,-45,-47,-52};
     cv::imshow("Filtered Bounding Boxes", result_original);
     cv::waitKey(0);
 
+    cv::Mat inverseMatrix;
+    cv::invert(F, inverseMatrix);
+
+    // Iterate over each RotatedRect, inverse transform it, and draw it on the original image
+    for (const auto& rRect : final_boxes) {
+        // Get the four corner points of the RotatedRect in the transformed image
+        cv::Point2f rectPoints[4];
+        rRect.points(rectPoints);
+
+        // Transform the points back to the original image
+        std::vector<cv::Point2f> originalPoints;
+        cv::perspectiveTransform(std::vector<cv::Point2f>(rectPoints, rectPoints + 4), originalPoints, inverseMatrix);
+
+        // Convert the vector of points to an array of Points
+        std::vector<cv::Point> originalPointsInt;
+        for (const auto& pt : originalPoints) {
+            originalPointsInt.push_back(cv::Point(cvRound(pt.x), cvRound(pt.y)));
+        }
+
+        // Draw the RotatedRect on the original image
+        cv::polylines(image, originalPointsInt, true, cv::Scalar(0, 255, 0), 2);
+    }
+
+    // Show the result
+    cv::imshow("Inverse Transformed RotatedRects", image);
+    cv::waitKey(0);
+
+
     return parkingSpots;
+}
+
+// Function to check if more than half of the content within the rotated rect is white
+bool isMoreThanHalfWhite(const cv::Mat& image, const cv::RotatedRect& box) {
+    // Create a mask for the RotatedRect
+    cv::Mat mask = cv::Mat::zeros(image.size(), CV_8UC1);
+
+    // Get the vertices of the RotatedRect
+    cv::Point2f vertices[4];
+    box.points(vertices);
+
+    // Fill the mask with white color where the bounding box is
+    std::vector<cv::Point> pts;
+    for (int i = 0; i < 4; i++) {
+        pts.push_back(vertices[i]);
+    }
+    cv::fillConvexPoly(mask, pts, cv::Scalar(255));
+
+    // Count the white pixels inside the bounding box
+    cv::Mat roi;
+    image.copyTo(roi, mask);
+
+    int totalPixels = cv::countNonZero(mask);
+    int whitePixels = cv::countNonZero(roi);
+
+    // Return true if more than half of the pixels inside the bounding box are white
+    return whitePixels > (totalPixels *0.3);
 }
 
 bool isMoreThanHalfBlack(const cv::Mat& image, const cv::RotatedRect& box) {
