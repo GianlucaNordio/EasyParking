@@ -9,6 +9,45 @@ TODO:
 5. Dopo il punto 4, alla fine dei due cicli for, fare non maxima suppression. A quel punto usare NMS di opencv oppure prendere quello con area maggiore
 */
 
+double computeIntersectionArea(const cv::RotatedRect& rect1, const cv::RotatedRect& rect2) {
+    // Converti i RotatedRect in vettori di punti (poligoni)
+    std::vector<cv::Point2f> points1, points2;
+    cv::Point2f vertices1[4], vertices2[4];
+
+    double area = rect1.size.area();
+    
+    rect1.points(vertices1);
+    rect2.points(vertices2);
+    
+    for (int i = 0; i < 4; i++) {
+        points1.push_back(vertices1[i]);
+        points2.push_back(vertices2[i]);
+    }
+
+    // Calcola l'intersezione tra i due poligoni
+    std::vector<cv::Point2f> intersection;
+    double intersectionArea = cv::intersectConvexConvex(points1, points2, intersection) / area;
+
+    std::cout << "Intersection area: " << intersectionArea << std::endl;
+
+    return intersectionArea;
+}
+
+std::vector<std::pair<cv::RotatedRect, double>>::const_iterator elementIterator(
+    const std::vector<std::pair<cv::RotatedRect, double>>& vec,
+    const std::pair<cv::RotatedRect, double>& elem) 
+{
+    for (auto it = vec.cbegin(); it != vec.cend(); ++it) {
+        if (it->second == elem.second &&
+            it->first.center.x == elem.first.center.x &&
+            it->first.center.y == elem.first.center.y) 
+        {
+            return it; // Restituiamo l'iteratore all'elemento
+        }
+    }
+    return vec.cend(); // Restituiamo end() se l'elemento non è stato trovato
+}
+
 // Function to detect parking spots in the images
 void detectParkingSpots(const std::vector<cv::Mat>& images, std::vector<ParkingSpot>& parkingSpots) {
     
@@ -259,7 +298,7 @@ std::vector<ParkingSpot> detectParkingSpotInImage(const cv::Mat& image) {
 
 std::vector<int> angles_2 = {-35,-36,-37,-38,-39,-40, -43,-45,-47,-52};
     std::vector<float> scales_2 = {0.85,0.9,1};
-    std::vector<cv::RotatedRect> list_boxes_2;
+    std::vector<std::pair<cv::RotatedRect, double>> list_boxes_2;
     for(int l = 0; l<scales_2.size(); l++) {
         for(int k = 0; k<angles_2.size(); k++) {
             // Template size
@@ -310,7 +349,7 @@ std::vector<int> angles_2 = {-35,-36,-37,-38,-39,-40, -43,-45,-47,-52};
 
             cv::Mat tm_result_unnorm;
             cv::Mat tm_result;
-            cv::matchTemplate(adaptivethold,flipped,tm_result_unnorm,cv::TM_SQDIFF,flipped_mask);
+            cv::matchTemplate(adaptivethold,rotated_template ,tm_result_unnorm,cv::TM_SQDIFF,rotated_mask);
             cv::normalize( tm_result_unnorm, tm_result, 0, 1, cv::NORM_MINMAX, -1, cv::Mat() );
         
             cv::imshow("homo TM Result", tm_result);
@@ -335,8 +374,8 @@ std::vector<int> angles_2 = {-35,-36,-37,-38,-39,-40, -43,-45,-47,-52};
                 center.x = pt.x+rotated_width/2;
                 center.y = pt.y+rotated_height/2;
 
-                cv::RotatedRect rotatedRect(center, cv::Size(template_width,template_height), -angles_2[k]-90);
-                list_boxes_2.push_back(rotatedRect);
+                cv::RotatedRect rotatedRect(center, cv::Size(template_width,template_height), -angles_2[k]);
+                list_boxes_2.push_back(std::pair(rotatedRect, tm_result_unnorm.at<double>(pt)));
 
                 //Draw the rotated rectangle using lines between its vertices
                 cv::Point2f vertices[4];
@@ -350,11 +389,50 @@ std::vector<int> angles_2 = {-35,-36,-37,-38,-39,-40, -43,-45,-47,-52};
         cv::waitKey(0);
     }
 
+    // Apply NMS filtering to the boxes found
+    std::vector<std::pair<cv::RotatedRect, double>> elementsToRemove;
+
+    for (const auto& box : list_boxes_2) {
+        for (const auto& box2 : list_boxes_2) {
+            cv::RotatedRect rect1 = box.first;
+            cv::RotatedRect rect2 = box2.first;
+
+            double score1 = box.second;
+            double score2 = box2.second;
+
+            if (rect1.center.x == rect2.center.x && rect1.center.y == rect2.center.y && score1 == score2) {
+                std::cout << "same rect" << std::endl;
+            } else if (computeIntersectionArea(rect1, rect2) > 0.4) {
+                if (score1 >= score2) {
+                    elementsToRemove.push_back(box2);
+                } else {
+                    elementsToRemove.push_back(box);
+                }
+            }
+        }
+    }
+
+
+    // Rimuovi tutti gli elementi raccolti
+    for (std::pair element : elementsToRemove) {
+        std::vector<std::pair<cv::RotatedRect, double>>::const_iterator iterator = elementIterator(list_boxes_2, element);
+        if (iterator != list_boxes_2.cend()) {
+            list_boxes_2.erase(iterator);
+        }
+    }
+
+    // Create final_boxes that will contain the final boxes
+    std::vector<cv::RotatedRect> final_boxes;
+    for (const auto& box : list_boxes_2) {
+        final_boxes.push_back(box.first);
+    }
+
     // Filter out the boxes that have more than half of their content black
-    filterBoundingBoxes(grad_magn_thold, list_boxes_2);
+    filterBoundingBoxes(grad_magn_thold, final_boxes);
+
 
     // Draw the remaining bounding boxes on the image
-    for (const auto& box : list_boxes_2) {
+    for (const auto& box : final_boxes) {
         cv::Point2f vertices[4];
         box.points(vertices);
         for (int i = 0; i < 4; i++) {
