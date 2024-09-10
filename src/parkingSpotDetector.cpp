@@ -133,10 +133,24 @@ std::vector<ParkingSpot> detectParkingSpotInImage(const cv::Mat& image) {
 		}
 		if(!found)
 		{	
-			if(spots[i].size.area()>2000 && spots[i].size.area()<13000)	//To reject small and large rects
+			if(spots[i].size.area()>2600 && spots[i].size.area()<13000)	//To reject small and large rects
 				trimmed.push_back(spots[i]);
 		}
 	}
+
+    // Apply NMS filtering
+    std::vector<cv::RotatedRect> elementsToRemove;
+    nms(trimmed, elementsToRemove);
+
+
+    // Remove the elements determined by NMS filtering
+    for (cv::RotatedRect element : elementsToRemove) {
+        std::vector<cv::RotatedRect>::const_iterator iterator = elementIterator(trimmed, element);
+        if (iterator != trimmed.cend()) {
+            trimmed.erase(iterator);
+        }
+    }
+
 
     // Draw the rotated rectangles
     for (const auto& rect : trimmed) {
@@ -159,14 +173,14 @@ std::vector<ParkingSpot> detectParkingSpotInImage(const cv::Mat& image) {
 
 cv::Vec2f get_segm_params(cv::Vec4f segm)
 {
+
 	float m = (segm[1] - segm[3])/(segm[0] - segm[2]);
     float q = segm[1] - m*segm[0];
 
 	return cv::Vec2f(m,q);
 }
 
-cv::Vec2f get_direction(cv::Vec4f segm,bool blueStart)
-{
+cv::Vec2f get_direction(cv::Vec4f segm,bool blueStart){
 	int offset = 0;
 	if(!blueStart)
 		offset = 2;
@@ -380,5 +394,53 @@ void addSaltPepperNoise(cv::Mat& src, cv::Mat& dst, double noise_amount) {
         int x = rand() % src.cols;
         int y = rand() % src.rows;
         dst.at<uchar>(y, x) = 0; // Pixel nero
+    }
+}
+
+double computeIntersectionArea(const cv::RotatedRect& rect1, const cv::RotatedRect& rect2) {
+    // Converti i RotatedRect in vettori di punti (poligoni)
+    std::vector<cv::Point2f> points1, points2;
+    cv::Point2f vertices1[4], vertices2[4];
+
+    double area1 = rect1.size.area();
+    double area2 = rect2.size.area();
+    
+    rect1.points(vertices1);
+    rect2.points(vertices2);
+    
+    for (int i = 0; i < 4; i++) {
+        points1.push_back(vertices1[i]);
+        points2.push_back(vertices2[i]);
+    }
+
+    // Calcola l'intersezione tra i due poligoni
+    std::vector<cv::Point2f> intersection;
+    double intersectionArea = cv::intersectConvexConvex(points1, points2, intersection) / std::min(area1, area2);
+
+    return intersectionArea;
+}
+
+std::vector<cv::RotatedRect>::const_iterator elementIterator(const std::vector<cv::RotatedRect>& vec, const cv::RotatedRect& elem){
+    for (auto it = vec.cbegin(); it != vec.cend(); ++it) {
+        if (it->center.x == elem.center.x &&
+            it->center.y == elem.center.y) 
+        {
+            return it; // Restituiamo l'iteratore all'elemento
+        }
+    }
+    return vec.cend(); // Restituiamo end() se l'elemento non è stato trovato
+}
+
+void nms(std::vector<cv::RotatedRect> &vec, std::vector<cv::RotatedRect> &elementsToRemove) {
+    for (const auto& rect1 : vec) {
+        for (const auto& rect2 : vec) {
+            if (!(rect1.center.x == rect2.center.x && rect1.center.y == rect2.center.y) && (computeIntersectionArea(rect1, rect2) > 0.4)) {
+                if (rect1.size.area() > rect2.size.area()){
+                    elementsToRemove.push_back(rect2);
+                } else {
+                    elementsToRemove.push_back(rect1);
+                }
+            }
+        }
     }
 }
