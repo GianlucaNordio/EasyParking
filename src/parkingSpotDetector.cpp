@@ -380,16 +380,18 @@ std::vector<int> angles_2 = {-35,-36,-37,-38,-39,-40, -43,-45,-47,-52};
                 //Draw the rotated rectangle using lines between its vertices
                 cv::Point2f vertices[4];
                 rotatedRect.points(vertices);
-                for (int i = 0; i < 4; i++) {
+                /* for (int i = 0; i < 4; i++) {
                     cv::line(result_original, vertices[i], vertices[(i+1) % 4], cv::Scalar(0, 255, 0), 2);
-                }
+                } */
             }
         }
-        cv::imshow("homo with lines", result_original);
-        cv::waitKey(0);
+        /* cv::imshow("homo with lines", result_original);
+        cv::waitKey(0); */
     }
 
-    std::cout << "Arrivato alla nms" << std::endl;
+
+    // Filter out the boxes that have more than half of their content black
+    filterBoundingBoxes(grad_magn_thold, list_boxes_2);
 
     // Apply NMS filtering to the boxes found
     std::vector<std::pair<cv::RotatedRect, double>> elementsToRemove;
@@ -404,7 +406,7 @@ std::vector<int> angles_2 = {-35,-36,-37,-38,-39,-40, -43,-45,-47,-52};
 
             if (rect1.center.x == rect2.center.x && rect1.center.y == rect2.center.y && score1 == score2) {
                 std::cout << "same rect" << std::endl;
-            } else if (computeIntersectionArea(rect1, rect2) > 0.4) {
+            } else if (computeIntersectionArea(rect1, rect2) > 0.5) {
                 if (score1 >= score2) {
                     elementsToRemove.push_back(box2);
                 } else {
@@ -427,9 +429,6 @@ std::vector<int> angles_2 = {-35,-36,-37,-38,-39,-40, -43,-45,-47,-52};
     for (const auto& box : list_boxes_2) {
         final_boxes.push_back(box.first);
     }
-
-    // Filter out the boxes that have more than half of their content black
-    filterBoundingBoxes(grad_magn_thold, final_boxes);
 
 
     // Draw the remaining bounding boxes on the image
@@ -474,10 +473,10 @@ bool isMoreThanHalfBlack(const cv::Mat& image, const cv::RotatedRect& box) {
     return blackPixels > (totalPixels * 0.85);
 }
 
-void filterBoundingBoxes(cv::Mat& image, std::vector<cv::RotatedRect>& boxes) {
+void filterBoundingBoxes(cv::Mat& image, std::vector<std::pair<cv::RotatedRect, double>>& boxes) {
     boxes.erase(std::remove_if(boxes.begin(), boxes.end(),
-                               [&image](const cv::RotatedRect& box) {
-                                   return isMoreThanHalfBlack(image, box);
+                               [&image](const std::pair<cv::RotatedRect, double>& boxPair) {
+                                   return isMoreThanHalfBlack(image, boxPair.first);
                                }),
                 boxes.end());
 }
