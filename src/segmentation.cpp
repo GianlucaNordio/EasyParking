@@ -9,7 +9,8 @@ const int PIXEL_SIZE_THRESHOLD = 1000;
 Segmentation::Segmentation(const std::vector<cv::Mat> &backgroundImages) {
     // Build the background model
     // pBackSub = cv::createBackgroundSubtractorKNN();
-    pBackSub = cv::createBackgroundSubtractorMOG2(59, 700, true);
+    pBackSub = cv::createBackgroundSubtractorMOG2(backgroundImages.size(), 700, true);
+    //pBackSub = cv::createBackgroundSubtractorGSOC();
     cv::Mat mask;
     for(int i = 0; i < backgroundImages.size(); i++) {
         // Convert the image from BGR to HSV color space
@@ -21,7 +22,7 @@ Segmentation::Segmentation(const std::vector<cv::Mat> &backgroundImages) {
         cv::split(hsvImage, hsvChannels);
 
         // Perform histogram equalization on each channel separately
-        for (int i = 0; i <= 2; ++i) {
+        for (int i = 0; i < 3; ++i) {
             cv::equalizeHist(hsvChannels[i], hsvChannels[i]);
         }
 
@@ -53,7 +54,7 @@ void Segmentation::segmentImage(const cv::Mat &image, cv::Mat &outputMask) {
     cv::split(hsvImage, hsvChannels);
 
     // Perform histogram equalization on each channel separately
-    for (int i = 0; i <= 2; ++i) {
+    for (int i = 0; i < 3; ++i) {
         //cv::imshow("channels", hsvChannels[i]);
         //cv::waitKey();
         cv::equalizeHist(hsvChannels[i], hsvChannels[i]);
