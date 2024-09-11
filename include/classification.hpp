@@ -1,8 +1,18 @@
-#ifndef CARCLASSIFICATION_HPP
-#define CARCLASSIFICATION_HPP
+#ifndef CLASSIFICATION_HPP
+#define CLASSIFICATION_HPP
 
 #include <opencv2/opencv.hpp>
+#include "parkingSpot.hpp"
 
 
+const int ID_CAR_INSIDE_PARKING_LOT = 1;
+const int ID_CAR_OUTSIDE_PARKING_LOT = 2;
+const float PERCENTAGE_OUTSIDE_THRESHOLD = 0.5;
 
-#endif // CARCLASSIFICATION_HPP
+
+cv::Mat classifyCars(std::vector<ParkingSpot> spaces, cv::Mat segmentationMasks);
+
+float calculateComponentInsideRotatedRect(const cv::Mat& mask, cv::Mat& output, const cv::RotatedRect& rotatedRect, int componentLabel);
+
+void changeComponentValue(cv::Mat& mask, int componentLabel, uchar newValue);
+#endif // CLASSIFICATION_HPP
