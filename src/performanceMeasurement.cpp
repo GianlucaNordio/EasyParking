@@ -1,6 +1,6 @@
 #include "performanceMeasurement.hpp"
 
-std::vector<std::pair<double, double>> calculatePrecisionRecallCurve(const std::vector<ParkingSpot>& groundTruths,const std::vector<ParkingSpot>& detections){
+std::vector<std::pair<double, double>> calculatePrecisionRecallCurve(const std::vector<ParkingSpot>& groundTruths, const std::vector<ParkingSpot>& detections){
 
     std::vector<std::pair<double, double>> precisionRecallPoints;
     int truePositives = 0;
@@ -58,11 +58,11 @@ double calculateAveragePrecision(const std::vector<std::pair<double, double>>& p
     return AP;
 }
 
-double calculateIoU(const ParkingSpot& park1, const ParkingSpot& park2) {
+double calculateIoU(const ParkingSpot& parkingSpot1, const ParkingSpot& parkingSpot2) {
 
     
     std::vector<cv::Point2f> intersectionPoints;
-    int intersectionType = cv::rotatedRectangleIntersection(park1.rect, park2.rect, intersectionPoints);
+    int intersectionType = cv::rotatedRectangleIntersection(parkingSpot1.rect, parkingSpot2.rect, intersectionPoints);
 
     if (intersectionPoints.empty() || intersectionType == cv::INTERSECT_NONE) {
         return 0.0; 
@@ -70,8 +70,8 @@ double calculateIoU(const ParkingSpot& park1, const ParkingSpot& park2) {
     
 
     double intersectionArea = cv::contourArea(intersectionPoints);
-    double areaRect1 = park1.rect.size.area();
-    double areaRect2 = park2.rect.size.area();
+    double areaRect1 = parkingSpot1.rect.size.area();
+    double areaRect2 = parkingSpot2.rect.size.area();
 
     double iou = intersectionArea / (areaRect1 + areaRect2 - intersectionArea);
     return iou;
