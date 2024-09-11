@@ -35,10 +35,10 @@ std::vector<std::pair<double, double>> calculatePrecisionRecallCurve(const std::
             falsePositives++;
         }
 
-    double precision = truePositives / static_cast<double>(truePositives + falsePositives);
-    double recall = truePositives / static_cast<double>(groundTruths.size());
-    
-    precisionRecallPoints.emplace_back(recall, precision);
+        double precision = truePositives / static_cast<double>(truePositives + falsePositives);
+        double recall = truePositives / static_cast<double>(groundTruths.size());
+        
+        precisionRecallPoints.emplace_back(recall, precision);
     }
 
     return precisionRecallPoints;
