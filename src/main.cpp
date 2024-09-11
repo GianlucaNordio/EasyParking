@@ -8,6 +8,8 @@
 #include "parkingSpotDetector.hpp"
 #include "utils.hpp"
 #include "segmentation.hpp"
+#include "parser.hpp"
+#include "classification.hpp"
 
 const int NUMBER_SEQUENCES = 5;
 
@@ -29,18 +31,26 @@ int main() {
     std::vector<std::vector<cv::Mat>> data;
     loadSequencesFrames("../dataset", NUMBER_SEQUENCES, data);
     
+    std::vector<std::vector<cv::Mat>> allMasks;
     // Perform segmentation
     Segmentation segment(images);
     for(int i = 0; i < NUMBER_SEQUENCES; i++) {
         std::vector<cv::Mat> masks;
         //cv::imshow("Original Data", produceSingleImage(data[i], 3));
         segment.segmentVectorImages(data[i], masks);
+        allMasks.push_back(masks);
         cv::imshow("MASK TEST", masks[0]);
-        cv::waitKey();    
+        cv::waitKey();
+        allMasks.push_back(masks);    
         //cv::imshow("Test Data", produceSingleImage(masks, 3));
         //cv::waitKey();
     }
 
+    for(int i = 0; i < NUMBER_SEQUENCES; i++) {
+
+        std::vector<ParkingSpot> spaces = parseXML("/home/gianluca/Desktop/EasyParking/dataset/sequence0/bounding_boxes/2013-02-24_10_05_04.xml");
+        classifyCars(spaces, allMasks[0][0]);
+    }
 
     // Call the function to detect parking spots
     std::vector<ParkingSpot> parkingSpot;
