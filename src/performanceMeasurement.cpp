@@ -79,7 +79,7 @@ double calculateIoU(const ParkingSpot& parkingSpot1, const ParkingSpot& parkingS
 
 double calculateMeanAveragePrecision(const std::vector<ParkingSpot>& predictions, 
                     const std::vector<ParkingSpot>& groundTruths) {
-    std::vector<std::pair<double, double>> precisionRecallPoints = calculatePrecisionRecallCurve(predictions, groundTruths);
+    std::vector<std::pair<double, double>> precisionRecallPoints = calculatePrecisionRecallCurve(groundTruths, predictions);
     return calculateAveragePrecision(precisionRecallPoints);
 }
 
