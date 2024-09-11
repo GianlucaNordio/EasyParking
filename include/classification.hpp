@@ -4,6 +4,12 @@
 #include <opencv2/opencv.hpp>
 #include "parkingSpot.hpp"
 
+enum labelId
+{
+    background,
+    carInsideParkingSpot,
+    carOutsideParkingSpot
+};
 
 const int ID_CAR_INSIDE_PARKING_LOT = 128; // should be 1
 const int ID_CAR_OUTSIDE_PARKING_LOT = 255; // should be 2
