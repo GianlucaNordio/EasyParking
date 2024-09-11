@@ -26,13 +26,34 @@ int main() {
     cv::imshow("Base sequence", produceSingleImage(images, 3));
     cv::waitKey();
 
-    // Call the function to detect parking spots
+    std::vector<std::vector<cv::Mat>> data;
+    loadSequencesFrames("../dataset", NUMBER_SEQUENCES, data);
     
+    // Perform segmentation
+    Segmentation segment(images);
+    for(int i = 0; i < NUMBER_SEQUENCES; i++) {
+        std::vector<cv::Mat> masks;
+        //cv::imshow("Original Data", produceSingleImage(data[i], 3));
+        segment.segmentVectorImages(data[i], masks);
+        cv::imshow("MASK TEST", masks[0]);
+        cv::waitKey();    
+        //cv::imshow("Test Data", produceSingleImage(masks, 3));
+        //cv::waitKey();
+    }
+
+
+    // Call the function to detect parking spots
     std::vector<ParkingSpot> parkingSpot;
     detectParkingSpots(images, parkingSpot); 
+
+    // Perform classification of the parking spot
+
+    
     
 
 
+
+    /*
     // Load the other frames relative to the test sequences
     std::vector<std::vector<cv::Mat>> data;
     loadSequencesFrames("../dataset", NUMBER_SEQUENCES, data);
@@ -41,6 +62,7 @@ int main() {
         cv::imshow("Test Data", produceSingleImage(data[i], 3));
         cv::waitKey();
     }
+    */
     
     
   
@@ -70,7 +92,7 @@ int main() {
     }
     */
 
-
+    
     // Performance measure
 
     return 0;
