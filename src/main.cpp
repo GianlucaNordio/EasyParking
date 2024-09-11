@@ -46,11 +46,12 @@ int main() {
         //cv::waitKey();
     }
 
-    for(int i = 0; i < NUMBER_SEQUENCES; i++) {
+   // for(int i = 0; i < NUMBER_SEQUENCES; i++) {
 
         std::vector<ParkingSpot> spaces = parseXML("/home/gianluca/Desktop/EasyParking/dataset/sequence0/bounding_boxes/2013-02-24_10_05_04.xml");
-        classifyCars(spaces, allMasks[0][0]);
-    }
+        
+//    }
+    cv::imshow("boh", classifyCars(spaces, allMasks[0][1]));
 
     // Call the function to detect parking spots
     std::vector<ParkingSpot> parkingSpot;
