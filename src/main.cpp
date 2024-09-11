@@ -23,8 +23,8 @@ int main() {
     // Read the images from the dataset
     std::vector<cv::Mat> images;
     loadBaseSequenceFrames("../dataset", images);
-    cv::imshow("Base sequence", produceSingleImage(images, 3));
-    cv::waitKey();
+    //cv::imshow("Base sequence", produceSingleImage(images, 3));
+    //cv::waitKey();
 
 
     // Call the function to detect parking spots

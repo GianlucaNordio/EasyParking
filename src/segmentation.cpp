@@ -7,74 +7,33 @@
 const int PIXEL_SIZE_THRESHOLD = 1000;
 
 Segmentation::Segmentation(const std::vector<cv::Mat> &backgroundImages) {
+    std::cout<< "CIAOOOOO_IN"<<std::endl<<std::endl;
     // Build the background model
-    // pBackSub = cv::createBackgroundSubtractorKNN();
-    pBackSub = cv::createBackgroundSubtractorMOG2(backgroundImages.size(), 700, true);
+     pBackSub = cv::createBackgroundSubtractorKNN(500, 1000, true);
+    //pBackSub = cv::createBackgroundSubtractorMOG2();
     //pBackSub = cv::createBackgroundSubtractorGSOC();
     cv::Mat mask;
     for(int i = 0; i < backgroundImages.size(); i++) {
-        // Convert the image from BGR to HSV color space
-        cv::Mat hsvImage;
-        cv::cvtColor(backgroundImages[i], hsvImage, cv::COLOR_BGR2HSV);
-
-        // Split the HSV channels into three separate images
-        std::vector<cv::Mat> hsvChannels(3);
-        cv::split(hsvImage, hsvChannels);
-
-        // Perform histogram equalization on each channel separately
-        for (int i = 0; i < 3; ++i) {
-            cv::equalizeHist(hsvChannels[i], hsvChannels[i]);
-        }
-
-        // Merge the equalized channels back together
-        cv::Mat equalizedHSV;
-        cv::merge(hsvChannels, equalizedHSV);
-
-        // Convert the equalized HSV image back to BGR
-        cv::Mat resultImage;
-        cv::cvtColor(equalizedHSV, resultImage, cv::COLOR_HSV2BGR);
-
-        // Display the original and processed images
-        cv::imshow("Original Image", backgroundImages[i]);
-        cv::imshow("Equalized Image", resultImage);
+        
 
         // Wait for a key press indefinitely
-        cv::waitKey(0);
-        pBackSub -> apply(resultImage, mask);
+        pBackSub -> apply(backgroundImages[i], mask);
+        std::cout<<i<<std::endl;
     }
+    std::cout<< "CIAOOOOO_OUT"<<std::endl<<std::endl;
+
 }
 
 void Segmentation::segmentImage(const cv::Mat &image, cv::Mat &outputMask) {
-    // Convert the image from BGR to HSV color space
-    cv::Mat hsvImage;
-    cv::cvtColor(image, hsvImage, cv::COLOR_BGR2HSV);
-
-    // Split the HSV channels into three separate images
-    std::vector<cv::Mat> hsvChannels(3);
-    cv::split(hsvImage, hsvChannels);
-
-    // Perform histogram equalization on each channel separately
-    for (int i = 0; i < 3; ++i) {
-        //cv::imshow("channels", hsvChannels[i]);
-        //cv::waitKey();
-        cv::equalizeHist(hsvChannels[i], hsvChannels[i]);
-    }
-
-    // Merge the equalized channels back together
-    cv::Mat equalizedHSV;
-    cv::merge(hsvChannels, equalizedHSV);
-
-    // Convert the equalized HSV image back to BGR
-    cv::Mat resultImage;
-    cv::cvtColor(equalizedHSV, resultImage, cv::COLOR_HSV2BGR);
 
     // Display the original and processed images
-    pBackSub -> apply(resultImage, outputMask, BACKGROUND_NOT_UPDATED);
+    pBackSub -> apply(image, outputMask, BACKGROUND_NOT_UPDATED);
     
     // Remove the shadow parts and the noise
     // Tried using the noShade option in the constructor but still finds shades
     cv::threshold(outputMask, outputMask, 128, 255, cv::THRESH_BINARY);
-
+    cv::imshow("TEST", outputMask);
+    cv::waitKey();
     // Currently testing with multiple values for the thresholds
     //for(int k = 20; k < 3000; k+=200) {
 
