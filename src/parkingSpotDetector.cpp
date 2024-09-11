@@ -142,6 +142,19 @@ std::vector<ParkingSpot> detectParkingSpotInImage(const cv::Mat& image) {
         cv::waitKey(0);
     }
 
+    // Apply NMS filtering
+    std::vector<cv::RotatedRect> elementsToRemove;
+    nms(list_boxes, elementsToRemove);
+
+    // Remove the elements determined by NMS filtering
+    for (cv::RotatedRect element : elementsToRemove) {
+        std::vector<cv::RotatedRect>::const_iterator iterator = elementIterator(list_boxes, element);
+        if (iterator != list_boxes.cend()) {
+            list_boxes.erase(iterator);
+        }
+    }
+
+    std::vector<cv::RotatedRect> list_boxes2;
     for(int l = 0; l<length_scales.size(); l++) {
         for(int k = 0; k<angle_offsets.size(); k++) {
             int template_width = median_neg_width*length_scales[l];
@@ -178,7 +191,7 @@ std::vector<ParkingSpot> detectParkingSpotInImage(const cv::Mat& image) {
                 center.y = pt.y+rotated_template.rows/2;
 
                 cv::RotatedRect rotatedRect(center, cv::Size(template_width,template_height), angle);
-                list_boxes.push_back(rotatedRect);
+                list_boxes2.push_back(rotatedRect);
 
                 //Draw the rotated rectangle using lines between its vertices
                  cv::Point2f vertices[4];
@@ -191,6 +204,46 @@ std::vector<ParkingSpot> detectParkingSpotInImage(const cv::Mat& image) {
         cv::imshow("with lines", image);
         cv::waitKey(0);
     }
+
+    // Apply NMS filtering
+    std::vector<cv::RotatedRect> elementsToRemove2;
+    nms(list_boxes, elementsToRemove2);
+
+    // Remove the elements determined by NMS filtering
+    for (cv::RotatedRect element : elementsToRemove2) {
+        std::vector<cv::RotatedRect>::const_iterator iterator = elementIterator(list_boxes2, element);
+        if (iterator != list_boxes2.cend()) {
+            list_boxes2.erase(iterator);
+        }
+    }
+
+    // Draw the rotated rectangles
+    for (const auto& rect : list_boxes) {
+        // Get the 4 vertices of the rotated rectangle
+        cv::Point2f vertices[4];
+        rect.points(vertices);
+
+        // Draw the rectangle
+        for (int i = 0; i < 4; i++) {
+            cv::line(image, vertices[i], vertices[(i + 1) % 4], cv::Scalar(255, 0, 0), 2);
+        }
+    }
+
+    // Draw the rotated rectangles
+    for (const auto& rect : list_boxes2) {
+        // Get the 4 vertices of the rotated rectangle
+        cv::Point2f vertices[4];
+        rect.points(vertices);
+
+        // Draw the rectangle
+        for (int i = 0; i < 4; i++) {
+            cv::line(image, vertices[i], vertices[(i + 1) % 4], cv::Scalar(0, 0, 255), 2);
+        }
+    }
+
+    // Display the result
+    cv::imshow("Rotated Rectangles", image);
+    cv::waitKey(0);
 
 	//TODO: PROVARE A NON USARE GLI IF BLUESTART CON OFFEST%4
 	for(int i = 1; i<segments.size(); i++)
@@ -266,11 +319,11 @@ std::vector<ParkingSpot> detectParkingSpotInImage(const cv::Mat& image) {
 	}
 
     // Apply NMS filtering
-    std::vector<cv::RotatedRect> elementsToRemove;
-    nms(trimmed, elementsToRemove);
+    std::vector<cv::RotatedRect> elementsToRemove3;
+    nms(trimmed, elementsToRemove2);
 
     // Remove the elements determined by NMS filtering
-    for (cv::RotatedRect element : elementsToRemove) {
+    for (cv::RotatedRect element : elementsToRemove3) {
         std::vector<cv::RotatedRect>::const_iterator iterator = elementIterator(trimmed, element);
         if (iterator != trimmed.cend()) {
             trimmed.erase(iterator);
@@ -513,7 +566,7 @@ std::vector<cv::RotatedRect>::const_iterator elementIterator(const std::vector<c
 void nms(std::vector<cv::RotatedRect> &vec, std::vector<cv::RotatedRect> &elementsToRemove) {
     for (const auto& rect1 : vec) {
         for (const auto& rect2 : vec) {
-            if (!(rect1.center.x == rect2.center.x && rect1.center.y == rect2.center.y) && (computeIntersectionArea(rect1, rect2) > 0.4)) {
+            if (!(rect1.center.x == rect2.center.x && rect1.center.y == rect2.center.y) && (computeIntersectionArea(rect1, rect2) > 0.6)) {
                 if (rect1.size.area() > rect2.size.area()){
                     elementsToRemove.push_back(rect2);
                 } else {
