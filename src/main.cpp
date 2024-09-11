@@ -51,6 +51,7 @@ int main() {
     }
     std::vector<ParkingSpot> spaces = parseXML("../dataset/sequence0/bounding_boxes/2013-02-24_10_05_04.xml");
     cv::Mat image = cv::imread("../dataset/sequence1/masks/2013-02-22_06_25_00.png");
+    cv::cvtColor(image,image, cv::COLOR_BGR2GRAY);
     std::vector<cv::Mat> ciao;
     ciao.push_back(classifyCars(spaces, allMasks[0][1]));
     std::vector<cv::Mat> image2;
