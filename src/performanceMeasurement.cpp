@@ -83,6 +83,45 @@ double calculateMeanAveragePrecision(const std::vector<ParkingSpot>& predictions
     return calculateAveragePrecision(precisionRecallPoints);
 }
 
-double meanIntersectionOverUnion(){
-    return 0.0;
+double calculateMeanIntersectionOverUnion(const std::vector<cv::Mat> &foundMask, const std::vector<cv::Mat> &groundTruthMask){
+    if (foundMask.empty() || groundTruthMask.empty())
+    {
+        const std::string INVALID_EMPTY_MAT = "Masks cannot be empty.";
+        throw std::invalid_argument(INVALID_EMPTY_MAT);
+    }
+
+    double background = classIoU(foundMask, groundTruthMask, labelId::background);
+    double carInsideParkingSpot = classIoU(foundMask, groundTruthMask, labelId::carInsideParkingSpot);
+    double carOutsideParkingSpot = classIoU(foundMask, groundTruthMask, labelId::carOutsideParkingSpot);
+    double meanIoU = (background + carInsideParkingSpot + carOutsideParkingSpot) / 3;
+
+    return meanIoU;
+}
+
+double classIoU(const std::vector<cv::Mat> &foundMask, const std::vector<cv::Mat> &groundTruthMask, labelId id){
+    
+    double sumIoUs = 0;
+    for (int i = 0; i < foundMask.size(); i++)
+        sumIoUs += maskIoU(foundMask.at(i), groundTruthMask.at(i), id);
+
+    return sumIoUs / foundMask.size();
+}
+
+double maskIoU(const cv::Mat &foundMask, const cv::Mat &groundTruthMask, labelId id){
+    CV_Assert(foundMask.channels() == 1);
+    CV_Assert(groundTruthMask.channels() == 1);
+
+    cv::Mat foundClassMask, groundTruthClassMask;
+    cv::inRange(foundMask, cv::Scalar(id), cv::Scalar(id), foundClassMask);
+    cv::inRange(groundTruthMask, cv::Scalar(id), cv::Scalar(id), groundTruthClassMask);
+    cv::Mat UnionClassMask, IntersectionClassMask;
+    cv::bitwise_or(foundClassMask, groundTruthClassMask, UnionClassMask);
+    cv::bitwise_and(foundClassMask, groundTruthClassMask, IntersectionClassMask);
+
+
+    double unionArea = static_cast<double>(cv::countNonZero(UnionClassMask));
+    if (unionArea == 0)
+        return 1;
+    float intersectionArea = static_cast<double>(cv::countNonZero(IntersectionClassMask));
+    return intersectionArea / unionArea;
 }
