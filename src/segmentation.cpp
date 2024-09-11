@@ -10,6 +10,7 @@ Segmentation::Segmentation(const std::vector<cv::Mat> &backgroundImages) {
     //pBackSub = cv::createBackgroundSubtractorKNN();
 
     //pBackSub = new BackgroundSubtractorMOG();
+
     const int HISTORY_DEFAULT_VALUE = 500;
     const bool SHADES_DETECTION = true; 
     const int VAR_THRESHOLD = 50;
@@ -18,14 +19,15 @@ Segmentation::Segmentation(const std::vector<cv::Mat> &backgroundImages) {
     for(int i = 0; i < backgroundImages.size(); i++) {
         pBackSub -> apply(backgroundImages[i], mask);
     }
+
 }
 
 void Segmentation::segmentImage(const cv::Mat &image, cv::Mat &outputMask) {
+
     const int PIXEL_SIZE_THRESHOLD = 700;   // Threshold for the minumum size of the connected component to be kept
     const int CONNECTIVITY_8 = 8;   // 8-connectivity for connectedComponentsWithStats
-    const int MORPH_RECT = cv::MORPH_RECT;  // Rectangular structuring element for morphologyEx
-    const int MORPH_SIZE = 2;   // Size of structuring element for closing
-
+    const int MORPH_RECT = cv::MORPH_CROSS;  // Rectangular structuring element for morphologyEx
+    const int MORPH_SIZE = 1;   // Size of structuring element for closing
     pBackSub -> apply(image, outputMask, BACKGROUND_NOT_UPDATED);
     
     // Remove the shadow parts and the noise 
@@ -52,18 +54,22 @@ void Segmentation::segmentImage(const cv::Mat &image, cv::Mat &outputMask) {
         cv::Size(2 * MORPH_SIZE + 1, 2 * MORPH_SIZE + 1), 
         cv::Point(MORPH_SIZE, MORPH_SIZE));
 
-    //cv::Mat closedMask;
-    //cv::morphologyEx(mask, closedMask, cv::MORPH_OPEN, element);
+    cv::Mat closedMask;
+    cv::morphologyEx(mask, closedMask, cv::MORPH_OPEN, element);
 
     // Apply the refined mask to the input image
-    image.copyTo(outputMask, mask); //TODO use closedMask instead of mask
+    //image.copyTo(closedMask, mask); // SIMPLY VISUALIZATION TOOL
+    outputMask = closedMask;
+    
 
 }
 
 void Segmentation::segmentVectorImages(const std::vector<cv::Mat> &images, std::vector<cv::Mat> &outputMasks) {
+ 
     // Apply segmentImage to each element of the vector separately
     for(int i = 0; i < images.size(); i++) {
         outputMasks.push_back(cv::Mat());
         segmentImage(images[i], outputMasks[i]);
     }
+
 }
