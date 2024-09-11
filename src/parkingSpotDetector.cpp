@@ -2,11 +2,8 @@
 
 /*
 TODO: 
-1. Preprocessing (pensare a come rendere invariante alle condizioni climatiche)
-2. Generare meglio i template
-3. Chiedere nel forum quanti parametri possiamo usare
-4. Stesso size, angolo diverso: usare tm_result_unnormed come score, poi tra tutti quelli che overlappano per tipo l'80% tenere quello con score migliore
-5. Dopo il punto 4, alla fine dei due cicli for, fare non maxima suppression. A quel punto usare NMS di opencv oppure prendere quello con area maggiore
+Per ogni linea di segments_pos andare avanti (o indietro) finchè non si tocca una linea di segment_neg
+Se poi le cose si overlappano, si tolgono le intersezioni o si uniscono
 */
 
 // Function to detect parking spots in the images
@@ -88,8 +85,8 @@ std::vector<ParkingSpot> detectParkingSpotInImage(const cv::Mat& image) {
     cv::waitKey(0);
 
     // offsets from median values
-    std::vector<int> angle_offsets = {-6,-5,-4,-3,-2,-1,0,1,2,3,4,5,6,7};
-    std::vector<float> length_scales = {1.5,1.75};
+    std::vector<int> angle_offsets = {-8,-7,-6,-5,-4,-3,-2,-1,0,1,2,3,4,5,6,7,8};
+    std::vector<float> length_scales = {1.5,1.75,2};
     std::vector<cv::RotatedRect> list_boxes;
     std::vector<float> rect_scores(list_boxes.size(), -1); // Initialize scores with -1 for non-existing rects
 
@@ -128,7 +125,7 @@ std::vector<ParkingSpot> detectParkingSpotInImage(const cv::Mat& image) {
                 center.x = pt.x + rotated_template.cols / 2;
                 center.y = pt.y + rotated_template.rows / 2;
 
-                cv::RotatedRect rotated_rect(center, cv::Size(template_width, template_height), -angle);
+                cv::RotatedRect rotated_rect(center, cv::Size(template_width*1, template_height*1), -angle);
 
                 // Check overlap with existing rects in list_boxes2
                 bool overlaps = false;
@@ -208,7 +205,7 @@ std::vector<ParkingSpot> detectParkingSpotInImage(const cv::Mat& image) {
                 center.x = pt.x + rotated_template.cols / 2;
                 center.y = pt.y + rotated_template.rows / 2;
 
-                cv::RotatedRect rotated_rect(center, cv::Size(template_width, template_height), angle);
+                cv::RotatedRect rotated_rect(center, cv::Size(template_width*1, template_height*1), angle);
 
                 // Check overlap with existing rects in list_boxes2
                 bool overlaps = false;
@@ -252,135 +249,64 @@ std::vector<ParkingSpot> detectParkingSpotInImage(const cv::Mat& image) {
 
     std::vector<cv::RotatedRect> merged_pos_rects = merge_overlapping_rects(list_boxes);
     std::vector<cv::RotatedRect> merged_neg_rects = merge_overlapping_rects(list_boxes2);
-    std::vector<cv::Vec4f> segments2;
+    std::vector<cv::Vec4f> segments_pos;
+    std::vector<cv::Vec4f> segments_neg;
 
     // Loop through all bounding boxes
     for (const auto& rect : merged_pos_rects) {
-        // Convert the bounding box to a line
         cv::Vec4f line_segment = convert_rect_to_line(rect);
-        segments2.push_back(line_segment);
-
-        // Draw the line on the image
-        cv::line(image, cv::Point2f(line_segment[0], line_segment[1]),
-                 cv::Point2f(line_segment[2], line_segment[3]), cv::Scalar(255, 0, 0), 2);
+        segments_pos.push_back(line_segment);
     }
 
     // Loop through all bounding boxes
     for (const auto& rect : merged_neg_rects) {
-        // Convert the bounding box to a line
         cv::Vec4f line_segment = convert_rect_to_line(rect);
-        segments2.push_back(line_segment);
+        segments_neg.push_back(line_segment);
+    }
 
+    float distance_threshold = median_pos_width*0.4;
+    std::vector<cv::Vec4f> filtered_segments_neg = filter_close_segments(segments_neg, distance_threshold);
+    distance_threshold = median_neg_width*0.4;
+    std::vector<cv::Vec4f> filtered_segments_pos = filter_close_segments(segments_pos, distance_threshold);
+
+    // Loop through all bounding boxes
+    for (const auto& line_segment : filtered_segments_pos) {
         // Draw the line on the image
         cv::line(image, cv::Point2f(line_segment[0], line_segment[1]),
                  cv::Point2f(line_segment[2], line_segment[3]), cv::Scalar(255, 0, 0), 2);
     }
 
-	for(int i = 1; i<segments2.size(); i++)
-    {
-	    cv::Vec2f mq_param = get_segm_params(segments2[i]);
-		cv::Point2f blue;
-		cv::Point2f red;
-		cv::Point2f green;
-		cv::Point2f yellow;
-		
-		if(segments2[i][0]<segments2[i][2])//BLUE_START
-		{
-			blue = cv::Point2f(segments2[i][0],segments2[i][1]);
-			red = cv::Point2f(segments2[i][2],segments2[i][3]);
-            cv::circle(image,blue,10,cv::Scalar(255,0,0));
-            cv::circle(image,red,10,cv::Scalar(0,0,255));
-			
-			cv::Vec2f doble = get_direction(segments2[i],true);//vector from blue to red
-			
-			green = cv::Point2f(segments2[i][2],segments2[i][3]);//red + doble_vector
-			
-			if(mq_param[0]>0)
-			{
-				//drawMarker(copied,Point2f(segments2[i][2]+doble[0]*0.7    - doble[1],segments2[i][3]+doble[1]+doble[0]*0.7   ),Scalar(0,255,255),MARKER_TILTED_CROSS,7,3);
-				yellow = cv::Point2f(segments2[i][2] - doble[1]*0.35,segments2[i][3]+doble[0]*0.35   );
-                cv::circle(image,yellow,10,cv::Scalar(0,255,0));
-			}
-			else
-			{
-				//drawMarker(copied,Point2f(segments2[i][2]+doble[0] + doble[1]*2   ,segments2[i][3]+doble[1]-doble[0]*2   ),Scalar(0,255,255),MARKER_TILTED_CROSS,7,3);
-				yellow = cv::Point2f(segments2[i][2]+ doble[1]*1.7*0.5   ,segments2[i][3]-doble[0]*1.7*0.5   );
-			}
-		}
-		else//RED_START
-		{
-			red = cv::Point2f(segments2[i][0],segments2[i][1]);
-			blue = cv::Point2f(segments2[i][2],segments2[i][3]);
+    // Loop through all bounding boxes
+    for (const auto& line_segment : filtered_segments_neg) {
+        // Draw the line on the image
+        cv::line(image, cv::Point2f(line_segment[0], line_segment[1]),
+                 cv::Point2f(line_segment[2], line_segment[3]), cv::Scalar(255, 0, 0), 2);
+    }
 
-			cv::Vec2f doble = get_direction(segments2[i],false);
+    // Loop through all positive slope segments
+    for (const auto& segment : segments_pos) {
+        // Move along the perpendicular direction and check for intersection with other segments
+        std::vector<cv::Point2f> intersection_points = move_and_find_intersection(segments_pos, segment);
 
-			green = cv::Point2f(segments2[i][0],segments2[i][1]+doble[1]);//red + doble_vector
+        if (!intersection_points.empty()) {
+            // Draw the convex hull of the two segments using lines
+            std::vector<cv::Point2f> hull_points;
+            cv::convexHull(intersection_points, hull_points);
 
-			if(mq_param[0]>0)
-			{
-				yellow = cv::Point2f(segments2[i][0]- doble[1]*0.35   ,segments2[i][1]+doble[0]*0.35   );
-			}
-			else
-			{
-				yellow = cv::Point2f(segments2[i][0] + doble[1]*1.7*0.5   ,segments2[i][1]-doble[0]*1.7*0.5   );
-			}
-		}
-		cv::circle(image,yellow,10,cv::Scalar(0,255,0));
+            // Draw the convex hull as lines connecting the points
+            for (size_t i = 0; i < hull_points.size(); ++i) {
+                cv::line(image, hull_points[i], hull_points[(i + 1) % hull_points.size()], cv::Scalar(0, 255, 0), 2);
+            }
+
+        } else {
+            // If no intersection, draw the segment
+            cv::line(image, cv::Point2f(segment[0], segment[1]), cv::Point2f(segment[2], segment[3]), cv::Scalar(0, 0, 255), 2);
+        }
+
         cv::imshow("Intersection of Rotated Rects", image);
         cv::waitKey(0);
 
-		cv::RotatedRect sp = cv::RotatedRect(blue,red,yellow);
-		//if()
-		spots.push_back(sp);
-	}
-
-
-	std::vector<cv::RotatedRect> trimmed;
-	for(int i = 0; i<spots.size()-1; i++)
-	{
-		cv::Point2f center1 = spots[i].center;
-		bool found = false;
-		for(int j = 0; j<trimmed.size() && !found; j++)
-		{
-			cv::Point2f center2 = trimmed[j].center;
-			if((center1.x-center2.x)*(center1.x-center2.x) + (center1.y-center2.y)*(center1.y-center2.y) <800)//To reject overlapping rects
-			{
-				found = true;
-			}
-		}
-		if(!found)
-		{	
-			if(spots[i].size.area()>2600 && spots[i].size.area()<13000)	//To reject small and large rects
-				trimmed.push_back(spots[i]);
-		}
-	}
-
-    // Apply NMS filtering
-    std::vector<cv::RotatedRect> elementsToRemove;
-    nms(trimmed, elementsToRemove);
-
-    // Remove the elements determined by NMS filtering
-    for (cv::RotatedRect element : elementsToRemove) {
-        std::vector<cv::RotatedRect>::const_iterator iterator = elementIterator(trimmed, element);
-        if (iterator != trimmed.cend()) {
-            trimmed.erase(iterator);
-        }
     }
-
-    // Draw the rotated rectangles
-    for (const auto& rect : trimmed) {
-        // Get the 4 vertices of the rotated rectangle
-        cv::Point2f vertices[4];
-        rect.points(vertices);
-
-        // Draw the rectangle
-        for (int i = 0; i < 4; i++) {
-            cv::line(image, vertices[i], vertices[(i + 1) % 4], cv::Scalar(0, 255, 0), 2);
-        }
-    }
-
-    cv::imshow("Intersection of Rotated Rects", image);
-    cv::waitKey(0);
 
 	return parkingSpots;
 }
@@ -424,6 +350,79 @@ cv::Vec2f get_direction(cv::Vec4f segm,bool blueStart){
 	return cv::Vec2f(segm[(2+offset)%4] - segm[(0+offset)%4], segm[(3+offset)%4] - segm[(1+offset)%4]);
 }
 
+// Helper function to compute the midpoint of a line segment
+cv::Point2f compute_midpoint(const cv::Vec4f& segment) {
+    return cv::Point2f((segment[0] + segment[2]) / 2.0f, (segment[1] + segment[3]) / 2.0f);
+}
+
+// Helper function to compute the perpendicular direction of a segment
+cv::Point2f compute_perpendicular_direction(const cv::Vec4f& segment) {
+    float dx = segment[2] - segment[0];
+    float dy = segment[3] - segment[1];
+    return cv::Point2f(-dy, dx);
+}
+
+// Function to calculate the distance between the midpoints of two segments
+float compute_distance_between_segments(const cv::Vec4f& seg1, const cv::Vec4f& seg2) {
+    cv::Point2f mid1 = compute_midpoint(seg1);
+    cv::Point2f mid2 = compute_midpoint(seg2);
+    return cv::norm(mid1 - mid2);  // Euclidean distance between midpoints
+}
+
+// Function to filter segments based on a distance threshold
+std::vector<cv::Vec4f> filter_close_segments(const std::vector<cv::Vec4f>& segments, float distance_threshold) {
+    std::vector<cv::Vec4f> filtered_segments;
+    std::vector<bool> discarded(segments.size(), false);  // To mark discarded segments
+
+    for (size_t i = 0; i < segments.size(); ++i) {
+        if (discarded[i]) continue;  // Skip already discarded segments
+
+        const cv::Vec4f& current_segment = segments[i];
+        filtered_segments.push_back(current_segment);  // Add current segment to result
+
+        // Compare with remaining segments and discard close ones
+        for (size_t j = i + 1; j < segments.size(); ++j) {
+            if (!discarded[j]) {
+                float distance = compute_distance_between_segments(current_segment, segments[j]);
+                if (distance < distance_threshold) {
+                    discarded[j] = true;  // Mark this segment as discarded
+                }
+            }
+        }
+    }
+
+    return filtered_segments;
+}
+
+// Function to move along the perpendicular direction and check for intersections
+std::vector<cv::Point2f> move_and_find_intersection(const std::vector<cv::Vec4f>& pos_segments, const cv::Vec4f& segment) {
+    cv::Point2f midpoint = compute_midpoint(segment);
+    cv::Point2f perpendicular_dir = compute_perpendicular_direction(segment);
+    
+    float segment_length = cv::norm(cv::Point2f(segment[2], segment[3]) - cv::Point2f(segment[0], segment[1]));
+    cv::Point2f normalized_dir = perpendicular_dir * (1.0f / cv::norm(perpendicular_dir));  // Normalize direction
+
+    for (float distance_traveled = 0; distance_traveled < segment_length; distance_traveled += 1.0f) {
+        cv::Point2f new_position = midpoint + normalized_dir * distance_traveled;
+
+        // Check for intersections with other segments of the same slope
+        for (const auto& other_segment : pos_segments) {
+            if (segment != other_segment) {
+                cv::Point2f other_midpoint = compute_midpoint(other_segment);
+                float dist_to_other = cv::norm(new_position - other_midpoint);
+
+                if (dist_to_other < segment_length) {
+                    // We found an intersection; return the points of both segments
+                    return {cv::Point2f(segment[0], segment[1]), cv::Point2f(segment[2], segment[3]),
+                            cv::Point2f(other_segment[0], other_segment[1]), cv::Point2f(other_segment[2], other_segment[3])};
+                }
+            }
+        }
+    }
+
+    return {};  // No intersection found
+}
+
 
 // Helper function to check if two rotated rectangles overlap
 bool are_rects_overlapping(const cv::RotatedRect& rect1, const cv::RotatedRect& rect2) {
@@ -433,7 +432,7 @@ bool are_rects_overlapping(const cv::RotatedRect& rect1, const cv::RotatedRect& 
 }
 
 // Helper function to check if two rotated rectangles are aligned (same angle within a tolerance)
-bool are_rects_aligned(const cv::RotatedRect& rect1, const cv::RotatedRect& rect2, float angle_tolerance = 5) {
+bool are_rects_aligned(const cv::RotatedRect& rect1, const cv::RotatedRect& rect2, float angle_tolerance = 20) {
     return std::abs(rect1.angle - rect2.angle) <= angle_tolerance;
 }
 

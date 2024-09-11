@@ -29,6 +29,10 @@ bool are_rects_overlapping(const cv::RotatedRect& rect1, const cv::RotatedRect& 
 cv::Point2f compute_longest_segment(const cv::RotatedRect& rect);
 cv::RotatedRect build_rotated_rect_from_longest_segments(const cv::RotatedRect& rect1, const cv::RotatedRect& rect2);
 cv::Vec4f convert_rect_to_line(const cv::RotatedRect& rect);
+std::vector<cv::Point2f> move_and_find_intersection(const std::vector<cv::Vec4f>& pos_segments, const cv::Vec4f& segment);
+cv::Point2f compute_perpendicular_direction(const cv::Vec4f& segment);
+cv::Point2f compute_midpoint(const cv::Vec4f& segment);
+std::vector<cv::Vec4f> filter_close_segments(const std::vector<cv::Vec4f>& segments, float distance_threshold);
 
 double computeIntersectionArea(const cv::RotatedRect& rect1, const cv::RotatedRect& rect2);
 void nms(std::vector<cv::RotatedRect>& vec, std::vector<cv::RotatedRect>& elementsToRemove);
