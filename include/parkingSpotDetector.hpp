@@ -13,15 +13,12 @@ void detectParkingSpots(const std::vector<cv::Mat>& images, std::vector<ParkingS
 std::vector<ParkingSpot> detectParkingSpotInImage(const cv::Mat& image);
 
 cv::Mat applyGammaTransform(const cv::Mat& src, double gamma);
-cv::Mat contrastStretchTransform(const cv::Mat& src);
 cv::Mat preprocess(const cv::Mat& src);
-float calculateDistance(const cv::Point2f& p1, const cv::Point2f& p2);
-std::vector<cv::Point2f> removeClosePoints(const std::vector<cv::Point2f>& points, float distanceThreshold);
-void addSaltPepperNoise(cv::Mat& src, cv::Mat& dst, double noise_amount);
-bool isMoreThanHalfBlack(const cv::Mat& image, const cv::RotatedRect& box);
-void filterBoundingBoxes(cv::Mat& image, std::vector<cv::RotatedRect>& boxes);
 cv::Vec2f get_direction(cv::Vec4f segm,bool blueStart);
 cv::Vec2f get_segm_params(cv::Vec4f segm);
+float get_segment_angular_coefficient(const cv::Vec4f& segment);
+float get_segment_length(const cv::Vec4f& segment);
+
 double computeIntersectionArea(const cv::RotatedRect& rect1, const cv::RotatedRect& rect2);
 void nms(std::vector<cv::RotatedRect>& vec, std::vector<cv::RotatedRect>& elementsToRemove);
 std::vector<cv::RotatedRect>::const_iterator elementIterator(const std::vector<cv::RotatedRect>& vec, const cv::RotatedRect& elem);

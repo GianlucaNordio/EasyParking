@@ -31,29 +31,57 @@ std::vector<ParkingSpot> detectParkingSpotInImage(const cv::Mat& image) {
     lsd->detect(preprocessed,line_segm);
     std::vector<cv::Vec4f> segments;
 
-	//rejecting short segments
-    for(int i = 0; i<line_segm.size(); i++)
-    {                                                                                                                         //150
-        if((line_segm[i][0] - line_segm[i][2])*(line_segm[i][0] - line_segm[i][2]) + (line_segm[i][1] - line_segm[i][3])*(line_segm[i][1] - line_segm[i][3]) > 500)
-        {
+	//Reject short lines
+    for(int i = 0; i<line_segm.size(); i++) {                                                                                                                         //150
+        if((line_segm[i][0] - line_segm[i][2])*(line_segm[i][0] - line_segm[i][2]) + (line_segm[i][1] - line_segm[i][3])*(line_segm[i][1] - line_segm[i][3]) > 500) {
             segments.push_back(line_segm[i]);
         }
     }
 
+    // Compute average slope and length of lines with positive and negative slopes separately
+    double sum_pos = 0.0;
+    double sum_neg = 0.0;
+    double length_sum_pos = 0.0;
+    double length_sum_neg = 0.0;
+    int count_pos = 0;
+    int count_neg = 0;
+
     for (const auto& segment : segments) {
-        cv::line(intermediate_results, cv::Point(segment[0], segment[1]), cv::Point(segment[2], segment[3]), 
-                 cv::Scalar(0, 0, 255), 2, cv::LINE_AA);  // Red color lines with thickness 2
+        // Compute slope and length
+        float slope = get_segment_angular_coefficient(segment);
+        double length = get_segment_length(segment);
+
+        // Categorize the slope
+        if (slope > 0) {
+            sum_pos += slope;
+            count_pos++;
+            length_sum_pos += length;
+            cv::line(intermediate_results, cv::Point(segment[0], segment[1]), cv::Point(segment[2], segment[3]), 
+                 cv::Scalar(0, 255, 0), 2, cv::LINE_AA); 
+        } else if (slope < 0) {
+            sum_neg += slope;
+            count_neg++;
+            length_sum_neg += length;
+            cv::line(intermediate_results, cv::Point(segment[0], segment[1]), cv::Point(segment[2], segment[3]), 
+                 cv::Scalar(255, 0, 0), 2, cv::LINE_AA); 
+        }
     }
+
+    double avg_pos = (count_pos > 0) ? sum_pos / count_pos : 0;
+    double avg_neg = (count_neg > 0) ? sum_neg / count_neg : 0;
+
+    double avgWidth_pos = (count_pos > 0) ? length_sum_pos / count_pos : 0;
+    double avgWidth_neg = (count_neg > 0) ? length_sum_neg / count_neg : 0;
+
+    std::cout << "Average positive slope: " << avg_pos << std::endl;
+    std::cout << "Average negative slope: " << avg_neg << std::endl;
+    std::cout << "Average width of positive slope lines: " << avgWidth_pos << std::endl;
+    std::cout << "Average width of negative slope lines: " << avgWidth_neg << std::endl;
 
     // Display the result
     cv::imshow("Detected Line Segments", intermediate_results);
     cv::waitKey(0);
-	/*
-	Mat copied = img.clone();
-	lsd->drawSegments(copied,segments);
-	imshow("segm",copied);
-	waitKey(0);
-	*/
+	
 	//TODO: PROVARE A NON USARE GLI IF BLUESTART CON OFFEST%4
 	for(int i = 1; i<segments.size(); i++)
     {
@@ -156,6 +184,24 @@ std::vector<ParkingSpot> detectParkingSpotInImage(const cv::Mat& image) {
     cv::waitKey(0);
 	
 	return parkingSpots;
+}
+
+float get_segment_angular_coefficient(const cv::Vec4f& segment) {
+    float x1 = segment[0];
+    float y1 = segment[1];
+    float x2 = segment[2];
+    float y2 = segment[3];
+
+    return (y2 - y1) / (x2 - x1);
+}
+
+float get_segment_length(const cv::Vec4f& segment) {
+    float x1 = segment[0];
+    float y1 = segment[1];
+    float x2 = segment[2];
+    float y2 = segment[3];
+
+    return std::sqrt((x2 - x1) * (x2 - x1) + (y2 - y1) * (y2 - y1));
 }
 
 cv::Vec2f get_segm_params(cv::Vec4f segm)
