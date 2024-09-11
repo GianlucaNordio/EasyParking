@@ -5,34 +5,27 @@
 #include <opencv2/highgui.hpp>
 #include <opencv2/imgproc.hpp>
 
-
 cv::Mat classifyCars(std::vector<ParkingSpot> spaces, cv::Mat segmentationMasks) {
-    // Extract connected components
+    // Extract connected components only once
     cv::Mat labels, stats, centroids;
     int numComponents = cv::connectedComponentsWithStats(segmentationMasks, labels, stats, centroids);
     cv::Mat output;
     segmentationMasks.copyTo(output);  // Initialize output mask
     
+    // Loop through all parking spaces
     for (int i = 0; i < spaces.size(); i++) {
-        for (int j = 0; j < numComponents; j++) {
-            calculateComponentInsideRotatedRect(segmentationMasks, output, spaces[i].rect, j); 
+        // Loop through all connected components, skipping the background (label 0)
+        for (int j = 1; j < numComponents; j++) {  // Start from 1 to skip the background
+            calculateComponentInsideRotatedRect(labels, stats, output, spaces[i].rect, j); 
         }
     }
 
     return output;
 }
 
-float calculateComponentInsideRotatedRect(const cv::Mat& mask, cv::Mat& output, const cv::RotatedRect& rotatedRect, int componentLabel) {
-    // Ensure the mask is a binary image
-    CV_Assert(mask.type() == CV_8UC1);
-
-    cv::Mat labels, stats, centroids;
-    int numComponents = cv::connectedComponentsWithStats(mask, labels, stats, centroids);
-
-    if (componentLabel >= numComponents) {
-        std::cerr << "Component label is out of range!" << std::endl;
-        return -1.0f;
-    }
+float calculateComponentInsideRotatedRect(const cv::Mat& labels, const cv::Mat& stats, cv::Mat& output, const cv::RotatedRect& rotatedRect, int componentLabel) {
+    // Ensure the labels are in the right format
+    CV_Assert(labels.type() == CV_32SC1);
 
     // Get stats for the component: [left, top, width, height, area]
     int x = stats.at<int>(componentLabel, cv::CC_STAT_LEFT);
@@ -42,7 +35,7 @@ float calculateComponentInsideRotatedRect(const cv::Mat& mask, cv::Mat& output, 
     int componentArea = stats.at<int>(componentLabel, cv::CC_STAT_AREA);
 
     // Create a mask for the rotatedRect
-    cv::Mat rotatedRectMask = cv::Mat::zeros(mask.size(), CV_8UC1);
+    cv::Mat rotatedRectMask = cv::Mat::zeros(labels.size(), CV_8UC1);
 
     // Convert rotatedRect to a set of 4 points
     cv::Point2f vertices[4];
@@ -67,26 +60,17 @@ float calculateComponentInsideRotatedRect(const cv::Mat& mask, cv::Mat& output, 
 
     // Set component label based on percentage outside
     if (percentageOutside > PERCENTAGE_OUTSIDE_THRESHOLD) {
-        changeComponentValue(output, componentLabel, ID_CAR_OUTSIDE_PARKING_LOT);
+        changeComponentValue(labels, output, componentLabel, ID_CAR_OUTSIDE_PARKING_LOT);
     } else {
-        changeComponentValue(output, componentLabel, ID_CAR_INSIDE_PARKING_LOT);
+        changeComponentValue(labels, output, componentLabel, ID_CAR_INSIDE_PARKING_LOT);
     }
     
     return percentageInside;
 }
 
-void changeComponentValue(cv::Mat& mask, int componentLabel, uchar newValue) {
-    // Ensure the mask is a single-channel binary image
-    CV_Assert(mask.type() == CV_8UC1);
-
-    // Extract connected components
-    cv::Mat labels, stats, centroids;
-    int numComponents = cv::connectedComponentsWithStats(mask, labels, stats, centroids);
-
-    if (componentLabel >= numComponents) {
-        std::cerr << "Component label is out of range!" << std::endl;
-        return;
-    }
+void changeComponentValue(const cv::Mat& labels, cv::Mat& mask, int componentLabel, uchar newValue) {
+    // Ensure the labels are in the right format
+    CV_Assert(labels.type() == CV_32SC1);
 
     // Change the value of all pixels in the desired component
     for (int i = 0; i < labels.rows; ++i) {
