@@ -8,9 +8,8 @@ const int PIXEL_SIZE_THRESHOLD = 1000;
 
 Segmentation::Segmentation(const std::vector<cv::Mat> &backgroundImages) {
     // Build the background model
-    //pBackSub = cv::createBackgroundSubtractorKNN(500, 1000, true);
+    pBackSub = cv::createBackgroundSubtractorKNN(500, 1000, true);
     //pBackSub = cv::createBackgroundSubtractorMOG2();
-    pBackSub = cv::createBackgroundSubtractorGSOC();
     cv::Mat mask;
     for(int i = 0; i < backgroundImages.size(); i++) {
         // Wait for a key press indefinitely
