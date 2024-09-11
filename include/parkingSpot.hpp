@@ -6,6 +6,7 @@
 class ParkingSpot {
     public:
         int id;
+        double confidence;
         bool occupied;
         cv::RotatedRect rect;
 

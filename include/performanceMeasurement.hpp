@@ -6,7 +6,15 @@
 #include "parkingSpot.hpp"
 
 const float IOU_THRESHOLD = 0.5;
-double meanAveragePrecision(std::vector<ParkingSpot>& groundTruth, std::vector<ParkingSpot>& detections);
-double meanIntersectionOverUnion();
+
+double calculateMeanAveragePrecision(const std::vector<ParkingSpot>& groundTruths, const std::vector<ParkingSpot>& detections);
+
+double calculateMeanIntersectionOverUnion();
+
+double calculateIoU(const ParkingSpot& rect1, const ParkingSpot& rect2);
+
+std::vector<std::pair<double, double>> calculatePrecisionRecallCurve(const std::vector<ParkingSpot>& groundTruths, const std::vector<ParkingSpot>& detections);
+
+double calculateAveragePrecision(const std::vector<std::pair<double, double>>& precisionRecallPoints);
 
 #endif
