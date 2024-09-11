@@ -4,5 +4,12 @@
 #include <opencv2/opencv.hpp>
 
 
+enum labelId
+{
+    background,
+    carInsideParkingSpot,
+    carOutsideParkingSpot
+};
+
 
 #endif // CARCLASSIFICATION_HPP

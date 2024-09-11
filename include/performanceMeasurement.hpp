@@ -4,7 +4,7 @@
 #include <iostream>
 #include <vector>
 #include "parkingSpot.hpp"
-#include "segmentation.hpp"
+#include "classification.hpp"
 
 const float IOU_THRESHOLD = 0.5;
 
