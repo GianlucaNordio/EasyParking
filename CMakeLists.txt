@@ -50,11 +50,11 @@ add_library(performanceMeasurement
 )
 target_link_libraries(segmentation ${OpenCV_LIBS})
 
-add_library(carClassification
-    include/carClassification.hpp
-    src/carClassification.cpp
+add_library(classification
+    include/classification.hpp
+    src/classification.cpp
 )
-target_link_libraries(carClassification ${OpenCV_LIBS})
+target_link_libraries(classification ${OpenCV_LIBS})
 
 # Aggiungi l'eseguibile
 add_executable(EasyParking ${SOURCES})
@@ -67,5 +67,6 @@ target_link_libraries(EasyParking
     utils
     segmentation
     performanceMeasurement
+    classification
     ${OpenCV_LIBS}
 )
