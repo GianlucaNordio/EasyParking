@@ -31,16 +31,6 @@ std::vector<ParkingSpot> detectParkingSpotInImage(const cv::Mat& image) {
     lsd->detect(preprocessed,line_segm);
     std::vector<cv::Vec4f> segments;
 
-    // Draw the line segments on the image
-    for (const auto& segment : line_segm) {
-        cv::line(intermediate_results, cv::Point(segment[0], segment[1]), cv::Point(segment[2], segment[3]), 
-                 cv::Scalar(0, 0, 255), 2, cv::LINE_AA);  // Red color lines with thickness 2
-    }
-
-    // Display the result
-    cv::imshow("Detected Line Segments", intermediate_results);
-    cv::waitKey(0);
-
 	//rejecting short segments
     for(int i = 0; i<line_segm.size(); i++)
     {                                                                                                                         //150
@@ -49,6 +39,15 @@ std::vector<ParkingSpot> detectParkingSpotInImage(const cv::Mat& image) {
             segments.push_back(line_segm[i]);
         }
     }
+
+    for (const auto& segment : segments) {
+        cv::line(intermediate_results, cv::Point(segment[0], segment[1]), cv::Point(segment[2], segment[3]), 
+                 cv::Scalar(0, 0, 255), 2, cv::LINE_AA);  // Red color lines with thickness 2
+    }
+
+    // Display the result
+    cv::imshow("Detected Line Segments", intermediate_results);
+    cv::waitKey(0);
 	/*
 	Mat copied = img.clone();
 	lsd->drawSegments(copied,segments);
@@ -102,17 +101,7 @@ std::vector<ParkingSpot> detectParkingSpotInImage(const cv::Mat& image) {
 				yellow = cv::Point2f(segments[i][0]+doble[0] + doble[1]*1.7   ,segments[i][1]+doble[1]-doble[0]*1.7   );
 			}
 		}
-		
-			/*
-			Mat another = img.clone();
-			drawMarker(img,red,Scalar(0,0,255),MARKER_TILTED_CROSS,15,3);
-			drawMarker(img,blue,Scalar(255,255,0),MARKER_TILTED_CROSS,15,3);
-			drawMarker(img,green,Scalar(0,255,0),MARKER_TILTED_CROSS,15,3);
-			drawMarker(img,yellow,Scalar(0,255,255),MARKER_TILTED_CROSS,15,3);
-			imshow("another",another);
-			waitKey(0);
-			*/
-		
+				
 		cv::RotatedRect sp = cv::RotatedRect(blue,green,yellow);
 		//if()
 		spots.push_back(sp);
@@ -142,7 +131,6 @@ std::vector<ParkingSpot> detectParkingSpotInImage(const cv::Mat& image) {
     std::vector<cv::RotatedRect> elementsToRemove;
     nms(trimmed, elementsToRemove);
 
-
     // Remove the elements determined by NMS filtering
     for (cv::RotatedRect element : elementsToRemove) {
         std::vector<cv::RotatedRect>::const_iterator iterator = elementIterator(trimmed, element);
@@ -150,7 +138,6 @@ std::vector<ParkingSpot> detectParkingSpotInImage(const cv::Mat& image) {
             trimmed.erase(iterator);
         }
     }
-
 
     // Draw the rotated rectangles
     for (const auto& rect : trimmed) {
@@ -173,7 +160,6 @@ std::vector<ParkingSpot> detectParkingSpotInImage(const cv::Mat& image) {
 
 cv::Vec2f get_segm_params(cv::Vec4f segm)
 {
-
 	float m = (segm[1] - segm[3])/(segm[0] - segm[2]);
     float q = segm[1] - m*segm[0];
 
@@ -185,68 +171,6 @@ cv::Vec2f get_direction(cv::Vec4f segm,bool blueStart){
 	if(!blueStart)
 		offset = 2;
 	return cv::Vec2f(segm[(2+offset)%4] - segm[(0+offset)%4], segm[(3+offset)%4] - segm[(1+offset)%4]);
-}
-bool isMoreThanHalfBlack(const cv::Mat& image, const cv::RotatedRect& box) {
-    // Create a mask for the RotatedRect
-    cv::Mat mask = cv::Mat::zeros(image.size(), CV_8UC1);
-
-    // Get the vertices of the RotatedRect
-    cv::Point2f vertices[4];
-    box.points(vertices);
-
-    // Fill the mask with white color where the bounding box is
-    std::vector<cv::Point> pts;
-    for (int i = 0; i < 4; i++) {
-        pts.push_back(vertices[i]);
-    }
-    cv::fillConvexPoly(mask, pts, cv::Scalar(255));
-
-    // Count the non-black pixels inside the bounding box
-    cv::Mat roi;
-    image.copyTo(roi, mask);
-
-    int totalPixels = cv::countNonZero(mask);
-    int blackPixels = totalPixels - cv::countNonZero(roi);
-
-    // Return true if more than half of the pixels inside the bounding box are black
-    return blackPixels > (totalPixels * 0.85);
-}
-
-void filterBoundingBoxes(cv::Mat& image, std::vector<cv::RotatedRect>& boxes) {
-    boxes.erase(std::remove_if(boxes.begin(), boxes.end(),
-                               [&image](const cv::RotatedRect& box) {
-                                   return isMoreThanHalfBlack(image, box);
-                               }),
-                boxes.end());
-}
-
-// Function to calculate the Euclidean distance between two points
-float calculateDistance(const cv::Point2f& p1, const cv::Point2f& p2) {
-    return std::sqrt(std::pow(p2.x - p1.x, 2) + std::pow(p2.y - p1.y, 2));
-}
-
-// Function to remove points that are very close together
-std::vector<cv::Point2f> removeClosePoints(const std::vector<cv::Point2f>& points, float distanceThreshold) {
-    std::vector<cv::Point2f> result;
-
-    for (size_t i = 0; i < points.size(); ++i) {
-        bool isTooClose = false;
-
-        // Compare the current point with the points already in the result vector
-        for (size_t j = 0; j < result.size(); ++j) {
-            if (calculateDistance(points[i], result[j]) < distanceThreshold) {
-                isTooClose = true;
-                break;
-            }
-        }
-
-        // If the point is not too close to any point in the result, add it
-        if (!isTooClose) {
-            result.push_back(points[i]);
-        }
-    }
-
-    return result;
 }
 
 cv::Mat preprocess(const cv::Mat& src) {
@@ -284,7 +208,6 @@ cv::Mat preprocess(const cv::Mat& src) {
     return adpt;
 
     
-    cv::Mat stretched = contrastStretchTransform(gs);
     //cv::imshow("stretched", stretched);
     //cv::waitKey(0);
 
@@ -349,8 +272,8 @@ cv::Mat preprocess(const cv::Mat& src) {
 
     cv::dilate(edges,edges,element,cv::Point(-1,-1),2);
     cv::erode(edges,edges,element,cv::Point(-1,-1),1);
-    // cv::imshow("dilated canny", edges);
-    // cv::waitKey(0);
+    cv::imshow("dilated canny", edges);
+    cv::waitKey(0);
 
     return edges;
 }
@@ -368,45 +291,6 @@ cv::Mat applyGammaTransform(const cv::Mat& src, double gamma) {
     cv::LUT(src, lookupTable, dst);
 
     return dst;
-}
-
-cv::Mat contrastStretchTransform(const cv::Mat& src) {
-    // Create a lookup table for faster processing
-    cv::Mat lookupTable(1, 256, CV_8U);
-    uchar* p = lookupTable.ptr();
-    for (int i = 0; i < 256; ++i) {
-        if(i < 80) {
-            p[i] = cv::saturate_cast<uchar>(i/4);
-        }
-        else {
-            p[i] = cv::saturate_cast<uchar>(i*2);
-        }
-        
-    }
-
-    cv::Mat dst;
-    // Apply the lookup table to the source image
-    cv::LUT(src, lookupTable, dst);
-
-    return dst;
-}
-
-void addSaltPepperNoise(cv::Mat& src, cv::Mat& dst, double noise_amount) {
-    dst = src.clone();
-    int num_salt = noise_amount * src.total();
-    int num_pepper = noise_amount * src.total();
-
-    for (int i = 0; i < num_salt; i++) {
-        int x = rand() % src.cols;
-        int y = rand() % src.rows;
-        dst.at<uchar>(y, x) = 255; // Pixel bianco
-    }
-
-    for (int i = 0; i < num_pepper; i++) {
-        int x = rand() % src.cols;
-        int y = rand() % src.rows;
-        dst.at<uchar>(y, x) = 0; // Pixel nero
-    }
 }
 
 double computeIntersectionArea(const cv::RotatedRect& rect1, const cv::RotatedRect& rect2) {
