@@ -10,10 +10,14 @@
 #include "segmentation.hpp"
 #include "parser.hpp"
 #include "classification.hpp"
+#include "performanceMeasurement.hpp"
 
 const int NUMBER_SEQUENCES = 5;
 
 int main() {
+
+
+
      // Detect bounding boxes
 
         // Read sequence 0 to use images to detect parking spots
@@ -45,10 +49,16 @@ int main() {
         //cv::imshow("Test Data", produceSingleImage(masks, 3));
         //cv::waitKey();
     }
+    std::vector<ParkingSpot> spaces = parseXML("../dataset/sequence0/bounding_boxes/2013-02-24_10_05_04.xml");
+    cv::Mat image = cv::imread("../dataset/sequence1/masks/2013-02-22_06_25_00.jpg");
+    std::vector<cv::Mat> ciao;
+    ciao.push_back(classifyCars(spaces, allMasks[0][1]));
+    std::vector<cv::Mat> image2;
+    image2.push_back(image);
+    std::cout<< "Test segmentation metric:" << calculateMeanIntersectionOverUnion(ciao , image2) << std::endl;
+
 
    // for(int i = 0; i < NUMBER_SEQUENCES; i++) {
-
-        std::vector<ParkingSpot> spaces = parseXML("/home/gianluca/Desktop/EasyParking/dataset/sequence0/bounding_boxes/2013-02-24_10_05_04.xml");
         
 //    }
     cv::imshow("boh", classifyCars(spaces, allMasks[0][1]));
