@@ -4,10 +4,9 @@
 #include <opencv2/imgproc.hpp> 
 #include "parkingSpot.hpp"
 
-// This method reads token by token and when it finds a specific token it knows it will see a number after it
-std::vector<ParkingSpot> parseXML(const std::string& filename) {
+std::vector<ParkingSpot> parseXML(const std::string& filePath) {
     std::vector<ParkingSpot> spaces;
-    std::ifstream file(filename);
+    std::ifstream file(filePath);
     std::string line;
     ParkingSpot currentSpace;
 

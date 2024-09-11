@@ -27,6 +27,7 @@ add_library(parkingSpotDetector
 target_link_libraries(parkingSpotDetector ${OpenCV_LIBS})
 
 add_library(parser
+    include/parser.hpp
     src/parser.cpp
 )
 target_link_libraries(parser ${OpenCV_LIBS})
