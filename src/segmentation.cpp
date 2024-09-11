@@ -7,21 +7,15 @@
 const int PIXEL_SIZE_THRESHOLD = 1000;
 
 Segmentation::Segmentation(const std::vector<cv::Mat> &backgroundImages) {
-    std::cout<< "CIAOOOOO_IN"<<std::endl<<std::endl;
     // Build the background model
-     pBackSub = cv::createBackgroundSubtractorKNN(500, 1000, true);
+    //pBackSub = cv::createBackgroundSubtractorKNN(500, 1000, true);
     //pBackSub = cv::createBackgroundSubtractorMOG2();
-    //pBackSub = cv::createBackgroundSubtractorGSOC();
+    pBackSub = cv::createBackgroundSubtractorGSOC();
     cv::Mat mask;
     for(int i = 0; i < backgroundImages.size(); i++) {
-        
-
         // Wait for a key press indefinitely
         pBackSub -> apply(backgroundImages[i], mask);
-        std::cout<<i<<std::endl;
     }
-    std::cout<< "CIAOOOOO_OUT"<<std::endl<<std::endl;
-
 }
 
 void Segmentation::segmentImage(const cv::Mat &image, cv::Mat &outputMask) {
