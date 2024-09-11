@@ -93,21 +93,21 @@ double calculateMeanIntersectionOverUnion(const std::vector<cv::Mat> &foundMask,
     double background = classIoU(foundMask, groundTruthMask, labelId::background);
     double carInsideParkingSpot = classIoU(foundMask, groundTruthMask, labelId::carInsideParkingSpot);
     double carOutsideParkingSpot = classIoU(foundMask, groundTruthMask, labelId::carOutsideParkingSpot);
-    double meanIoU = (background + carInsideParkingSpot + carOutsideParkingSpot) / 3;
+    double mIoU = (background + carInsideParkingSpot + carOutsideParkingSpot) / 3;
 
-    return meanIoU;
+    return mIoU;
 }
 
 double classIoU(const std::vector<cv::Mat> &foundMask, const std::vector<cv::Mat> &groundTruthMask, labelId id){
     
     double sumIoUs = 0;
     for (int i = 0; i < foundMask.size(); i++)
-        sumIoUs += maskIoU(foundMask.at(i), groundTruthMask.at(i), id);
+        sumIoUs += singleImmageClassIoU(foundMask.at(i), groundTruthMask.at(i), id);
 
     return sumIoUs / foundMask.size();
 }
 
-double maskIoU(const cv::Mat &foundMask, const cv::Mat &groundTruthMask, labelId id){
+double singleImmageClassIoU(const cv::Mat &foundMask, const cv::Mat &groundTruthMask, labelId id){
     CV_Assert(foundMask.channels() == 1);
     CV_Assert(groundTruthMask.channels() == 1);
 

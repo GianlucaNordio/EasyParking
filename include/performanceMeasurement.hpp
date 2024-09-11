@@ -20,6 +20,6 @@ double calculateAveragePrecision(const std::vector<std::pair<double, double>>& p
 
 double classIoU(const std::vector<cv::Mat> &foundMask, const std::vector<cv::Mat> &groundTruthMask, labelId id);
 
-double maskIoU(const cv::Mat &foundMask, const cv::Mat &groundTruthMask, labelId id);
+double singleImmageClassIoU(const cv::Mat &foundMask, const cv::Mat &groundTruthMask, labelId id);
 
 #endif
