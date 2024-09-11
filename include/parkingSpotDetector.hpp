@@ -23,6 +23,12 @@ double compute_median(std::vector<double>& data);
 float get_segment_angular_coefficient(const cv::Vec4f& segment);
 float get_segment_length(const cv::Vec4f& segment);
 std::vector<cv::Mat> generate_template(double width, double height, double angle, bool flipped);
+std::vector<cv::RotatedRect> merge_overlapping_rects(std::vector<cv::RotatedRect>& rects);
+bool are_rects_aligned(const cv::RotatedRect& rect1, const cv::RotatedRect& rect2, float angle_tolerance);
+bool are_rects_overlapping(const cv::RotatedRect& rect1, const cv::RotatedRect& rect2);
+cv::Point2f compute_longest_segment(const cv::RotatedRect& rect);
+cv::RotatedRect build_rotated_rect_from_longest_segments(const cv::RotatedRect& rect1, const cv::RotatedRect& rect2);
+cv::Vec4f convert_rect_to_line(const cv::RotatedRect& rect);
 
 double computeIntersectionArea(const cv::RotatedRect& rect1, const cv::RotatedRect& rect2);
 void nms(std::vector<cv::RotatedRect>& vec, std::vector<cv::RotatedRect>& elementsToRemove);
