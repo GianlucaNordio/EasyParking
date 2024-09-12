@@ -10,7 +10,7 @@ const float IOU_THRESHOLD = 0.5;
 
 double calculateMeanAveragePrecision(const std::vector<ParkingSpot>& groundTruths, const std::vector<ParkingSpot>& detections);
 
-double calculateMeanIntersectionOverUnion(const std::vector<cv::Mat> &foundMask, const std::vector<cv::Mat> &groundTruthMask);
+double calculateMeanIntersectionOverUnion(const cv::Mat &foundMask, const cv::Mat &groundTruthMask);
 
 double calculateIoU(const ParkingSpot& rect1, const ParkingSpot& rect2);
 
@@ -18,8 +18,6 @@ std::vector<std::pair<double, double>> calculatePrecisionRecallCurve(const std::
 
 double calculateAveragePrecision(const std::vector<std::pair<double, double>>& precisionRecallPoints);
 
-double classIoU(const std::vector<cv::Mat> &foundMask, const std::vector<cv::Mat> &groundTruthMask, labelId id);
-
-double singleImmageClassIoU(const cv::Mat &foundMask, const cv::Mat &groundTruthMask, labelId id);
+double classIoU(const cv::Mat &foundMask, const cv::Mat &groundTruthMask, labelId id);
 
 #endif

@@ -1,7 +1,8 @@
 #include "performanceMeasurement.hpp"
-// TODO: in function calculateMeanAveragePrecision need to receive a vector<vector<ParkingSpot>> instead of a vector<ParkingSpot>
-//       in other case no mean but only AP on the image
+
 double calculateMeanAveragePrecision(const std::vector<ParkingSpot>& predictions, const std::vector<ParkingSpot>& groundTruths) {
+    
+    
     std::vector<std::pair<double, double>> precisionRecallPoints = calculatePrecisionRecallCurve(groundTruths, predictions);
     return calculateAveragePrecision(precisionRecallPoints);
 }
@@ -69,21 +70,6 @@ double calculateIoU(const ParkingSpot& parkingSpot1, const ParkingSpot& parkingS
     return iou;
 }
 
-/*        // Metodo senza interpolazione
-
- double calculateAveragePrecision(const std::vector<std::pair<double, double>>& precisionRecallPoints) {
-    double AP = 0.0;
-    double previousRecall = 0.0;
-
-    for (const auto& point : precisionRecallPoints) {
-        double recall = point.first;
-        double precision = point.second;
-        AP += precision * (recall - previousRecall);
-        previousRecall = recall;
-    }
-
-    return AP;
-} */
 
 double calculateAveragePrecision(const std::vector<std::pair<double, double>>& precisionRecallPoints) {
     std::vector<double> recallLevels = {0.0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0};
@@ -112,7 +98,7 @@ double calculateAveragePrecision(const std::vector<std::pair<double, double>>& p
 }
 
 
-double calculateMeanIntersectionOverUnion(const std::vector<cv::Mat> &foundMask, const std::vector<cv::Mat> &groundTruthMask){
+double calculateMeanIntersectionOverUnion(const cv::Mat &foundMask, const cv::Mat &groundTruthMask){
     if (foundMask.empty() || groundTruthMask.empty())
     {
         const std::string INVALID_EMPTY_MAT = "Masks cannot be empty.";
@@ -126,16 +112,8 @@ double calculateMeanIntersectionOverUnion(const std::vector<cv::Mat> &foundMask,
 
     return mIoU;
 }
-double classIoU(const std::vector<cv::Mat> &foundMask, const std::vector<cv::Mat> &groundTruthMask, labelId id){
-    
-    double classIoU = 0;
-    for (int i = 0; i < foundMask.size(); i++)
-        classIoU += singleImmageClassIoU(foundMask.at(i), groundTruthMask.at(i), id);
 
-    return classIoU / foundMask.size();
-}
-
-double singleImmageClassIoU(const cv::Mat &foundMask, const cv::Mat &groundTruthMask, labelId id){
+double classIoU(const cv::Mat &foundMask, const cv::Mat &groundTruthMask, labelId id){
     CV_Assert(foundMask.channels() == 1);
     CV_Assert(groundTruthMask.channels() == 1);
 
