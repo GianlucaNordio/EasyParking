@@ -97,7 +97,19 @@ double calculateAveragePrecision(const std::vector<std::pair<double, double>>& p
     return AP;
 }
 
-
+/**
+ * Calculates the mean Intersection over Union (mIoU) for the given masks.
+ *
+ * The mean IoU is computed for three different classes: background, car inside parking spot,
+ * and car outside parking spot. The IoU for each class is calculated using the `classIoU` function
+ * and the mean of these values is returned.
+ *
+ * @param foundMask        The mask found by the model, as a single-channel cv::Mat.
+ * @param groundTruthMask  The ground truth mask, as a single-channel cv::Mat.
+ * @return                 The mean Intersection over Union (mIoU) between the found mask
+ *                         and the ground truth mask.
+ * @throws std::invalid_argument if either of the masks is empty.
+ */
 double calculateMeanIntersectionOverUnion(const cv::Mat &foundMask, const cv::Mat &groundTruthMask){
     if (foundMask.empty() || groundTruthMask.empty())
     {
@@ -112,6 +124,20 @@ double calculateMeanIntersectionOverUnion(const cv::Mat &foundMask, const cv::Ma
 
     return mIoU;
 }
+
+/**
+ * Computes the Intersection over Union (IoU) for a specific class between the found mask and the ground truth mask.
+ *
+ * The IoU is calculated as the ratio of the area of intersection to the area of union for a given class.
+ * It first generates binary masks for the specified class in both the found and ground truth masks,
+ * and then uses these masks to compute the intersection and union.
+ *
+ * @param foundMask        The mask found by the model, as a single-channel cv::Mat.
+ * @param groundTruthMask  The ground truth mask, as a single-channel cv::Mat.
+ * @param id               The class label ID for which IoU is to be calculated.
+ * @return                 The Intersection over Union (IoU) value for the specified class label.
+ *                         Returns 1 if there is no area for the union.
+ */
 
 double classIoU(const cv::Mat &foundMask, const cv::Mat &groundTruthMask, labelId id){
     CV_Assert(foundMask.channels() == 1);
