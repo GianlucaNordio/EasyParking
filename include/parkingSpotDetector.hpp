@@ -16,9 +16,6 @@ std::vector<ParkingSpot> detectParkingSpotInImage(const cv::Mat& image);
 cv::Mat preprocess_find_white_lines(const cv::Mat& src);
 cv::Mat preprocess_find_parking_lines(const cv::Mat& src);
 
-cv::Vec2f get_direction(cv::Vec4f segm,bool blueStart);
-cv::Vec2f get_segm_params(cv::Vec4f segm);
-
 double compute_avg(std::vector<double>& data);
 float get_segment_angular_coefficient(const cv::Vec4f& segment);
 float get_segment_length(const cv::Vec4f& segment);
@@ -38,6 +35,10 @@ std::vector<cv::RotatedRect>::const_iterator elementIterator(const std::vector<c
 cv::Vec4f merge_segments(const cv::Vec4f& seg1, const cv::Vec4f& seg2);
 bool do_segments_intersect(const cv::Vec4f& seg1, const cv::Vec4f& seg2);
 std::vector<cv::Vec4f> filter_segments_near_top_right(const std::vector<cv::Vec4f>& segments, const cv::Size& image_size, double distance_threshold);
+bool are_rects_overlapping(const cv::RotatedRect& rect1, const cv::RotatedRect& rect2);
+std::vector<cv::RotatedRect> merge_overlapping_rects(std::vector<cv::RotatedRect>& rects);
+// Helper function to check if two rotated rectangles are aligned (same angle within a tolerance)
+bool are_rects_aligned(const cv::RotatedRect& rect1, const cv::RotatedRect& rect2, float angle_tolerance);
 
 cv::Mat applyGammaTransform(const cv::Mat& src, double gamma);
 #endif // PARKINGSPOTDETECTOR_HPP

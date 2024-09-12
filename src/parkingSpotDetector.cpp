@@ -132,7 +132,7 @@ std::vector<ParkingSpot> detectParkingSpotInImage(const cv::Mat& image) {
                 std::vector<size_t> overlapping_indices;
 
                 for (size_t i = 0; i < list_boxes.size(); ++i) {
-                    if (computeIntersectionArea(rotated_rect, list_boxes[i]) > 0.01 && rotated_rect.size.area() == list_boxes[i].size.area()) {
+                    if (are_rects_overlapping(rotated_rect, list_boxes[i]) && rotated_rect.size.area() == list_boxes[i].size.area()) {
                         overlaps = true;
                         overlapping_indices.push_back(i);
                     }
@@ -148,7 +148,7 @@ std::vector<ParkingSpot> detectParkingSpotInImage(const cv::Mat& image) {
                     // Handle overlap case: check if the current rect's score is higher (lower is good because we use sqdiff)
                     bool add_current_rect = true;
                     for (size_t idx : overlapping_indices) {
-                        if (score >= rect_scores[idx]) {
+                        if (rotated_rect.size.area() < list_boxes[idx].size.area() || (rotated_rect.size.area() == list_boxes[idx].size.area() && score >= rect_scores[idx])) {
                             // The current rect has a higher or equal score, so don't add it
                             add_current_rect = false;
                             break;
@@ -212,7 +212,7 @@ std::vector<ParkingSpot> detectParkingSpotInImage(const cv::Mat& image) {
                 std::vector<size_t> overlapping_indices;
 
                 for (size_t i = 0; i < list_boxes2.size(); ++i) {
-                    if (computeIntersectionArea(rotated_rect, list_boxes2[i]) > 0.05) {
+                    if (are_rects_overlapping(rotated_rect, list_boxes2[i]) && rotated_rect.size.area() == list_boxes[i].size.area()) {
                         overlaps = true;
                         overlapping_indices.push_back(i);
                     }
@@ -228,7 +228,7 @@ std::vector<ParkingSpot> detectParkingSpotInImage(const cv::Mat& image) {
                     // Handle overlap case: check if the current rect's score is higher
                     bool add_current_rect = true;
                     for (size_t idx : overlapping_indices) {
-                        if (score >= rect_scores2[idx]  && rotated_rect.size.area() == list_boxes2[idx].size.area()) {
+                        if (rotated_rect.size.area() < list_boxes2[idx].size.area() || (rotated_rect.size.area() == list_boxes2[idx].size.area() && score >= rect_scores2[idx])) {
                             // The current rect has a lower or equal score, so don't add it
                             add_current_rect = false;
                             break;
@@ -247,19 +247,22 @@ std::vector<ParkingSpot> detectParkingSpotInImage(const cv::Mat& image) {
         }
     }
 
+    std::vector<cv::RotatedRect> merged_pos_rects = merge_overlapping_rects(list_boxes);
+    std::vector<cv::RotatedRect> merged_neg_rects = merge_overlapping_rects(list_boxes2);
+
     // std::vector<cv::RotatedRect> merged_pos_rects = merge_overlapping_rects(list_boxes);
     // std::vector<cv::RotatedRect> merged_neg_rects = merge_overlapping_rects(list_boxes2);
     std::vector<cv::Vec4f> segments_pos;
     std::vector<cv::Vec4f> segments_neg;
 
     // Loop through all bounding boxes
-    for (const auto& rect : list_boxes) {
+    for (const auto& rect : merged_pos_rects) {
         cv::Vec4f line_segment = convert_rect_to_line(rect);
         segments_pos.push_back(line_segment);
     }
 
     // Loop through all bounding boxes
-    for (const auto& rect : list_boxes2) {
+    for (const auto& rect : merged_neg_rects) {
         cv::Vec4f line_segment = convert_rect_to_line(rect);
         segments_neg.push_back(line_segment);
     }
@@ -271,23 +274,27 @@ std::vector<ParkingSpot> detectParkingSpotInImage(const cv::Mat& image) {
 
   // Thresholds
     float angle_threshold = CV_PI / 180.0f * 30;  // 10 degrees
-    float length_threshold = 20;  // 30 pixels
+    float length_threshold = 30;  // 30 pixels
 
     // Merge parallel and nearby segments
     std::vector<cv::Vec4f> merged_segments = merge_parallel_segments(filtered_segments_pos,angle_threshold,length_threshold);
 
-    for (const auto& line_segment : merged_segments) {
+    for (const auto& line_segment : filtered_segments_pos) {
         // Draw the line on the image
         cv::line(image, cv::Point2f(line_segment[0], line_segment[1]),
                  cv::Point2f(line_segment[2], line_segment[3]), cv::Scalar(0, 0, 255), 2);
     }
 
     // Loop through all bounding boxes
-    for (const auto& line_segment : segments_neg) {
+    for (const auto& line_segment : filtered_segments_neg) {
         // Draw the line on the image
         cv::line(image, cv::Point2f(line_segment[0], line_segment[1]),
                  cv::Point2f(line_segment[2], line_segment[3]), cv::Scalar(255, 0, 0), 2);
     }
+
+ cv::imshow("Intersection of Rotated Rects", image);
+        cv::waitKey(0);
+
 
     // Loop through all positive slope segments
     for (const auto& segment : merged_segments) {
@@ -308,13 +315,16 @@ std::vector<ParkingSpot> detectParkingSpotInImage(const cv::Mat& image) {
             // If no intersection, draw the segment
             cv::line(image, cv::Point2f(segment[0], segment[1]), cv::Point2f(segment[2], segment[3]), cv::Scalar(0, 0, 255), 2);
         }
-
-        cv::imshow("Intersection of Rotated Rects", image);
-        cv::waitKey(0);
-
     }
 
 	return parkingSpots;
+}
+
+// Function to check overlap between two rotated rectangles
+bool are_rects_overlapping(const cv::RotatedRect& rect1, const cv::RotatedRect& rect2) {
+    std::vector<cv::Point2f> intersection_points;
+    int intersection_status = cv::rotatedRectangleIntersection(rect1, rect2, intersection_points);
+    return intersection_status == cv::INTERSECT_FULL || intersection_status == cv::INTERSECT_PARTIAL;
 }
 
 double compute_avg(std::vector<double>& data) {
@@ -341,19 +351,42 @@ float get_segment_length(const cv::Vec4f& segment) {
     return std::sqrt((x2 - x1) * (x2 - x1) + (y2 - y1) * (y2 - y1));
 }
 
-cv::Vec2f get_segm_params(cv::Vec4f segm)
-{
-	float m = (segm[1] - segm[3])/(segm[0] - segm[2]);
-    float q = segm[1] - m*segm[0];
-
-	return cv::Vec2f(m,q);
+// Helper function to check if two rotated rectangles are aligned (same angle within a tolerance)
+bool are_rects_aligned(const cv::RotatedRect& rect1, const cv::RotatedRect& rect2, float angle_tolerance) {
+    return std::abs(rect1.angle - rect2.angle) <= angle_tolerance;
 }
 
-cv::Vec2f get_direction(cv::Vec4f segm,bool blueStart){
-	int offset = 0;
-	if(!blueStart)
-		offset = 2;
-	return cv::Vec2f(segm[(2+offset)%4] - segm[(0+offset)%4], segm[(3+offset)%4] - segm[(1+offset)%4]);
+// Function to merge overlapping and aligned rotated rectangles
+std::vector<cv::RotatedRect> merge_overlapping_rects(std::vector<cv::RotatedRect>& rects) {
+    std::vector<cv::RotatedRect> merged_rects;
+    std::vector<bool> merged(rects.size(), false);  // Track which rects have been merged
+
+    for (size_t i = 0; i < rects.size(); ++i) {
+        if (merged[i]) continue;  // Skip already merged rects
+
+        // Start a new group of merged rects
+        std::vector<cv::Point2f> group_points;
+        cv::Point2f points[4];
+        rects[i].points(points);
+        group_points.insert(group_points.end(), points, points + 4);
+        merged[i] = true;
+
+        // Check for overlap and alignment with other rects
+        for (size_t j = i + 1; j < rects.size(); ++j) {
+            if (!merged[j] && are_rects_overlapping(rects[i], rects[j]) && are_rects_aligned(rects[i], rects[j],10)) {
+                // Merge the overlapping and aligned rect
+                rects[j].points(points);
+                group_points.insert(group_points.end(), points, points + 4);
+                merged[j] = true;
+            }
+        }
+
+        // Create a single bounding box from the merged group points
+        cv::RotatedRect merged_rect = cv::minAreaRect(group_points);
+        merged_rects.push_back(merged_rect);
+    }
+
+    return merged_rects;
 }
 
 // Function to filter segments that are too close to the top-right corner
