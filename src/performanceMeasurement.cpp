@@ -97,14 +97,13 @@ double calculateMeanIntersectionOverUnion(const std::vector<cv::Mat> &foundMask,
 
     return mIoU;
 }
-
 double classIoU(const std::vector<cv::Mat> &foundMask, const std::vector<cv::Mat> &groundTruthMask, labelId id){
     
-    double sumIoUs = 0;
+    double classIoU = 0;
     for (int i = 0; i < foundMask.size(); i++)
-        sumIoUs += singleImmageClassIoU(foundMask.at(i), groundTruthMask.at(i), id);
+        classIoU += singleImmageClassIoU(foundMask.at(i), groundTruthMask.at(i), id);
 
-    return sumIoUs / foundMask.size();
+    return classIoU / foundMask.size();
 }
 
 double singleImmageClassIoU(const cv::Mat &foundMask, const cv::Mat &groundTruthMask, labelId id){
