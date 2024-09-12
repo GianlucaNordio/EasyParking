@@ -1,5 +1,10 @@
 #include "performanceMeasurement.hpp"
 
+double calculateMeanAveragePrecision(const std::vector<ParkingSpot>& predictions, const std::vector<ParkingSpot>& groundTruths) {
+    std::vector<std::pair<double, double>> precisionRecallPoints = calculatePrecisionRecallCurve(groundTruths, predictions);
+    return calculateAveragePrecision(precisionRecallPoints);
+}
+
 std::vector<std::pair<double, double>> calculatePrecisionRecallCurve(const std::vector<ParkingSpot>& groundTruths, const std::vector<ParkingSpot>& detections){
 
     std::vector<std::pair<double, double>> precisionRecallPoints;
@@ -44,20 +49,6 @@ std::vector<std::pair<double, double>> calculatePrecisionRecallCurve(const std::
     return precisionRecallPoints;
 }
 
-double calculateAveragePrecision(const std::vector<std::pair<double, double>>& precisionRecallPoints) {
-    double AP = 0.0;
-    double previousRecall = 0.0;
-
-    for (const auto& point : precisionRecallPoints) {
-        double recall = point.first;
-        double precision = point.second;
-        AP += precision * (recall - previousRecall);
-        previousRecall = recall;
-    }
-
-    return AP;
-}
-
 double calculateIoU(const ParkingSpot& parkingSpot1, const ParkingSpot& parkingSpot2) {
 
     
@@ -77,10 +68,18 @@ double calculateIoU(const ParkingSpot& parkingSpot1, const ParkingSpot& parkingS
     return iou;
 }
 
-double calculateMeanAveragePrecision(const std::vector<ParkingSpot>& predictions, 
-                    const std::vector<ParkingSpot>& groundTruths) {
-    std::vector<std::pair<double, double>> precisionRecallPoints = calculatePrecisionRecallCurve(groundTruths, predictions);
-    return calculateAveragePrecision(precisionRecallPoints);
+double calculateAveragePrecision(const std::vector<std::pair<double, double>>& precisionRecallPoints) {
+    double AP = 0.0;
+    double previousRecall = 0.0;
+
+    for (const auto& point : precisionRecallPoints) {
+        double recall = point.first;
+        double precision = point.second;
+        AP += precision * (recall - previousRecall);
+        previousRecall = recall;
+    }
+
+    return AP;
 }
 
 double calculateMeanIntersectionOverUnion(const std::vector<cv::Mat> &foundMask, const std::vector<cv::Mat> &groundTruthMask){
