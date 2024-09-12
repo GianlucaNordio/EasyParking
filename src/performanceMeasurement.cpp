@@ -35,16 +35,28 @@ double calculateMeanAveragePrecision(const std::vector<ParkingSpot>& predictions
             groundTruthsParkingSpotWithoutCar.push_back(groundTruth);
     }
 
-    // Calculate the Precision-Recall curve for each class
-    std::vector<std::pair<double, double>> precisionRecallPointsWithCar = calculatePrecisionRecallCurve(groundTruthsParkingSpotWithCar, predictionsParkingSpotWithCar);
-    std::vector<std::pair<double, double>> precisionRecallPointsWithoutCar = calculatePrecisionRecallCurve(groundTruthsParkingSpotWithoutCar, predictionsParkingSpotWithoutCar);
+    double APParkingSpotWithCar = 1;
+    double APParingSpotWithoutCar = 1;
 
-    // Calculate the Average Precision (AP) for each class
-    double APInsideParkingSpotCar = calculateAveragePrecision(precisionRecallPointsWithCar);
-    double APOutsideParkingSpotCar = calculateAveragePrecision(precisionRecallPointsWithoutCar);
+    // Check if there are no predictions for ParkingSpot with car
+    if (!predictionsParkingSpotWithCar.empty()){
+        // Calculate the Precision-Recall curve for ParkingSpot with car
+        std::vector<std::pair<double, double>> precisionRecallPointsWithCar = calculatePrecisionRecallCurve(groundTruthsParkingSpotWithCar, predictionsParkingSpotWithCar);
+        // Calculate the Average Precision (AP) for ParkingSpot with car
+        APParkingSpotWithCar = calculateAveragePrecision(precisionRecallPointsWithCar);
+    }
+
+    // Check if there are no predictions for ParkingSpot without car
+    if (!predictionsParkingSpotWithoutCar.empty()){
+        // Calculate the Precision-Recall curve for ParkingSpot without car
+        std::vector<std::pair<double, double>> precisionRecallPointsWithoutCar = calculatePrecisionRecallCurve(groundTruthsParkingSpotWithoutCar, predictionsParkingSpotWithoutCar);
+        // Calculate the Average Precision (AP) for ParkingSpot without car
+        APParingSpotWithoutCar = calculateAveragePrecision(precisionRecallPointsWithoutCar);
+    }
+    
 
     // Calculate the mean Average Precision (mAP) for the two classes
-    double mAP = (APInsideParkingSpotCar + APOutsideParkingSpotCar) / 2;
+    double mAP = (APParkingSpotWithCar + APParingSpotWithoutCar) / 2;
 
     return mAP;
 }

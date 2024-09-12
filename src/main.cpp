@@ -10,6 +10,7 @@
 #include "segmentation.hpp"
 #include "parser.hpp"
 #include "classification.hpp"
+#include "performanceMeasurement.hpp"
 
 const int NUMBER_SEQUENCES = 5;
 
@@ -21,6 +22,9 @@ int main() {
         // Non maxima suppression to remove overlapping bounding boxes
         // Build the 2D map of parking spots
     
+
+    std::vector<ParkingSpot> parkingSpots = parseXML("../dataset/sequence0/bounding_boxes/2013-02-24_10_05_04.xml");
+    std::cout << "mAP value: " << calculateMeanAveragePrecision(parkingSpots, parkingSpots) << std::endl;
     
     // Read the images from the dataset
     std::vector<cv::Mat> images;
