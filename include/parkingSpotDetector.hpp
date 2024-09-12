@@ -39,6 +39,7 @@ cv::Point2f get_rightmost_endpoint(const cv::Vec4f& segment);
 bool segments_intersect(const cv::Vec4f& seg1, const cv::Vec4f& seg2, cv::Point2f& intersection);
 cv::RotatedRect build_rotatedrect_from_movement(const cv::Vec4f& segment, const std::vector<cv::Vec4f>& segments, cv::Mat image);
 std::vector<cv::RotatedRect> process_segments(const std::vector<cv::Vec4f>& segments, cv::Mat image);
+cv::Vec4f extend_segment(const cv::Vec4f& seg, float extension_ratio);
 
 cv::Mat applyGammaTransform(const cv::Mat& src, double gamma);
 #endif // PARKINGSPOTDETECTOR_HPP

@@ -6,6 +6,9 @@ Per ogni linea di segments_pos andare avanti (o indietro) finchè non si tocca u
 Se poi le cose si overlappano, si tolgono le intersezioni o si uniscono
 check if, by extending them up to a certain thold, they intersect
 for other lines: if there is another segment in between, split bounding box
+
+if red ones are contained in green ones, then delete red one
+else do something with intersection with green ones maybe
 */
 
 // Function to detect parking spots in the images
@@ -268,7 +271,7 @@ std::vector<ParkingSpot> detectParkingSpotInImage(const cv::Mat& image) {
         segments_neg.push_back(line_segment);
     }
 
-    distance_threshold = avg_pos_width*0.4;
+    distance_threshold = avg_neg_width*0.75;
     std::vector<cv::Vec4f> filtered_segments_neg = filter_close_segments(segments_neg, distance_threshold);
     distance_threshold = avg_neg_width*0.4;
     std::vector<cv::Vec4f> filtered_segments_pos = filter_close_segments(segments_pos, distance_threshold);
@@ -289,14 +292,27 @@ std::vector<ParkingSpot> detectParkingSpotInImage(const cv::Mat& image) {
     // Loop through all bounding boxes
     for (const auto& line_segment : filtered_segments_neg) {
         // Draw the line on the image
-        //cv::line(image, cv::Point2f(line_segment[0], line_segment[1]),
-        //         cv::Point2f(line_segment[2], line_segment[3]), cv::Scalar(255, 0, 0), 2);
+        cv::line(image, cv::Point2f(line_segment[0], line_segment[1]),
+                 cv::Point2f(line_segment[2], line_segment[3]), cv::Scalar(255, 0, 0), 2);
     }
 
     std::cout << "number of segments " << filtered_segments_pos.size() << std::endl;
 
     // Process the segments
     std::vector<cv::RotatedRect> rotated_rects = process_segments(filtered_segments_pos, image);
+    std::vector<cv::RotatedRect> rotated_rects2 = process_segments(filtered_segments_neg, image);
+
+    // Apply NMS filtering
+    std::vector<cv::RotatedRect> elementsToRemove;
+    nms(rotated_rects, elementsToRemove);
+
+    // Remove the elements determined by NMS filtering
+    for (cv::RotatedRect element : elementsToRemove) {
+        std::vector<cv::RotatedRect>::const_iterator iterator = elementIterator(rotated_rects, element);
+        if (iterator != rotated_rects.cend()) {
+            rotated_rects.erase(iterator);
+        }
+    }
 
     // Output the result
     for (const auto& rect : rotated_rects) {
@@ -308,9 +324,19 @@ std::vector<ParkingSpot> detectParkingSpotInImage(const cv::Mat& image) {
             }
         }
     }
+    // Output the result
+    for (const auto& rect : rotated_rects2) {
+        cv::Point2f vertices[4];
+        if(rect.size.area()>100) {
+            rect.points(vertices);
+            for (int i = 0; i < 4; i++) {
+                cv::line(image, vertices[i], vertices[(i+1) % 4], cv::Scalar(0, 0, 255), 2);
+            }
+        }
+    }
+
     cv::imshow("Intersection of Rotated Rects", image);
     cv::waitKey(0);
-
 
 	return parkingSpots;
 }
@@ -360,21 +386,56 @@ cv::Point2f get_rightmost_endpoint(const cv::Vec4f& segment) {
     return (p1.x > p2.x) ? p1 : p2;
 }
 
-// Function to check if two segments intersect
-bool segments_intersect(const cv::Vec4f& seg1, const cv::Vec4f& seg2, cv::Point2f& intersection) {
-    cv::Point2f p1(seg1[0], seg1[1]), q1(seg1[2], seg1[3]);
-    cv::Point2f p2(seg2[0], seg2[1]), q2(seg2[2], seg2[3]);
+// Function to extend a segment by a certain percentage of its length
+cv::Vec4f extend_segment(const cv::Vec4f& seg, float extension_ratio) {
+    cv::Point2f p1(seg[0], seg[1]), q1(seg[2], seg[3]);
 
-    cv::Vec2f r = cv::Vec2f(q1 - p1);  // Direction of seg1
-    cv::Vec2f s = cv::Vec2f(q2 - p2);  // Direction of seg2
+    // Compute direction vector of the segment
+    cv::Vec2f direction = cv::Vec2f(q1 - p1);
+    float length = get_segment_length(seg);
+    
+    // Normalize the direction vector to unit length
+    cv::Vec2f direction_normalized = direction / length;
+
+    // Compute the extension length (25% of the segment length)
+    float extension_length = length * extension_ratio;
+
+    // Extend in both directions by converting to cv::Point2f for vector arithmetic
+    cv::Point2f extended_p1 = p1 - cv::Point2f(direction_normalized[0], direction_normalized[1]) * extension_length;
+    cv::Point2f extended_q1 = q1 + cv::Point2f(direction_normalized[0], direction_normalized[1]) * extension_length;
+
+    // Return the new extended segment
+    return cv::Vec4f(extended_p1.x, extended_p1.y, extended_q1.x, extended_q1.y);
+}
+
+// Function to check if two segments intersect (after extending)
+bool segments_intersect(const cv::Vec4f& seg1, const cv::Vec4f& seg2, cv::Point2f& intersection) {
+    // Extend the segments
+    cv::Vec4f extended_seg1 = extend_segment(seg1, 0.05f);
+    cv::Vec4f extended_seg2 = extend_segment(seg2, 0.05f);
+
+    // Extract points from the extended segments
+    cv::Point2f p1(extended_seg1[0], extended_seg1[1]), q1(extended_seg1[2], extended_seg1[3]);
+    cv::Point2f p2(extended_seg2[0], extended_seg2[1]), q2(extended_seg2[2], extended_seg2[3]);
+
+    // Compute direction vectors for both segments
+    cv::Vec2f r = cv::Vec2f(q1 - p1);  // Direction of extended_seg1
+    cv::Vec2f s = cv::Vec2f(q2 - p2);  // Direction of extended_seg2
 
     float rxs = r[0] * s[1] - r[1] * s[0];
     cv::Vec2f qp = cv::Vec2f(p2 - p1);
+    
+    // Check if the lines are parallel
+    if (std::fabs(rxs) < FLT_EPSILON) {
+        return false;  // Parallel lines
+    }
+
     float t = (qp[0] * s[1] - qp[1] * s[0]) / rxs;
     float u = (qp[0] * r[1] - qp[1] * r[0]) / rxs;
 
-    if (rxs != 0 && t >= 0 && t <= 1 && u >= 0 && u <= 1) {
-        intersection = p1 + cv::Point2f(r[0] * t, r[1] * t);  // Convert r * t to cv::Point2f
+    // Check if the intersection happens within the segment bounds
+    if (t >= 0 && t <= 1 && u >= 0 && u <= 1) {
+        intersection = p1 + cv::Point2f(r[0] * t, r[1] * t);  // Find the intersection point
         return true;
     }
     return false;
@@ -407,12 +468,17 @@ cv::RotatedRect build_rotatedrect_from_movement(const cv::Vec4f& segment, const 
     bool found_intersection = false;
     cv::Vec4f closest_segment;
 
+    // cv::circle(image,start,5,cv::Scalar(0,0,255));
+    // cv::line(image, start, perp_end, cv::Scalar(0, 0, 255), 2, cv::LINE_AA); 
+    // cv::imshow("projections", image);
+    // cv::waitKey(0);
+
     // Check intersection of the perpendicular segment with every other segment
     for (const auto& other_segment : segments) {
         cv::Point2f intersection;
         if (other_segment != segment && segments_intersect(cv::Vec4f(start.x, start.y, perp_end.x, perp_end.y), other_segment, intersection)) {
             float dist = cv::norm(start-intersection);
-            if (dist < min_distance) {
+            if (dist > 10 && dist < min_distance) {
                 min_distance = dist;
                 closest_intersection = intersection;
                 found_intersection = true;
@@ -881,7 +947,7 @@ std::vector<cv::RotatedRect>::const_iterator elementIterator(const std::vector<c
 void nms(std::vector<cv::RotatedRect> &vec, std::vector<cv::RotatedRect> &elementsToRemove) {
     for (const auto& rect1 : vec) {
         for (const auto& rect2 : vec) {
-            if (!(rect1.center.x == rect2.center.x && rect1.center.y == rect2.center.y) && (computeIntersectionArea(rect1, rect2) > 0.75)) {
+            if (!(rect1.center.x == rect2.center.x && rect1.center.y == rect2.center.y) && (computeIntersectionArea(rect1, rect2) > 0.99)) {
                 if (rect1.size.area() > rect2.size.area()){
                     elementsToRemove.push_back(rect2);
                 } else {
