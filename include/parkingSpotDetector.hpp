@@ -19,13 +19,11 @@ cv::Mat preprocess_find_parking_lines(const cv::Mat& src);
 cv::Vec2f get_direction(cv::Vec4f segm,bool blueStart);
 cv::Vec2f get_segm_params(cv::Vec4f segm);
 
-double compute_median(std::vector<double>& data);
+double compute_avg(std::vector<double>& data);
 float get_segment_angular_coefficient(const cv::Vec4f& segment);
 float get_segment_length(const cv::Vec4f& segment);
 std::vector<cv::Mat> generate_template(double width, double height, double angle, bool flipped);
-std::vector<cv::RotatedRect> merge_overlapping_rects(std::vector<cv::RotatedRect>& rects);
-bool are_rects_aligned(const cv::RotatedRect& rect1, const cv::RotatedRect& rect2, float angle_tolerance);
-bool are_rects_overlapping(const cv::RotatedRect& rect1, const cv::RotatedRect& rect2);
+std::vector<cv::Vec4f> split_segment(const cv::Vec4f& segment);
 cv::Point2f compute_longest_segment(const cv::RotatedRect& rect);
 cv::RotatedRect build_rotated_rect_from_longest_segments(const cv::RotatedRect& rect1, const cv::RotatedRect& rect2);
 cv::Vec4f convert_rect_to_line(const cv::RotatedRect& rect);
@@ -38,6 +36,8 @@ double computeIntersectionArea(const cv::RotatedRect& rect1, const cv::RotatedRe
 void nms(std::vector<cv::RotatedRect>& vec, std::vector<cv::RotatedRect>& elementsToRemove);
 std::vector<cv::RotatedRect>::const_iterator elementIterator(const std::vector<cv::RotatedRect>& vec, const cv::RotatedRect& elem);
 cv::Vec4f merge_segments(const cv::Vec4f& seg1, const cv::Vec4f& seg2);
+bool do_segments_intersect(const cv::Vec4f& seg1, const cv::Vec4f& seg2);
+std::vector<cv::Vec4f> filter_segments_near_top_right(const std::vector<cv::Vec4f>& segments, const cv::Size& image_size, double distance_threshold);
 
 cv::Mat applyGammaTransform(const cv::Mat& src, double gamma);
 #endif // PARKINGSPOTDETECTOR_HPP
