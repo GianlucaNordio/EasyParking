@@ -273,8 +273,8 @@ std::vector<ParkingSpot> detectParkingSpotInImage(const cv::Mat& image) {
     std::vector<cv::Vec4f> filtered_segments_pos = filter_close_segments(segments_pos, distance_threshold);
 
   // Thresholds
-    float angle_threshold = CV_PI / 180.0f * 30;  // 10 degrees
-    float length_threshold = 30;  // 30 pixels
+    float angle_threshold = CV_PI / 180.0f * 3;  // 10 degrees
+    float length_threshold = 3;  // 30 pixels
 
     // Merge parallel and nearby segments
     std::vector<cv::Vec4f> merged_segments = merge_parallel_segments(filtered_segments_pos,angle_threshold,length_threshold);
@@ -292,30 +292,22 @@ std::vector<ParkingSpot> detectParkingSpotInImage(const cv::Mat& image) {
                  cv::Point2f(line_segment[2], line_segment[3]), cv::Scalar(255, 0, 0), 2);
     }
 
- cv::imshow("Intersection of Rotated Rects", image);
-        cv::waitKey(0);
+    std::cout << "number of segments " << filtered_segments_pos.size() << std::endl;
 
+    // Process the segments
+    std::vector<cv::RotatedRect> rotated_rects = process_segments(filtered_segments_pos, image);
 
-    // Loop through all positive slope segments
-    for (const auto& segment : merged_segments) {
-        // Move along the perpendicular direction and check for intersection with other segments
-        std::vector<cv::Point2f> intersection_points = move_and_find_intersection(segments_pos, segment);
-
-        if (!intersection_points.empty()) {
-            // Draw the convex hull of the two segments using lines
-            std::vector<cv::Point2f> hull_points;
-            cv::convexHull(intersection_points, hull_points);
-
-            // Draw the convex hull as lines connecting the points
-            for (size_t i = 0; i < hull_points.size(); ++i) {
-                cv::line(image, hull_points[i], hull_points[(i + 1) % hull_points.size()], cv::Scalar(0, 255, 0), 2);
-            }
-
-        } else {
-            // If no intersection, draw the segment
-            cv::line(image, cv::Point2f(segment[0], segment[1]), cv::Point2f(segment[2], segment[3]), cv::Scalar(0, 0, 255), 2);
+    // Output the result
+    for (const auto& rect : rotated_rects) {
+        cv::Point2f vertices[4];
+        rect.points(vertices);
+        for (int i = 0; i < 4; i++) {
+            cv::line(image, vertices[i], vertices[(i+1) % 4], cv::Scalar(0, 255, 0), 2);
         }
     }
+
+    cv::imshow("Intersection of Rotated Rects", image);
+    cv::waitKey(0);
 
 	return parkingSpots;
 }
@@ -354,6 +346,96 @@ float get_segment_length(const cv::Vec4f& segment) {
 // Helper function to check if two rotated rectangles are aligned (same angle within a tolerance)
 bool are_rects_aligned(const cv::RotatedRect& rect1, const cv::RotatedRect& rect2, float angle_tolerance) {
     return std::abs(rect1.angle - rect2.angle) <= angle_tolerance;
+}
+
+// Function to get the right-most endpoint of a segment
+cv::Point2f get_rightmost_endpoint(const cv::Vec4f& segment) {
+    cv::Point2f p1(segment[0], segment[1]);  // First endpoint (x1, y1)
+    cv::Point2f p2(segment[2], segment[3]);  // Second endpoint (x2, y2)
+
+    // Compare the x-coordinates to find the right-most point
+    return (p1.x > p2.x) ? p1 : p2;
+}
+
+// Function to check if two segments intersect
+bool segments_intersect(const cv::Vec4f& seg1, const cv::Vec4f& seg2, cv::Point2f& intersection) {
+    cv::Point2f p1(seg1[0], seg1[1]), q1(seg1[2], seg1[3]);
+    cv::Point2f p2(seg2[0], seg2[1]), q2(seg2[2], seg2[3]);
+
+    cv::Vec2f r = cv::Vec2f(q1 - p1);  // Direction of seg1
+    cv::Vec2f s = cv::Vec2f(q2 - p2);  // Direction of seg2
+
+    float rxs = r[0] * s[1] - r[1] * s[0];
+    cv::Vec2f qp = cv::Vec2f(p2 - p1);
+    float t = (qp[0] * s[1] - qp[1] * s[0]) / rxs;
+    float u = (qp[0] * r[1] - qp[1] * r[0]) / rxs;
+
+    if (rxs != 0 && t >= 0 && t <= 1 && u >= 0 && u <= 1) {
+        intersection = p1 + cv::Point2f(r[0] * t, r[1] * t);  // Convert r * t to cv::Point2f
+        return true;
+    }
+    return false;
+}
+
+// Function to move along the perpendicular direction from the right-most endpoint
+cv::RotatedRect build_rotatedrect_from_movement(const cv::Vec4f& segment, const std::vector<cv::Vec4f>& segments, cv::Mat image) {
+    // Rightmost endpoint of the original segment
+    cv::Point2f right_endpoint(segment[2], segment[3]);
+    cv::Point2f left_endpoint(segment[0], segment[1]);
+
+    // Compute the direction vector of the original segment
+    cv::Vec2f direction = cv::Vec2f(right_endpoint - left_endpoint);
+    float length = std::sqrt(direction[0] * direction[0] + direction[1] * direction[1]);
+
+    // Normalize the direction
+    direction /= length;
+
+    // Find the perpendicular direction (rotate by 90 degrees)
+    cv::Vec2f perpendicular_direction(-direction[1], direction[0]);
+
+    // Create the perpendicular segment from the rightmost endpoint
+    cv::Point2f perp_end = right_endpoint + cv::Point2f(perpendicular_direction[0] * length, perpendicular_direction[1] * length);
+
+    // Initialize variables to store the closest intersection point
+    cv::Point2f closest_intersection;
+    float min_distance = std::numeric_limits<float>::max();
+    bool found_intersection = false;
+    cv::Vec4f per_vect = cv::Vec4f(right_endpoint.x, right_endpoint.y, perp_end.x, perp_end.y);
+
+    // Check intersection of the perpendicular segment with every other segment
+    for (const auto& other_segment : segments) {
+        cv::Point2f intersection;
+        if (other_segment != segment && segments_intersect(cv::Vec4f(right_endpoint.x, right_endpoint.y, perp_end.x, perp_end.y), other_segment, intersection)) {
+            float dist = cv::norm(right_endpoint-intersection);
+            if (dist < min_distance && dist < get_segment_length(segment)/2) {
+                min_distance = dist;
+                closest_intersection = intersection;
+                found_intersection = true;
+            }
+        }
+    }
+
+    // If an intersection is found, use it to build the rotated rect
+    if (found_intersection) {
+        return cv::RotatedRect(left_endpoint, right_endpoint, closest_intersection);
+    }
+
+    // If no intersection is found, return a default (empty) rotated rect
+    return cv::RotatedRect();
+}
+
+// Main function to process segments
+std::vector<cv::RotatedRect> process_segments(const std::vector<cv::Vec4f>& segments, cv::Mat image) {
+    std::vector<cv::RotatedRect> rotated_rects;
+
+    // Iterate over each segment
+    for (const auto& segment : segments) {
+        // Process each segment and build the rotated rectangle
+        cv::RotatedRect rotated_rect = build_rotatedrect_from_movement(segment, segments, image);
+        rotated_rects.push_back(rotated_rect);
+    }
+
+    return rotated_rects;
 }
 
 // Function to merge overlapping and aligned rotated rectangles
@@ -433,36 +515,6 @@ float compute_distance_between_segments(const cv::Vec4f& seg1, const cv::Vec4f& 
     return cv::norm(mid1 - mid2);  // Euclidean distance between midpoints
 }
 
-// Helper function to check if two segments intersect
-bool do_segments_intersect(const cv::Vec4f& seg1, const cv::Vec4f& seg2) {
-    cv::Point2f p1(seg1[0], seg1[1]), q1(seg1[2], seg1[3]);
-    cv::Point2f p2(seg2[0], seg2[1]), q2(seg2[2], seg2[3]);
-
-    auto orientation = [](cv::Point2f p, cv::Point2f q, cv::Point2f r) {
-        float val = (q.y - p.y) * (r.x - q.x) - (q.x - p.x) * (r.y - q.y);
-        return (val > 0) ? 1 : (val < 0 ? -1 : 0);
-    };
-
-    int o1 = orientation(p1, q1, p2);
-    int o2 = orientation(p1, q1, q2);
-    int o3 = orientation(p2, q2, p1);
-    int o4 = orientation(p2, q2, q1);
-
-    // General case: segments intersect if orientations differ
-    if (o1 != o2 && o3 != o4) return true;
-
-    // Collinear cases (check if they overlap)
-    auto on_segment = [](cv::Point2f p, cv::Point2f q, cv::Point2f r) {
-        return r.x <= std::max(p.x, q.x) && r.x >= std::min(p.x, q.x) && r.y <= std::max(p.y, q.y) && r.y >= std::min(p.y, q.y);
-    };
-    if (o1 == 0 && on_segment(p1, q1, p2)) return true;
-    if (o2 == 0 && on_segment(p1, q1, q2)) return true;
-    if (o3 == 0 && on_segment(p2, q2, p1)) return true;
-    if (o4 == 0 && on_segment(p2, q2, q1)) return true;
-
-    return false;
-}
-
 // Function to filter segments based on a distance threshold
 std::vector<cv::Vec4f> filter_close_segments(const std::vector<cv::Vec4f>& segments, float distance_threshold) {
     std::vector<cv::Vec4f> filtered_segments;
@@ -486,35 +538,6 @@ std::vector<cv::Vec4f> filter_close_segments(const std::vector<cv::Vec4f>& segme
     }
 
     return filtered_segments;
-}
-
-// Function to move along the perpendicular direction and check for intersections
-std::vector<cv::Point2f> move_and_find_intersection(const std::vector<cv::Vec4f>& pos_segments, const cv::Vec4f& segment) {
-    cv::Point2f midpoint = compute_midpoint(segment);
-    cv::Point2f perpendicular_dir = compute_perpendicular_direction(segment);
-    
-    float segment_length = cv::norm(cv::Point2f(segment[2], segment[3]) - cv::Point2f(segment[0], segment[1]));
-    cv::Point2f normalized_dir = perpendicular_dir * (1.0f / cv::norm(perpendicular_dir));  // Normalize direction
-
-    for (float distance_traveled = 0; distance_traveled < segment_length; distance_traveled += 1.0f) {
-        cv::Point2f new_position = midpoint + normalized_dir * distance_traveled;
-
-        // Check for intersections with other segments of the same slope
-        for (const auto& other_segment : pos_segments) {
-            if (segment != other_segment) {
-                cv::Point2f other_midpoint = compute_midpoint(other_segment);
-                float dist_to_other = cv::norm(new_position - other_midpoint);
-
-                if (dist_to_other < segment_length) {
-                    // We found an intersection; return the points of both segments
-                    return {cv::Point2f(segment[0], segment[1]), cv::Point2f(segment[2], segment[3]),
-                            cv::Point2f(other_segment[0], other_segment[1]), cv::Point2f(other_segment[2], other_segment[3])};
-                }
-            }
-        }
-    }
-
-    return {};  // No intersection found
 }
 
 // Function to split a segment into two smaller segments
@@ -571,33 +594,42 @@ std::vector<cv::Vec4f> merge_parallel_segments(std::vector<cv::Vec4f>& segments,
         cv::Vec4f current_segment = segments[i];
         merged[i] = true;  // Mark the current segment as merged
 
+        float current_angle = get_segment_angular_coefficient(current_segment);  // Compute the angle of the current segment
+
         // Compare with remaining segments
         for (size_t j = i + 1; j < segments.size(); ++j) {
             if (merged[j]) continue;  // Skip already merged segments
 
-            // Check if the segments are close enough
+            // Compute the angle of the other segment
+            float other_angle = get_segment_angular_coefficient(segments[j]);
+            float angle_diff = std::abs(current_angle - other_angle);
+
+            // Ensure the angle difference is within the specified threshold
+            if (angle_diff > angle_threshold) continue;
+
+            // Check if the segments are close enough in terms of distance
             cv::Point2f seg1_start(current_segment[0], current_segment[1]);
             cv::Point2f seg1_end(current_segment[2], current_segment[3]);
             cv::Point2f seg2_start(segments[j][0], segments[j][1]);
             cv::Point2f seg2_end(segments[j][2], segments[j][3]);
 
             // Compute the distances between the endpoints
-            float dist1 = cv::norm(seg1_start-seg2_start);
-            float dist2 = cv::norm(seg1_start- seg2_end);
-            float dist3 = cv::norm(seg1_end- seg2_start);
-            float dist4 = cv::norm(seg1_end- seg2_end);
+            float dist1 = cv::norm(seg1_start - seg2_start);
+            float dist2 = cv::norm(seg1_start - seg2_end);
+            float dist3 = cv::norm(seg1_end - seg2_start);
+            float dist4 = cv::norm(seg1_end - seg2_end);
 
             // If any of the distances is below the threshold, merge the segments
             if (dist1 < distance_threshold || dist2 < distance_threshold || dist3 < distance_threshold || dist4 < distance_threshold) {
                 current_segment = merge_segments(current_segment, segments[j]);
                 merged[j] = true;  // Mark this segment as merged
             }
-            
         }
 
         // Add the merged segment to the result
         merged_segments.push_back(current_segment);
     }
+
 
     return merged_segments;
 }

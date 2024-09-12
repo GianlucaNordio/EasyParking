@@ -39,6 +39,10 @@ bool are_rects_overlapping(const cv::RotatedRect& rect1, const cv::RotatedRect& 
 std::vector<cv::RotatedRect> merge_overlapping_rects(std::vector<cv::RotatedRect>& rects);
 // Helper function to check if two rotated rectangles are aligned (same angle within a tolerance)
 bool are_rects_aligned(const cv::RotatedRect& rect1, const cv::RotatedRect& rect2, float angle_tolerance);
+cv::Point2f get_rightmost_endpoint(const cv::Vec4f& segment);
+bool segments_intersect(const cv::Vec4f& seg1, const cv::Vec4f& seg2, cv::Point2f& intersection);
+cv::RotatedRect build_rotatedrect_from_movement(const cv::Vec4f& segment, const std::vector<cv::Vec4f>& segments, cv::Mat image);
+std::vector<cv::RotatedRect> process_segments(const std::vector<cv::Vec4f>& segments, cv::Mat image);
 
 cv::Mat applyGammaTransform(const cv::Mat& src, double gamma);
 #endif // PARKINGSPOTDETECTOR_HPP
