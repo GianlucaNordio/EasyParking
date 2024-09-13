@@ -16,14 +16,14 @@ cv::Mat classifyCars(std::vector<ParkingSpot> spaces, cv::Mat segmentationMasks)
     for (int i = 0; i < spaces.size(); i++) {
         // Loop through all connected components, skipping the background (label 0)
         for (int j = 1; j < numComponents; j++) {  // Start from 1 to skip the background
-            calculateComponentInsideRotatedRect(labels, stats, output, spaces[i].rect, j); 
+            calculateComponentInsideRotatedRect(labels, stats, output, spaces[i], j); 
         }
     }
 
     return output;
 }
 
-float calculateComponentInsideRotatedRect(const cv::Mat& labels, const cv::Mat& stats, cv::Mat& output, const cv::RotatedRect& rotatedRect, int componentLabel) {
+void calculateComponentInsideRotatedRect(const cv::Mat& labels, const cv::Mat& stats, cv::Mat& output, ParkingSpot& parkingSpot, int componentLabel) {
     // Ensure the labels are in the right format
     CV_Assert(labels.type() == CV_32SC1);
 
@@ -36,6 +36,8 @@ float calculateComponentInsideRotatedRect(const cv::Mat& labels, const cv::Mat& 
 
     // Create a mask for the rotatedRect
     cv::Mat rotatedRectMask = cv::Mat::zeros(labels.size(), CV_8UC1);
+
+    cv::RotatedRect rotatedRect = parkingSpot.rect;
 
     // Convert rotatedRect to a set of 4 points
     cv::Point2f vertices[4];
@@ -60,15 +62,16 @@ float calculateComponentInsideRotatedRect(const cv::Mat& labels, const cv::Mat& 
 
     // Set component label based on percentage outside
     if (percentageOutside > PERCENTAGE_OUTSIDE_THRESHOLD) {
-        changeComponentValue(labels, output, componentLabel, ID_CAR_OUTSIDE_PARKING_LOT);
+        changeComponentValue(labels, output, componentLabel, labelId::carOutsideParkingSpot);
     } else {
-        changeComponentValue(labels, output, componentLabel, ID_CAR_INSIDE_PARKING_LOT);
+        changeComponentValue(labels, output, componentLabel, labelId::carInsideParkingSpot);
+
+        // Set the parking spot as occupied
+        parkingSpot.occupied = true;
     }
-    
-    return percentageInside;
 }
 
-void changeComponentValue(const cv::Mat& labels, cv::Mat& mask, int componentLabel, uchar newValue) {
+void changeComponentValue(const cv::Mat& labels, cv::Mat& mask, int componentLabel, labelId labelId) {
     // Ensure the labels are in the right format
     CV_Assert(labels.type() == CV_32SC1);
 
@@ -76,7 +79,7 @@ void changeComponentValue(const cv::Mat& labels, cv::Mat& mask, int componentLab
     for (int i = 0; i < labels.rows; ++i) {
         for (int j = 0; j < labels.cols; ++j) {
             if (labels.at<int>(i, j) == componentLabel) {
-                mask.at<uchar>(i, j) = newValue;
+                mask.at<uchar>(i, j) = uchar(labelId);
             }
         }
     }
