@@ -81,8 +81,8 @@ std::vector<ParkingSpot> detectParkingSpotInImage(const cv::Mat& image) {
     std::cout << "Median width of negative angle lines: " << avg_neg_width << std::endl;
 
     // Display the result
-    //cv::imshow("Detected Line Segments", intermediate_results);
-    //cv::waitKey(0);
+    cv::imshow("Detected Line Segments", intermediate_results);
+    cv::waitKey(0);
 
     preprocessed = preprocess_find_parking_lines(image);
     cv::imshow("TM Input", preprocessed);
@@ -90,7 +90,7 @@ std::vector<ParkingSpot> detectParkingSpotInImage(const cv::Mat& image) {
 
     // offsets from avg values
     std::vector<int> angle_offsets = {-8,-7,-6,-5,-4,-3,-2,-1,0,1,2,3,4,5,6,7,8};
-    std::vector<float> length_scales = {1};
+    std::vector<float> length_scales = {1.25};
     std::vector<cv::RotatedRect> list_boxes;
     std::vector<float> rect_scores(list_boxes.size(), -1); // Initialize scores with -1 for non-existing rects
 
@@ -534,7 +534,7 @@ cv::RotatedRect build_rotatedrect_from_movement(const cv::Vec4f& segment, const 
     // Normalize the direction
     direction /= length;
 
-    cv::Point2f start = left_endpoint+cv::Point2f(direction[0]*length*0.75,direction[1]*length*0.75);
+    cv::Point2f start = left_endpoint+cv::Point2f(direction[0]*length*0.6,direction[1]*length*0.6);
 
     // Find the perpendicular direction (rotate by 90 degrees)
     cv::Vec2f perpendicular_direction(-direction[1], direction[0]);
@@ -548,19 +548,19 @@ cv::RotatedRect build_rotatedrect_from_movement(const cv::Vec4f& segment, const 
     bool found_intersection = false;
     cv::Vec4f closest_segment;
 
-    cv::circle(image,midpoint,5,cv::Scalar(0,0,255));
-    cv::line(image, midpoint, perp_end, cv::Scalar(0, 0, 255), 2, cv::LINE_AA); 
+    cv::circle(image,start,5,cv::Scalar(0,0,255));
+    cv::line(image, start, perp_end, cv::Scalar(0, 0, 255), 2, cv::LINE_AA); 
     cv::imshow("projections", image);
     cv::waitKey(0);
-    cv::line(image, midpoint, perp_end, cv::Scalar(0, 0, 0), 2, cv::LINE_AA); 
+    cv::line(image, start, perp_end, cv::Scalar(0, 0, 0), 2, cv::LINE_AA); 
 
     // Check intersection of the perpendicular segment with every other segment
     for (const auto& other_segment : segments) {
         cv::Point2f intersection;
-        cv::Vec4f perp_vect = cv::Vec4f(midpoint.x, midpoint.y, perp_end.x, perp_end.y);
-        cv::Vec4f extended_seg1 = extend_segment(other_segment, 1.0f);
+        cv::Vec4f perp_vect = cv::Vec4f(start.x, start.y, perp_end.x, perp_end.y);
+        cv::Vec4f extended_seg1 = extend_segment(other_segment, 0.4f);
         if (other_segment != segment && segments_intersect(extended_seg1, perp_vect, intersection)) {
-            float dist = cv::norm(midpoint-intersection);
+            float dist = cv::norm(start-intersection);
             // last conditions to ensure that close segments of another parking slot line does not interfere
             // 
             if (dist > 10 && dist < min_distance && dist < length*5) { // last conditions to ensure that close segments of another parking slot line does not interfere) { 
@@ -587,13 +587,28 @@ cv::RotatedRect build_rotatedrect_from_movement(const cv::Vec4f& segment, const 
         cv::circle(image,destination_right,5,cv::Scalar(0,0,255));
         cv::circle(image,destination_bottom,5,cv::Scalar(0,255,0));
         cv::circle(image,left_endpoint,5,cv::Scalar(255,0,0));
-        cv::imshow("projections", image);
-        cv::waitKey(0);
 
-        cv::RotatedRect bounding_box(left_endpoint,destination_right,destination_bottom);
+
+        cv::RotatedRect bounding_box;
+        if(slope>0) {
+            bounding_box = cv::RotatedRect(left_endpoint,destination_right,destination_bottom);
+        } 
+        else {
+            cv::Point2f destination_left((endpoint1.y-intercept)/slope,endpoint1.y);
+            cv::Point2f destination_up = destination_left + cv::Point2f(perpendicular_direction[0] * min_distance, perpendicular_direction[1] * min_distance);
+            bounding_box = cv::RotatedRect(right_endpoint,destination_left,destination_up);
+        }
         //if(bounding_box.size.aspectRatio() > 1.5|| bounding_box.size.aspectRatio() < 1/1.5) {
         //    return shrink_rotated_rect(bounding_box, 0.8);
         //}
+        cv::Point2f vertices[4];
+        bounding_box.points(vertices);
+        for (int i = 0; i < 4; i++) {
+            cv::line(image, vertices[i], vertices[(i+1) % 4], cv::Scalar(0, 0, 255), 2);
+        }
+        cv::imshow("projections", image);
+        cv::waitKey(0);
+        
         return bounding_box;
     }
 
@@ -964,8 +979,11 @@ std::vector<cv::Mat> generate_template(double width, double height, double angle
         for(int j = 0; j<horizontal_template.cols; j++) {
             if((!flipped ? i>2 && i < height-2 : j>2&&j<height-2)) {
             horizontal_template.at<uchar>(i,j) = 255;
+            horizontal_mask.at<uchar>(i,j) = 245;
             }
-            horizontal_mask.at<uchar>(i,j) = 255;
+            else {
+                horizontal_mask.at<uchar>(i,j) = 10;
+            }
         }
     }
 
