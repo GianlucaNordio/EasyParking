@@ -4,13 +4,26 @@
 #include <opencv2/opencv.hpp>
 #include "parkingSpot.hpp"
 
+/**
+ * Enum representing different labels for components in an image.
+ * These labels are used to classify regions in the segmentation masks.
+ */
 enum labelId
 {
+    /** Label for background regions. */
     background,
+
+    /** Label for a car that is fully or mostly inside a parking spot. */
     carInsideParkingSpot,
+
+    /** Label for a car that is fully or mostly outside a parking spot. */
     carOutsideParkingSpot
 };
 
+/**
+ * A constant threshold used to determine if car is outside a parking spot.
+ * If more than 50% of the component is outside the parking spot, it is classified as 'outside'.
+ */
 const float PERCENTAGE_OUTSIDE_THRESHOLD = 0.5;
 
 /**
