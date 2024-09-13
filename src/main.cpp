@@ -32,6 +32,8 @@ int main() {
 
 // STEP 1: Load the dataset
 
+    std::cout << "STEP 1:" << std::endl;
+
     // Read the images from the dataset
     std::vector<cv::Mat> baseSequence;
     loadBaseSequenceFrames("../dataset", baseSequence);
@@ -40,10 +42,18 @@ int main() {
     loadSequencesFrames("../dataset", NUMBER_SEQUENCES, dataset);
     
 // STEP 2: Detect parking spots
+
+    std::cout << "STEP 2:" << std::endl;
+
     std::vector<ParkingSpot> parkingSpot;
     detectParkingSpots(baseSequence, parkingSpot); 
 
+    std::cout << "Detected parking spots in the base sequence:\n";
+
 // STEP 3: Perform segmentation
+
+    std::cout << "STEP 3:" << std::endl;
+
     std::vector<cv::Mat> baseSequenceMasks;
     std::vector<std::vector<cv::Mat>> datasetMasks;
     Segmentation segment(baseSequence);
@@ -58,7 +68,11 @@ int main() {
         datasetMasks.push_back(sequenceMasks);    
     }
 
+    std::cout << "Segmented the base sequence and dataset sequences.\n";
+
 // STEP 4: Perform classification
+
+    std::cout << "STEP 4:" << std::endl;
 
     // Perform classification on the base sequence
     std::vector<cv::Mat> classifiedBaseSequenceMasks;
@@ -73,7 +87,11 @@ int main() {
         classifiedDatasetMasks.push_back(classifiedSequenceMasks);    
     }    
     
+    std::cout << "Classified the base sequence and dataset sequences.\n";
+
 // STEP 5: Calculate performance metrics
+
+    std::cout << "STEP 5:" << std::endl;
 
     // Load the ground truth
     cv::Mat baseSequenceMaskGT = cv::Mat::zeros(baseSequence[0].size(), CV_8UC1);
@@ -142,7 +160,11 @@ int main() {
         averageDatasetIoU.push_back(averageSequenceIoU);
     }
 
+    std::cout << "Calculated performance metrics.\n";
+
 // STEP 6: Display results
+
+    std::cout << "STEP 6:" << std::endl;
     
     // Display the visual results
 
@@ -187,7 +209,7 @@ int main() {
         // Display the image
         cv::imshow("Sequence " + std::to_string(i + 1), produceSingleImage(dataset[i], 3));
         cv::waitKey();
-        
+
         // Display the bounding boxes found in the dataset
         std::vector<cv::Mat> sequenceBBoxes;
         for(int j = 0; j < dataset[i].size(); j++) {
