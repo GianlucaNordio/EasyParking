@@ -14,8 +14,6 @@ class ParkingSpot {
         : id(spotId), confidence(spotConfidence), occupied(isOccupied), rect(spotRect) {}
         ParkingSpot() 
         : id(0), confidence(0.0), occupied(false), rect(cv::RotatedRect()) {}
-        void park();
-        void leave();
         void displayStatus() const;
 };
 
