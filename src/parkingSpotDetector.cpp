@@ -5,7 +5,6 @@ TODO:
 1. Preprocessing (pensare a come rendere invariante alle condizioni climatiche)
 2. Generare meglio i template
 3. Threshold iniziale sul template match normalizzando in base al massimo dell'output di matchTemplate
-4. Chiedere nel forum quanti parametri possiamo usare
 */
 
 // Function to detect parking spots in the images
@@ -110,41 +109,8 @@ std::vector<ParkingSpot> detectParkingSpotInImage(const cv::Mat& image) {
 
     cv::Mat erodeg; 
     cv::erode(medianblurred, erodeg, element, cv::Point(-1, -1), 1); 
-
-    //cv::Mat gmagthold;
-    //cv::threshold( erodeg, gmagthold, 110, 255,  cv::THRESH_BINARY);
-    //cv::imshow("gmagthold", gmagthold);
-    //cv::waitKey(0);
-
     cv::Mat dilate; 
     cv::dilate(medianblurred, dilate, element, cv::Point(-1, -1), 4); 
-
-/*
-   std::vector<int> angles = {-8, -9, -10, -11, -12, -13};
-    std::vector<float> scales = {0.75, 1, 1.05, 1.1, 1.2, 2};
-    std::vector<cv::RotatedRect> line_boxes;
-
-    for(int k = 0; k<angles.size(); k++) {
-        // Template size
-        int template_height = 5*2+20*scale*scale;
-        int template_width = 100*scale;
-
-        // Horizontal template and mask definition
-        cv::Mat horizontal_template(template_height,template_width,CV_8U);
-        cv::Mat horizontal_mask(template_height,template_width,CV_8U);
-
-        // Build the template and mask
-        for(int i = 0; i< horizontal_template.rows; i++) {
-            for(int j = 0; j<horizontal_template.cols; j++) {
-                uchar val = 0;
-                if(i < 5 || (i > template_height-5) || j > template_width-5) {
-                    val = 255;
-                }
-                horizontal_mask.at<uchar>(i,j) = val;
-                horizontal_template.at<uchar>(i,j) = val;
-            }
-        }
-*/
     std::vector<int> angles = {-7,-8,-9, -10, -11, -12, -13,-14,-15};
     std::vector<float> scales = {0.7, 0.8, 1, 1.05, 1.1, 1.2, 1.5,1.6,1.7,1.8,2};
     std::vector<cv::RotatedRect> line_boxes;
@@ -185,11 +151,7 @@ std::vector<ParkingSpot> detectParkingSpotInImage(const cv::Mat& image) {
             cv::warpAffine(horizontal_mask,rotated_mask,R,cv::Size(rotated_width,rotated_height));
 
             cv::Mat tm_result;
-            //cv::filter2D(dilate, test, CV_32F, rotated);
-            //cv::imshow("test", test);
-            //cv::waitKey(0);
 
-            // use dilate or medianblurred or canny with 100-1000
             cv::Mat tm_result_unnorm;
             cv::matchTemplate(dilate,rotated_template,tm_result_unnorm,cv::TM_SQDIFF,rotated_mask);
             double min,max;
@@ -237,7 +199,6 @@ std::vector<ParkingSpot> detectParkingSpotInImage(const cv::Mat& image) {
                 rotatedRect.points(vertices);
 
                 for (int i = 0; i < 4; i++) {
-                    cv::line(image, vertices[i], vertices[(i+1) % 4], cv::Scalar(0, 255, 0), 2);
                     verts.push_back(vertices[i]);
                 }
             }

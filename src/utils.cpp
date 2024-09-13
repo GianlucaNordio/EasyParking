@@ -142,6 +142,8 @@ void convertGreyMaskToBGR(const std::vector<cv::Mat> &srcImages, std::vector<cv:
 
 void convertGreyMaskToBGR(const std::vector<std::vector<cv::Mat>> &srcImages, std::vector<std::vector<cv::Mat>> &dstImages) {
     for(int i = 0; i < srcImages.size(); i++) {
+        std::vector<cv::Mat> empty;
+        dstImages.push_back(empty);
         convertGreyMaskToBGR(srcImages[i], dstImages[i]);
     }
 }
