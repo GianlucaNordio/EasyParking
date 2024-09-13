@@ -273,9 +273,6 @@ std::vector<ParkingSpot> detectParkingSpotInImage(const cv::Mat& image) {
             // Draw the rotated rectangle
             cv::Point2f vertices[4];
             rect.points(vertices);
-            for (int j = 0; j < 4; j++) {
-                cv::line(image, vertices[j], vertices[(j + 1) % 4], cv::Scalar(0, 0, 255), 2);
-            }
         }
     }
 
