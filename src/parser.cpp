@@ -4,8 +4,7 @@
 #include <opencv2/imgproc.hpp> 
 #include "parkingSpot.hpp"
 
-std::vector<ParkingSpot> parseXML(const std::string& filePath) {
-    std::vector<ParkingSpot> spaces;
+void parseXML(const std::string& filePath, std::vector<ParkingSpot> &spaces) {
     std::ifstream file(filePath);
     std::string line;
     ParkingSpot currentSpace;
@@ -44,44 +43,6 @@ std::vector<ParkingSpot> parseXML(const std::string& filePath) {
                 iss >> token;
                 currentSpace.rect.angle = std::stoi(token.substr(token.find("=") + 2));
             }
-        }
-        
-        /*
-        else if (token.find("point") != std::string::npos) {
-                Point point;
-                iss >> token;
-                point.x = std::stoi(token.substr(token.find("=") + 2));
-                iss >> token;
-                point.y = std::stoi(token.substr(token.find("=") + 2));
-                currentSpace.contour.push_back(point);
-            }
-        */
-        
+        }        
     }
-    return spaces;
 }
-
-
-/* // Obtain a vector of ParkingSpots from parseXML
-    std::vector<ParkingSpot> spaces = parseXML("../src/test_bbox.xml");
-    std::cout<< spaces.size();
-    for (const auto& space : spaces) {
-        std::cout << "Space ID: " << space.id << "\n";
-        std::cout << "Occupied: " << space.occupied << "\n";
-        std::cout << "Center: (" << space.rect.center.x << "," <<space.rect.center.y << ")\n";
-        std::cout << "Size: " << space.rect.size.width << "x" << space.rect.size.height << "\n";
-        std::cout << "Angle: " << space.rect.angle << "\n";
-        //std::cout << "Contour points: ";
-        //for (const auto& point : space.contour) {
-        //    std::cout << "(" << point.x << ", " << point.y << ") ";
-        //}
-        std::cout << "\n\n";
-
-        // Adding rectangles to the image
-        cv::Point2f vertices[4];
-        space.rect.points(vertices);
-        for (int i = 0; i < 4; i++) {
-            cv::line(img, vertices[i], vertices[(i + 1) % 4], cv::Scalar(0, 255, 0), 2); 
-        }
-    }
-*/

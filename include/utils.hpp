@@ -3,6 +3,9 @@
 
 #include <opencv2/highgui.hpp>
 
+#include "parkingSpot.hpp"
+#include "parser.hpp"
+
 /**
  * @brief Produce a single image starting from a vector containing one or more images
  * @param images vector of images (has to be at least of size greater then 1) that have all same witdth and height
@@ -39,6 +42,11 @@ void loadImages(std::string path, std::vector<cv::Mat> &images);
  */
 void loadSequencesSegMasks(const std::string& datasetPath, int numSequences, std::vector<std::vector<cv::Mat>> &segMasks);
 
+void loadGroundTruth(const std::string path, std::vector<ParkingSpot> &groundTruth);
+
+void loadBaseSequenceGroundTruth(const std::string& datasetPath, std::vector<ParkingSpot> &groundTruth);
+
+void loadSequencesGroundTruth(const std::string& datasetPath, int numSequences, std::vector<std::vector<ParkingSpot>> &groundTruth);
 
 /**
  * Allows to convert the greyscale masks provided by the dataset to BGR.

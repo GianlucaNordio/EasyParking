@@ -7,6 +7,6 @@
  * @brief reads the parking spots from an XML file 
  * @param filePath path of an XML file to parse
  */
-std::vector<ParkingSpot> parseXML(const std::string& filePath);
+void parseXML(const std::string& filePath, std::vector<ParkingSpot> &spaces);
 
 #endif // PARSER_HP

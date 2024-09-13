@@ -141,3 +141,25 @@ void convertGreyMaskToBGR(const std::vector<std::vector<cv::Mat>> &srcImages, st
         }
     }
 }
+
+void loadBaseSequenceGroundTruth(const std::string& datasetPath, std::vector<ParkingSpot> &groundTruth){
+    std::string folderPath = datasetPath + SLASH + SEQUENCE + std::to_string(BASE_SEQUENCE_INDEX) + SLASH + "ground_truth";
+    loadGroundTruth(folderPath, groundTruth);
+}
+
+void loadSequencesGroundTruth(const std::string& datasetPath, int numSequences, std::vector<std::vector<ParkingSpot>> &groundTruth){
+    // Move over all the sequences
+    for(int i = 0; i < numSequences; i++) {
+        // Initialize the vector relative to the i-th sequence
+        std::vector<ParkingSpot> empty;   
+        groundTruth.push_back(empty);
+
+        // Create the path relative to the i-th sequence
+        std::string folderPath = datasetPath + SLASH + SEQUENCE + std::to_string(i + 1) + SLASH + "ground_truth";
+        loadGroundTruth(folderPath, groundTruth[i]);
+    }
+}
+
+void loadGroundTruth(std::string path, std::vector<ParkingSpot> &groundTruth) {
+    parseXML(path, groundTruth);
+}

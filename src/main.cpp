@@ -64,6 +64,7 @@ int main() {
 // STEP 5: Calculate performance metrics
 
     // Load the ground truth
+    cv::Mat baseSequenceMaskGT = cv::Mat::zeros(baseSequence[0].size(), CV_8UC1);
     std::vector<ParkingSpot> baseSequenceParkingSpotGT;
     std::vector<std::vector<ParkingSpot>> datasetParkingSpotGT;
     std::vector<std::vector<cv::Mat>> sequenceMaskGTGray;
@@ -73,14 +74,18 @@ int main() {
     loadSequencesGroundTruth("../dataset", NUMBER_SEQUENCES, datasetParkingSpotGT);
     loadSequencesSegMasks("../dataset", NUMBER_SEQUENCES, sequenceMaskGTGray);
 
-    // Convert gray masks to BGR
-    convertGreyMaskToBGR(sequenceMaskGTGray, sequenceMaskGTBGR);
-
     // Compute performance for the base sequence
+    std::vector<double> baseSequenceMAP;
+    std::vector<double> baseSequenceIoU;
     
-    
+    for(int i = 0; i < baseSequence.size(); i++) {
+        baseSequenceMAP.push_back(calculateMeanAveragePrecision(baseSequenceParkingSpotGT, parkingSpot));
+        baseSequenceIoU.push_back(calculateMeanIntersectionOverUnion(classifiedBaseSequenceMasks[i], baseSequenceMaskGT));
+    }
 
     // Compute performance for the dataset
+    std::vector<std::vector<double>> datasetMAP;
+    std::vector<std::vector<double>> datasetIoU;
 
 
     // STEP 6: Display results
