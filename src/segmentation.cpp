@@ -6,15 +6,12 @@
 
 
 Segmentation::Segmentation(const std::vector<cv::Mat> &backgroundImages) {
-    // Build the background model
-    //pBackSub = cv::createBackgroundSubtractorKNN();
-
-    //pBackSub = new BackgroundSubtractorMOG();
-
     const int HISTORY_DEFAULT_VALUE = 500;
     const bool SHADES_DETECTION = true; 
     const int VAR_THRESHOLD = 50;
+
     pBackSub = cv::createBackgroundSubtractorMOG2(HISTORY_DEFAULT_VALUE, VAR_THRESHOLD, SHADES_DETECTION);
+    
     cv::Mat mask;
     for(int i = 0; i < backgroundImages.size(); i++) {
         pBackSub -> apply(backgroundImages[i], mask);
@@ -28,6 +25,7 @@ void Segmentation::segmentImage(const cv::Mat &image, cv::Mat &outputMask) {
     const int CONNECTIVITY_8 = 8;   // 8-connectivity for connectedComponentsWithStats
     const int MORPH_RECT = cv::MORPH_CROSS;  // Rectangular structuring element for morphologyEx
     const int MORPH_SIZE = 1;   // Size of structuring element for closing
+    
     pBackSub -> apply(image, outputMask, BACKGROUND_NOT_UPDATED);
     
     // Remove the shadow parts and the noise 

@@ -63,7 +63,8 @@ void calculateComponentInsideRotatedRect(const cv::Mat& labels, const cv::Mat& s
     // Set component label based on percentage outside
     if (percentageOutside > PERCENTAGE_OUTSIDE_THRESHOLD) {
         changeComponentValue(labels, output, componentLabel, labelId::carOutsideParkingSpot);
-    } else {
+    } 
+    else {
         changeComponentValue(labels, output, componentLabel, labelId::carInsideParkingSpot);
 
         // Set the parking spot as occupied
