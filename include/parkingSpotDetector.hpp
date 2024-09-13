@@ -41,7 +41,7 @@ cv::RotatedRect build_rotatedrect_from_movement(const cv::Vec4f& segment, const 
 std::vector<cv::RotatedRect> process_segments(const std::vector<cv::Vec4f>& segments, cv::Mat image);
 cv::Vec4f extend_segment(const cv::Vec4f& seg, float extension_ratio);
 cv::RotatedRect shrink_rotated_rect(const cv::RotatedRect& rect, float shorten_percentage);
-void trim_if_intersect(cv::Vec4f& seg1, const cv::Vec4f& seg2);
+void trim_if_intersect(cv::Vec4f& seg1, cv::Vec4f& seg2);
 
 cv::Mat applyGammaTransform(const cv::Mat& src, double gamma);
 #endif // PARKINGSPOTDETECTOR_HPP

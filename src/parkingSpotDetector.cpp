@@ -270,15 +270,24 @@ std::vector<ParkingSpot> detectParkingSpotInImage(const cv::Mat& image) {
         cv::Vec4f line_segment = convert_rect_to_line(rect);
         segments_neg.push_back(line_segment);
     }
+    
+    distance_threshold = 200.0;
+    std::vector<cv::Vec4f> no_top_right_neg = filter_segments_near_top_right(segments_neg,cv::Size(image.cols,image.rows),distance_threshold);
+    std::vector<cv::Vec4f> no_top_right_pos = filter_segments_near_top_right(segments_pos,cv::Size(image.cols,image.rows),distance_threshold);
 
     distance_threshold = avg_neg_width*0.75;
-    std::vector<cv::Vec4f> filtered_segments_neg = filter_close_segments(segments_neg, distance_threshold);
+    std::vector<cv::Vec4f> filtered_segments_neg = filter_close_segments(no_top_right_neg, distance_threshold);
     distance_threshold = avg_neg_width*0.4;
-    std::vector<cv::Vec4f> filtered_segments_pos = filter_close_segments(segments_pos, distance_threshold);
+    std::vector<cv::Vec4f> filtered_segments_pos = filter_close_segments(no_top_right_pos, distance_threshold);
 
     for(cv::Vec4f& line_neg: filtered_segments_neg) {
+        double length = get_segment_length(line_neg);
         for(cv::Vec4f line_pos: filtered_segments_pos) {
             trim_if_intersect(line_neg,line_pos);
+            double length_trimmed = get_segment_length(line_neg);
+            if(length_trimmed < length/2) {
+                break;
+            }
         }
     }
 
@@ -301,6 +310,9 @@ std::vector<ParkingSpot> detectParkingSpotInImage(const cv::Mat& image) {
         cv::line(image, cv::Point2f(line_segment[0], line_segment[1]),
                  cv::Point2f(line_segment[2], line_segment[3]), cv::Scalar(255, 0, 0), 2);
     }
+
+    cv::imshow("After trim", image);
+    cv::waitKey(0);
 
     std::cout << "number of segments ORIGINAL" << segments_neg.size() << std::endl;
     std::cout << "number of segments FILTERED" << filtered_segments_neg.size() << std::endl;
@@ -325,7 +337,7 @@ std::vector<ParkingSpot> detectParkingSpotInImage(const cv::Mat& image) {
     // Output the result
     for (const auto& rect : rotated_rects) {
         cv::Point2f vertices[4];
-        if(rect.size.area()>100) {
+        if(rect.size.area()> 0) {
             rect.points(vertices);
             for (int i = 0; i < 4; i++) {
                 cv::line(image, vertices[i], vertices[(i+1) % 4], cv::Scalar(0, 255, 0), 2);
@@ -335,15 +347,14 @@ std::vector<ParkingSpot> detectParkingSpotInImage(const cv::Mat& image) {
     // Output the result
     for (const auto& rect : rotated_rects2) {
         cv::Point2f vertices[4];
-        if(rect.size.area()>100) {
+        if(rect.size.area()>0) {
             rect.points(vertices);
             for (int i = 0; i < 4; i++) {
                 cv::line(image, vertices[i], vertices[(i+1) % 4], cv::Scalar(0, 0, 255), 2);
             }
         }
     }
-
-    cv::imshow("Intersection of Rotated Rects", image);
+    cv::imshow("After trim", image);
     cv::waitKey(0);
 
 	return parkingSpots;
@@ -384,6 +395,7 @@ float get_segment_length(const cv::Vec4f& segment) {
 bool are_rects_aligned(const cv::RotatedRect& rect1, const cv::RotatedRect& rect2, float angle_tolerance) {
     return std::abs(rect1.angle - rect2.angle) <= angle_tolerance;
 }
+
 
 // Function to shrink a rotated rect
 cv::RotatedRect shrink_rotated_rect(const cv::RotatedRect& rect, float shorten_percentage) {
@@ -439,23 +451,33 @@ cv::Vec4f extend_segment(const cv::Vec4f& seg, float extension_ratio) {
     return cv::Vec4f(extended_p1.x, extended_p1.y, extended_q1.x, extended_q1.y);
 }
 
-void trim_if_intersect(cv::Vec4f& seg1, const cv::Vec4f& seg2) {
+void trim_if_intersect(cv::Vec4f& seg1, cv::Vec4f& seg2) {
     cv::Point2f intersection;
     if(segments_intersect(seg1, seg2, intersection)) {
         seg1[0] = intersection.x;
         seg1[1] = intersection.y;
+
+        cv::Point2f right_endpoint(seg2[2], seg2[3]);
+        cv::Point2f left_endpoint(seg2[0], seg2[1]);
+        double norm_left = cv::norm(intersection-left_endpoint);
+        double norm_right = cv::norm(intersection-right_endpoint);
+        if(norm_left > norm_right) {
+            seg2[2] = intersection.x;
+            seg2[3] = intersection.y;
+        }
+        else {
+            seg2[0] = intersection.x;
+            seg2[1] = intersection.y;
+        }
     }
 }
 
 // Function to check if two segments intersect (after extending)
 bool segments_intersect(const cv::Vec4f& seg1, const cv::Vec4f& seg2, cv::Point2f& intersection) {
-    // Extend the segments
-    cv::Vec4f extended_seg1 = extend_segment(seg1, 0.05f);
-    cv::Vec4f extended_seg2 = extend_segment(seg2, 0.05f);
 
     // Extract points from the extended segments
-    cv::Point2f p1(extended_seg1[0], extended_seg1[1]), q1(extended_seg1[2], extended_seg1[3]);
-    cv::Point2f p2(extended_seg2[0], extended_seg2[1]), q2(extended_seg2[2], extended_seg2[3]);
+    cv::Point2f p1(seg1[0], seg1[1]), q1(seg1[2], seg1[3]);
+    cv::Point2f p2(seg2[0], seg2[1]), q2(seg2[2], seg2[3]);
 
     // Compute direction vectors for both segments
     cv::Vec2f r = cv::Vec2f(q1 - p1);  // Direction of extended_seg1
@@ -485,6 +507,7 @@ cv::RotatedRect build_rotatedrect_from_movement(const cv::Vec4f& segment, const 
     // Rightmost endpoint of the original segment
     cv::Point2f right_endpoint(segment[2], segment[3]);
     cv::Point2f left_endpoint(segment[0], segment[1]);
+    cv::Point2f midpoint = compute_midpoint(segment);
 
     // Compute the direction vector of the original segment
     cv::Vec2f direction = cv::Vec2f(right_endpoint - left_endpoint);
@@ -499,7 +522,7 @@ cv::RotatedRect build_rotatedrect_from_movement(const cv::Vec4f& segment, const 
     cv::Vec2f perpendicular_direction(-direction[1], direction[0]);
 
     // Create the perpendicular segment from the rightmost endpoint
-    cv::Point2f perp_end = start + cv::Point2f(perpendicular_direction[0] * length, perpendicular_direction[1] * length);
+    cv::Point2f perp_end = start + cv::Point2f(perpendicular_direction[0] * 2*length, perpendicular_direction[1] * 2*length);
 
     // Initialize variables to store the closest intersection point
     cv::Point2f closest_intersection;
@@ -511,13 +534,20 @@ cv::RotatedRect build_rotatedrect_from_movement(const cv::Vec4f& segment, const 
     // cv::line(image, start, perp_end, cv::Scalar(0, 0, 255), 2, cv::LINE_AA); 
     // cv::imshow("projections", image);
     // cv::waitKey(0);
+    // cv::line(image, start, perp_end, cv::Scalar(0, 0, 0), 2, cv::LINE_AA); 
 
     // Check intersection of the perpendicular segment with every other segment
     for (const auto& other_segment : segments) {
         cv::Point2f intersection;
-        if (other_segment != segment && segments_intersect(cv::Vec4f(start.x, start.y, perp_end.x, perp_end.y), other_segment, intersection)) {
+        cv::Vec4f perp_vect = cv::Vec4f(start.x, start.y, perp_end.x, perp_end.y);
+        cv::Vec4f extended_seg1 = extend_segment(other_segment, 0.2f);
+        if (other_segment != segment && segments_intersect(extended_seg1, perp_vect, intersection)) {
             float dist = cv::norm(start-intersection);
-            if (dist > 10 && dist < min_distance) {
+            // last conditions to ensure that close segments of another parking slot line does not interfere
+            // 
+            if (dist > 10 && dist < min_distance
+             && abs(other_segment[0]-right_endpoint.x) > length/4
+                && abs(other_segment[2]-right_endpoint.x) < 150) { // last conditions to ensure that close segments of another parking slot line does not interfere) { 
                 min_distance = dist;
                 closest_intersection = intersection;
                 found_intersection = true;
@@ -541,12 +571,12 @@ cv::RotatedRect build_rotatedrect_from_movement(const cv::Vec4f& segment, const 
         // cv::circle(image,rightmost_extended,5,cv::Scalar(0,0,255));
         // cv::circle(image,left_endpoint,5,cv::Scalar(0,255,0));
         // cv::circle(image,furthest,5,cv::Scalar(255,0,0));
-        // cv::imshow("projections", image);
-        // cv::waitKey(0);
         //     cv::line(image, cv::Point(closest_segment[0], closest_segment[1]), cv::Point(closest_segment[2], closest_segment[3]), 
         //         cv::Scalar(0, 0, 255), 2, cv::LINE_AA); 
         //     cv::line(image, cv::Point(segment[0], segment[1]), cv::Point(segment[2], segment[3]), 
         //         cv::Scalar(0, 0, 255), 2, cv::LINE_AA); 
+        // cv::imshow("projections", image);
+        // cv::waitKey(0);
         cv::RotatedRect bounding_box = cv::minAreaRect(std::vector<cv::Point2f>{endpoint1, endpoint2,right_endpoint,left_endpoint});
         //if(bounding_box.size.aspectRatio() > 1.5|| bounding_box.size.aspectRatio() < 1/1.5) {
         //    return shrink_rotated_rect(bounding_box, 0.8);
