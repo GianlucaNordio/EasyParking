@@ -163,3 +163,13 @@ void loadSequencesGroundTruth(const std::string& datasetPath, int numSequences, 
 void loadGroundTruth(std::string path, std::vector<ParkingSpot> &groundTruth) {
     parseXML(path, groundTruth);
 }
+
+void printPerformanceMetrics(const std::vector<double>& mAP, const std::vector<double>& IoU) {
+    std::cout << std::left << std::setw(12) << "Frame" << std::setw(12) << "mAP" << std::setw(12) << "IoU" << std::endl;
+    std::cout << std::string(36, '-') << std::endl;
+    
+    for (int i = 0; i < mAP.size(); i++) {
+        std::cout << std::left << std::setw(12) << i + 1 << std::setw(12) << std::fixed << std::setprecision(4) << mAP[i]
+                  << std::setw(12) << std::fixed << std::setprecision(4) << IoU[i] << std::endl;
+    }
+}

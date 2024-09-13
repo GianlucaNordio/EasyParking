@@ -77,18 +77,83 @@ int main() {
     // Compute performance for the base sequence
     std::vector<double> baseSequenceMAP;
     std::vector<double> baseSequenceIoU;
+
+    double averageBaseSequenceMAP = 0;
+    double averageBaseSequenceIoU = 0;
     
     for(int i = 0; i < baseSequence.size(); i++) {
         baseSequenceMAP.push_back(calculateMeanAveragePrecision(baseSequenceParkingSpotGT, parkingSpot));
         baseSequenceIoU.push_back(calculateMeanIntersectionOverUnion(classifiedBaseSequenceMasks[i], baseSequenceMaskGT));
     }
 
+    for(int i = 0; i < baseSequenceMAP.size(); i++) {
+        averageBaseSequenceMAP += baseSequenceMAP[i];
+        averageBaseSequenceIoU += baseSequenceIoU[i];
+    }
+
+    averageBaseSequenceMAP /= baseSequenceMAP.size();
+    averageBaseSequenceIoU /= baseSequenceIoU.size();
+
     // Compute performance for the dataset
     std::vector<std::vector<double>> datasetMAP;
     std::vector<std::vector<double>> datasetIoU;
 
+    std::vector<double> averageDatasetMAP;
+    std::vector<double> averageDatasetIoU;
+
+    for(int i = 0; i < NUMBER_SEQUENCES; i++) {
+        std::vector<double> sequenceMAP;
+        std::vector<double> sequenceIoU;
+
+        for(int j = 0; j < dataset[i].size(); j++) {
+            sequenceMAP.push_back(calculateMeanAveragePrecision(datasetParkingSpotGT[i], parkingSpot));
+            sequenceIoU.push_back(calculateMeanIntersectionOverUnion(classifiedDatasetMasks[i][j], sequenceMaskGTGray[i][j]));
+        }
+
+        datasetMAP.push_back(sequenceMAP);
+        datasetIoU.push_back(sequenceIoU);
+    }
+
+    for(int i = 0; i < datasetMAP.size(); i++) {
+        double averageSequenceMAP = 0;
+        double averageSequenceIoU = 0;
+
+        for(int j = 0; j < datasetMAP[i].size(); j++) {
+            averageSequenceMAP += datasetMAP[i][j];
+            averageSequenceIoU += datasetIoU[i][j];
+        }
+
+        averageSequenceMAP /= datasetMAP[i].size();
+        averageSequenceIoU /= datasetIoU[i].size();
+
+        averageDatasetMAP.push_back(averageSequenceMAP);
+        averageDatasetIoU.push_back(averageSequenceIoU);
+    }
 
     // STEP 6: Display results
+    
+    // Display the visual results
+
+    // Display the performance metrics
+
+    // Print performance for the base sequence
+    std::cout << "Base Sequence Performance:\n";
+    printPerformanceMetrics(baseSequenceMAP, baseSequenceIoU);
+    std::cout << "Average MAP: " << std::fixed << std::setprecision(4) << averageBaseSequenceMAP << std::endl;
+    std::cout << "Average IoU: " << std::fixed << std::setprecision(4) << averageBaseSequenceIoU << std::endl;
+
+    std::cout << std::string(36, '=') << std::endl;
+
+    // Print performance for the dataset
+    std::cout << "\nDataset Performance:\n";
+    for (int i = 0; i < datasetMAP.size(); i++) {
+        std::cout << "Sequence " << i + 1 << ":\n";
+        printPerformanceMetrics(datasetMAP[i], datasetIoU[i]);
+        std::cout << "Average MAP: " << std::fixed << std::setprecision(4) << averageDatasetMAP[i] << std::endl;
+        std::cout << "Average IoU: " << std::fixed << std::setprecision(4) << averageDatasetIoU[i] << std::endl;
+        std::cout << std::string(36, '-') << std::endl;
+        std::cout << std::endl;
+    }
     
 
     return 0;

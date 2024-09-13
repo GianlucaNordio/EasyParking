@@ -25,36 +25,25 @@ std::vector<ParkingSpot> detectParkingSpotInImage(const cv::Mat& image) {
     cv::Mat filteredImage;
     cv::bilateralFilter(image, filteredImage, -1, 40, 10);
 
-    cv::imshow("bilateral filtered", filteredImage);
-    cv::waitKey(0);
-
     cv::Mat gs;
     cv::cvtColor(image, gs, cv::COLOR_BGR2GRAY);
 
-    cv::imshow("grayscale", gs);
-    cv::waitKey(0);
-
     cv::Mat stretched = contrastStretchTransform(gs);
-    cv::imshow("stretched", stretched);
-    cv::waitKey(0);
-
+ 
     // Set the gamma value
     double gammaValue = 1.25; // Example gamma value
 
     // Apply gamma transformation
     cv::Mat gammaCorrected1 = applyGammaTransform(gs, gammaValue);
-    cv::imshow("gamma tf1", gammaCorrected1);
-    cv::waitKey(0);
+ 
 
     gammaValue = 2;
     cv::Mat gammaCorrected2 = applyGammaTransform(gammaCorrected1, gammaValue);
-    cv::imshow("gamma tf2", gammaCorrected2);
-    cv::waitKey(0);
+ 
 
     cv::Mat gsthold;
     cv::threshold( gammaCorrected2, gsthold, 180, 255,  cv::THRESH_BINARY);
-    // cv::imshow("gsthold", gsthold);
-    // cv::waitKey(0);
+
 
     cv::Mat gx;
     cv::Sobel(gammaCorrected2, gx, CV_16S, 1,0);
@@ -67,18 +56,12 @@ std::vector<ParkingSpot> detectParkingSpotInImage(const cv::Mat& image) {
     cv::convertScaleAbs(gx, abs_grad_x);
     cv::convertScaleAbs(gy, abs_grad_y);
 
-    cv::imshow("gradient x gamma", abs_grad_x);
-    cv::waitKey(0);
-    cv::imshow("gradient y gamma", abs_grad_y);
-    cv::waitKey(0);
-
     cv::Mat grad_magn;
     cv::addWeighted(abs_grad_x, 0.5, abs_grad_y, 0.5, 0, grad_magn);
 
     cv::Mat equalized;
     cv::equalizeHist(gammaCorrected2,equalized);
-    cv::imshow("equalized", equalized);
-    cv::waitKey(0);
+
 
     cv::Mat equalized_filt;
     cv::GaussianBlur(equalized,equalized_filt, cv::Size(5,5),30);
@@ -94,11 +77,6 @@ std::vector<ParkingSpot> detectParkingSpotInImage(const cv::Mat& image) {
     cv::convertScaleAbs(gxeq, abs_grad_xeq);
     cv::convertScaleAbs(gyeq, abs_grad_yeq);
 
-    // cv::imshow("gradient x eq", abs_grad_xeq);
-    // cv::waitKey(0);
-    // cv::imshow("gradient y eq", abs_grad_yeq);
-    // cv::waitKey(0);
-
     //cv::Mat grad_magneq;
     //cv::addWeighted(abs_grad_xeq, 0.5, abs_grad_yeq, 0.5, 0, grad_magneq);
 
@@ -113,35 +91,25 @@ std::vector<ParkingSpot> detectParkingSpotInImage(const cv::Mat& image) {
     cv::Mat normalized_abs_laplacian;
     cv::normalize(abs_laplacian, normalized_abs_laplacian, 0, 255, cv::NORM_MINMAX, CV_8U);
 
-    cv::imshow("Normalized Absolute Laplacian", gammaCorrected2+normalized_abs_laplacian);  // Normalized for grayscale
-    cv::waitKey(0);  // Wait for a key press indefinitely
 
     cv::Mat filtered_laplacian;
     cv::bilateralFilter(normalized_abs_laplacian, filtered_laplacian, -1, 10, 10);
-    cv::imshow("filtered laplacian", filtered_laplacian);
-    cv::waitKey(0);
 
-    cv::imshow("gradient magnitude", grad_magn);
-    cv::waitKey(0);
 
     cv::Mat grad_magn_bilateral;
     cv::bilateralFilter(grad_magn, grad_magn_bilateral, -1, 20, 10);
-    cv::imshow("grad magn bilateral", grad_magn_bilateral);
-    cv::waitKey(0);
+
 
     cv::Mat medianblurred;
     cv::medianBlur(grad_magn_bilateral, medianblurred, 3);
     cv::Mat bilateralblurred;
     //cv::bilateralFilter(medianblurred, bilateralblurred, -1,20,10);
-    cv::imshow("bilateral filtered2", medianblurred);
-    cv::waitKey(0);
-
+ 
     cv::Mat element = cv::getStructuringElement( 
                         cv::MORPH_RECT, cv::Size(3,3)); 
 
     cv::Mat erodeg; 
     cv::erode(medianblurred, erodeg, element, cv::Point(-1, -1), 1); 
-    cv::imshow("erodeg", erodeg);
 
     //cv::Mat gmagthold;
     //cv::threshold( erodeg, gmagthold, 110, 255,  cv::THRESH_BINARY);
@@ -150,7 +118,6 @@ std::vector<ParkingSpot> detectParkingSpotInImage(const cv::Mat& image) {
 
     cv::Mat dilate; 
     cv::dilate(medianblurred, dilate, element, cv::Point(-1, -1), 4); 
-    cv::imshow("dilated", dilate);
 
 /*
    std::vector<int> angles = {-8, -9, -10, -11, -12, -13};
@@ -205,8 +172,6 @@ std::vector<ParkingSpot> detectParkingSpotInImage(const cv::Mat& image) {
                 }
             }
 
-            cv::imshow("Horizontal template", horizontal_template);
-            cv::waitKey(0);
 
             // Rotate the template
             cv::Mat R = cv::getRotationMatrix2D(cv::Point2f(0,template_height-1),angles[k],1);
@@ -218,9 +183,6 @@ std::vector<ParkingSpot> detectParkingSpotInImage(const cv::Mat& image) {
 
             cv::warpAffine(horizontal_template,rotated_template,R,cv::Size(rotated_width,rotated_height));
             cv::warpAffine(horizontal_mask,rotated_mask,R,cv::Size(rotated_width,rotated_height));
-
-            cv::imshow("Rotated template", rotated_template);
-            cv::waitKey(0);
 
             cv::Mat tm_result;
             //cv::filter2D(dilate, test, CV_32F, rotated);
@@ -234,7 +196,6 @@ std::vector<ParkingSpot> detectParkingSpotInImage(const cv::Mat& image) {
             cv::Point minloc(0,0), maxloc(0,0);
             cv::minMaxLoc(tm_result_unnorm,&min,&max,&minloc,&maxloc);
 
-            std::cout << "MIN VALUE AFTER NORMALIZING: " << min/max << std::endl;
             if(min/max > 0.2) continue;
 
             if(max > maxmax) {
@@ -242,9 +203,7 @@ std::vector<ParkingSpot> detectParkingSpotInImage(const cv::Mat& image) {
             }
 
             cv::normalize( tm_result_unnorm, tm_result, 0, 1, cv::NORM_MINMAX, -1, cv::Mat() );
-        
-            cv::imshow("TM Result", tm_result);
-            cv::waitKey(0);
+       
 
             // Finding local minima
             cv::Mat eroded;
@@ -253,8 +212,6 @@ std::vector<ParkingSpot> detectParkingSpotInImage(const cv::Mat& image) {
             cv::erode(tm_result, eroded, kernel);
             cv::Mat localMinimaMask = (tm_result == eroded) & (tm_result <= 0.025);
 
-            cv::imshow("TM Result, eroded", eroded);
-            cv::waitKey(0);
 
             // Find all non-zero points (local minima) in the mask
             cv::findNonZero(localMinimaMask, minima);
@@ -284,8 +241,7 @@ std::vector<ParkingSpot> detectParkingSpotInImage(const cv::Mat& image) {
                     verts.push_back(vertices[i]);
                 }
             }
-            cv::imshow("with lines", image);
-            cv::waitKey(0);
+
         }
     }
 
@@ -331,7 +287,6 @@ std::vector<ParkingSpot> detectParkingSpotInImage(const cv::Mat& image) {
 
     // Compute the average minimum distance
     double averageMinDistance = sumOfMinDistances / nms_centers.size();
-    std::cout << averageMinDistance << std::endl;
 
     // Remove nms centers too close or too far from eachother
     for (int idx : indices) {
@@ -349,9 +304,7 @@ std::vector<ParkingSpot> detectParkingSpotInImage(const cv::Mat& image) {
                 }
             }
         }
-
-        std::cout << minDistance << std::endl;
-
+        
         /*if(minDistance < averageMinDistance/2 || minDistance > averageMinDistance*2) {
             indices.erase(std::find(indices.begin(),indices.end(),idx));
         }*/
@@ -368,8 +321,6 @@ std::vector<ParkingSpot> detectParkingSpotInImage(const cv::Mat& image) {
     // O uso questo come centri di k-means, o non uso NMS e quando disegno un nuovo rotatedrect controllo che il suo match sia migliore di quello precedente
     // rispetto al bbox che gli è più vicino
     // Display the image
-    cv::imshow("NMS Result", image);
-    cv::waitKey(0);
 
     return parkingSpots;
 }
