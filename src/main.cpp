@@ -48,7 +48,7 @@ int main() {
     std::vector<ParkingSpot> parkingSpot;
     detectParkingSpots(baseSequence, parkingSpot); 
 
-    std::cout << "Detected parking spots in the base sequence:\n";
+    std::cout << "Detected parking spots in the base sequence.\n";
 
 // STEP 3: Perform segmentation
 
