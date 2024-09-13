@@ -81,8 +81,8 @@ std::vector<ParkingSpot> detectParkingSpotInImage(const cv::Mat& image) {
     std::cout << "Median width of negative angle lines: " << avg_neg_width << std::endl;
 
     // Display the result
-    cv::imshow("Detected Line Segments", intermediate_results);
-    cv::waitKey(0);
+    //cv::imshow("Detected Line Segments", intermediate_results);
+    //cv::waitKey(0);
 
     preprocessed = preprocess_find_parking_lines(image);
     cv::imshow("TM Input", preprocessed);
@@ -90,7 +90,7 @@ std::vector<ParkingSpot> detectParkingSpotInImage(const cv::Mat& image) {
 
     // offsets from avg values
     std::vector<int> angle_offsets = {-8,-7,-6,-5,-4,-3,-2,-1,0,1,2,3,4,5,6,7,8};
-    std::vector<float> length_scales = {1.25,1.5,1.75,2};
+    std::vector<float> length_scales = {1};
     std::vector<cv::RotatedRect> list_boxes;
     std::vector<float> rect_scores(list_boxes.size(), -1); // Initialize scores with -1 for non-existing rects
 
@@ -103,18 +103,16 @@ std::vector<ParkingSpot> detectParkingSpotInImage(const cv::Mat& image) {
             std::vector<cv::Mat> rotated_template_and_mask = generate_template(template_width, template_height, angle, false);
             cv::Mat rotated_template = rotated_template_and_mask[0];
             cv::Mat rotated_mask = rotated_template_and_mask[1];
-
             cv::Mat tm_result_unnorm;
             cv::Mat tm_result;
             cv::matchTemplate(preprocessed,rotated_template,tm_result_unnorm,cv::TM_SQDIFF,rotated_mask);
             cv::normalize( tm_result_unnorm, tm_result, 0, 1, cv::NORM_MINMAX, -1, cv::Mat() );
-
             // Finding local minima
             cv::Mat eroded;
             std::vector<cv::Point> minima;
             cv::Mat kernel = cv::getStructuringElement(cv::MORPH_RECT, cv::Size(rotated_template.cols, rotated_template.rows));
             cv::erode(tm_result, eroded, kernel);
-            cv::Mat localMinimaMask = (tm_result == eroded) & (tm_result <= 0.4);
+            cv::Mat localMinimaMask = (tm_result == eroded) & (tm_result <= 0.2);
 
             // Find all non-zero points (local minima) in the mask
             cv::findNonZero(localMinimaMask, minima);
@@ -129,8 +127,8 @@ std::vector<ParkingSpot> detectParkingSpotInImage(const cv::Mat& image) {
                 center.x = pt.x + rotated_template.cols / 2;
                 center.y = pt.y + rotated_template.rows / 2;
 
-                cv::RotatedRect rotated_rect(center, cv::Size(template_width*1, template_height*1), -angle);
-
+                cv::RotatedRect rotated_rect(center, cv::Size(template_width*1.25, template_height*1.25), -angle);
+                
                 // Check overlap with existing rects in list_boxes2
                 bool overlaps = false;
                 std::vector<size_t> overlapping_indices;
@@ -171,6 +169,16 @@ std::vector<ParkingSpot> detectParkingSpotInImage(const cv::Mat& image) {
         }
     }
 
+    for(auto& rect:list_boxes) {
+                cv::Point2f vertices[4];
+        rect.points(vertices);
+        for (int i = 0; i < 4; i++) {
+            cv::line(image, vertices[i], vertices[(i+1) % 4], cv::Scalar(0, 255, 0), 2);
+        }
+    }
+    cv::imshow("ppp", image);
+    cv::waitKey(0);
+
     std::vector<cv::RotatedRect> list_boxes2;
     std::vector<float> rect_scores2(list_boxes2.size(), -1); // Initialize scores with -1 for non-existing rects
 
@@ -183,7 +191,7 @@ std::vector<ParkingSpot> detectParkingSpotInImage(const cv::Mat& image) {
             std::vector<cv::Mat> rotated_template_and_mask = generate_template(template_width, template_height, angle, true);
             cv::Mat rotated_template = rotated_template_and_mask[0];
             cv::Mat rotated_mask = rotated_template_and_mask[1];
-            
+                            
             cv::Mat tm_result_unnorm;
             cv::Mat tm_result;
             cv::matchTemplate(preprocessed,rotated_template,tm_result_unnorm,cv::TM_SQDIFF,rotated_mask);
@@ -194,7 +202,7 @@ std::vector<ParkingSpot> detectParkingSpotInImage(const cv::Mat& image) {
             std::vector<cv::Point> minima;
             cv::Mat kernel = cv::getStructuringElement(cv::MORPH_RECT, cv::Size(rotated_template.cols, rotated_template.rows));
             cv::erode(tm_result, eroded, kernel);
-            cv::Mat local_minima_mask = (tm_result == eroded) & (tm_result <= 0.4);
+            cv::Mat local_minima_mask = (tm_result == eroded) & (tm_result <= 0.2);
 
             // Find all non-zero points (local minima) in the mask
             cv::findNonZero(local_minima_mask, minima);
@@ -210,6 +218,11 @@ std::vector<ParkingSpot> detectParkingSpotInImage(const cv::Mat& image) {
                 center.y = pt.y + rotated_template.rows / 2;
 
                 cv::RotatedRect rotated_rect(center, cv::Size(template_width*1, template_height*1), angle);
+                cv::Point2f vertices[4];
+                rotated_rect.points(vertices);
+                for (int i = 0; i < 4; i++) {
+                    cv::line(image, vertices[i], vertices[(i+1) % 4], cv::Scalar(0, 255, 0), 2);
+                }
 
                 // Check overlap with existing rects in list_boxes2
                 bool overlaps = false;
@@ -253,6 +266,11 @@ std::vector<ParkingSpot> detectParkingSpotInImage(const cv::Mat& image) {
 
     std::vector<cv::RotatedRect> merged_pos_rects = merge_overlapping_rects(list_boxes);
     std::vector<cv::RotatedRect> merged_neg_rects = merge_overlapping_rects(list_boxes2);
+
+    // Output the result
+    for (const auto& rect : list_boxes) {
+
+    }
 
     // std::vector<cv::RotatedRect> merged_pos_rects = merge_overlapping_rects(list_boxes);
     // std::vector<cv::RotatedRect> merged_neg_rects = merge_overlapping_rects(list_boxes2);
@@ -311,7 +329,7 @@ std::vector<ParkingSpot> detectParkingSpotInImage(const cv::Mat& image) {
                  cv::Point2f(line_segment[2], line_segment[3]), cv::Scalar(255, 0, 0), 2);
     }
 
-    cv::imshow("After trim", image);
+    cv::imshow("ppp", image);
     cv::waitKey(0);
 
     std::cout << "number of segments ORIGINAL" << segments_neg.size() << std::endl;
@@ -354,7 +372,7 @@ std::vector<ParkingSpot> detectParkingSpotInImage(const cv::Mat& image) {
             }
         }
     }
-    cv::imshow("After trim", image);
+    cv::imshow("ppp", image);
     cv::waitKey(0);
 
 	return parkingSpots;
@@ -530,24 +548,22 @@ cv::RotatedRect build_rotatedrect_from_movement(const cv::Vec4f& segment, const 
     bool found_intersection = false;
     cv::Vec4f closest_segment;
 
-    // cv::circle(image,start,5,cv::Scalar(0,0,255));
-    // cv::line(image, start, perp_end, cv::Scalar(0, 0, 255), 2, cv::LINE_AA); 
-    // cv::imshow("projections", image);
-    // cv::waitKey(0);
-    // cv::line(image, start, perp_end, cv::Scalar(0, 0, 0), 2, cv::LINE_AA); 
+    cv::circle(image,midpoint,5,cv::Scalar(0,0,255));
+    cv::line(image, midpoint, perp_end, cv::Scalar(0, 0, 255), 2, cv::LINE_AA); 
+    cv::imshow("projections", image);
+    cv::waitKey(0);
+    cv::line(image, midpoint, perp_end, cv::Scalar(0, 0, 0), 2, cv::LINE_AA); 
 
     // Check intersection of the perpendicular segment with every other segment
     for (const auto& other_segment : segments) {
         cv::Point2f intersection;
-        cv::Vec4f perp_vect = cv::Vec4f(start.x, start.y, perp_end.x, perp_end.y);
-        cv::Vec4f extended_seg1 = extend_segment(other_segment, 0.2f);
+        cv::Vec4f perp_vect = cv::Vec4f(midpoint.x, midpoint.y, perp_end.x, perp_end.y);
+        cv::Vec4f extended_seg1 = extend_segment(other_segment, 1.0f);
         if (other_segment != segment && segments_intersect(extended_seg1, perp_vect, intersection)) {
-            float dist = cv::norm(start-intersection);
+            float dist = cv::norm(midpoint-intersection);
             // last conditions to ensure that close segments of another parking slot line does not interfere
             // 
-            if (dist > 10 && dist < min_distance
-             && abs(other_segment[0]-right_endpoint.x) > length/4
-                && abs(other_segment[2]-right_endpoint.x) < 150) { // last conditions to ensure that close segments of another parking slot line does not interfere) { 
+            if (dist > 10 && dist < min_distance) { // last conditions to ensure that close segments of another parking slot line does not interfere) { 
                 min_distance = dist;
                 closest_intersection = intersection;
                 found_intersection = true;
@@ -824,9 +840,6 @@ cv::Mat preprocess_find_white_lines(const cv::Mat& src) {
 
     cv::Mat magnitude = gr_x + gr_y;
 
-    cv::imshow("grayscale", magnitude);
-    cv::waitKey(0);
-
     cv::Mat element = cv::getStructuringElement( 
                         cv::MORPH_CROSS, cv::Size(3,3)); 
 
@@ -925,6 +938,8 @@ std::vector<cv::Mat> generate_template(double width, double height, double angle
     float rotated_width;
     float rotated_height;
 
+    height = height + 4;
+
     // Rotate the template
     if(!flipped) {
         template_height = height;
@@ -943,13 +958,15 @@ std::vector<cv::Mat> generate_template(double width, double height, double angle
     }
 
     // Horizontal template and mask definition
-    cv::Mat horizontal_template(template_height,template_width,CV_8U);
+    cv::Mat horizontal_template(template_height,template_width,CV_8U,cv::Scalar(0));
     cv::Mat horizontal_mask(template_height,template_width,CV_8U);
 
     // Build the template and mask
     for(int i = 0; i< horizontal_template.rows; i++) {
         for(int j = 0; j<horizontal_template.cols; j++) {
+            if((!flipped ? i>2 && i < height+2 : j>2&&j<height+2)) {
             horizontal_template.at<uchar>(i,j) = 255;
+            }
             horizontal_mask.at<uchar>(i,j) = 255;
         }
     }
@@ -963,6 +980,9 @@ std::vector<cv::Mat> generate_template(double width, double height, double angle
     
     cv::warpAffine(horizontal_template,rotated_template,R,cv::Size(rotated_width,rotated_height));
     cv::warpAffine(horizontal_mask,rotated_mask,R,cv::Size(rotated_width,rotated_height));
+
+    cv::imshow("original template", horizontal_template);
+    cv::imshow("template", rotated_template);
 
     return std::vector<cv::Mat>{rotated_template,rotated_mask};
 }
