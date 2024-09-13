@@ -563,7 +563,7 @@ cv::RotatedRect build_rotatedrect_from_movement(const cv::Vec4f& segment, const 
             float dist = cv::norm(midpoint-intersection);
             // last conditions to ensure that close segments of another parking slot line does not interfere
             // 
-            if (dist > 10 && dist < min_distance) { // last conditions to ensure that close segments of another parking slot line does not interfere) { 
+            if (dist > 10 && dist < min_distance && dist < length*5) { // last conditions to ensure that close segments of another parking slot line does not interfere) { 
                 min_distance = dist;
                 closest_intersection = intersection;
                 found_intersection = true;
@@ -578,22 +578,19 @@ cv::RotatedRect build_rotatedrect_from_movement(const cv::Vec4f& segment, const 
         cv::Point2f endpoint1(closest_segment[0], closest_segment[1]);
         cv::Point2f endpoint2(closest_segment[2], closest_segment[3]);
 
-        // Calculate the distances from the leftmost endpoint of seg1 to both endpoints of seg2
-        float dist1 = cv::norm(left_endpoint- endpoint1);
-        float dist2 = cv::norm(left_endpoint- endpoint2);
+        double length_other = get_segment_length(closest_segment);
+        double slope = tan(get_segment_angular_coefficient(segment)*CV_PI/180);
+        double intercept =  segment[1] - slope * segment[0];
+        cv::Point2f destination_right(endpoint2.x, endpoint2.x*slope+intercept);
 
-        cv::Point2f furthest = (dist1 > dist2) ? endpoint1 : endpoint2;
-        cv::Point2f rightmost_extended = furthest - cv::Point2f(perpendicular_direction[0] * min_distance, perpendicular_direction[1] * min_distance);
-        // cv::circle(image,rightmost_extended,5,cv::Scalar(0,0,255));
-        // cv::circle(image,left_endpoint,5,cv::Scalar(0,255,0));
-        // cv::circle(image,furthest,5,cv::Scalar(255,0,0));
-        //     cv::line(image, cv::Point(closest_segment[0], closest_segment[1]), cv::Point(closest_segment[2], closest_segment[3]), 
-        //         cv::Scalar(0, 0, 255), 2, cv::LINE_AA); 
-        //     cv::line(image, cv::Point(segment[0], segment[1]), cv::Point(segment[2], segment[3]), 
-        //         cv::Scalar(0, 0, 255), 2, cv::LINE_AA); 
-        // cv::imshow("projections", image);
-        // cv::waitKey(0);
-        cv::RotatedRect bounding_box = cv::minAreaRect(std::vector<cv::Point2f>{endpoint1, endpoint2,right_endpoint,left_endpoint});
+        cv::Point2f destination_bottom = destination_right + cv::Point2f(perpendicular_direction[0] * min_distance, perpendicular_direction[1] * min_distance);
+        cv::circle(image,destination_right,5,cv::Scalar(0,0,255));
+        cv::circle(image,destination_bottom,5,cv::Scalar(0,255,0));
+        cv::circle(image,left_endpoint,5,cv::Scalar(255,0,0));
+        cv::imshow("projections", image);
+        cv::waitKey(0);
+
+        cv::RotatedRect bounding_box(left_endpoint,destination_right,destination_bottom);
         //if(bounding_box.size.aspectRatio() > 1.5|| bounding_box.size.aspectRatio() < 1/1.5) {
         //    return shrink_rotated_rect(bounding_box, 0.8);
         //}
@@ -938,6 +935,7 @@ std::vector<cv::Mat> generate_template(double width, double height, double angle
     float rotated_width;
     float rotated_height;
 
+    height = 6;
     height = height + 4;
 
     // Rotate the template
@@ -964,7 +962,7 @@ std::vector<cv::Mat> generate_template(double width, double height, double angle
     // Build the template and mask
     for(int i = 0; i< horizontal_template.rows; i++) {
         for(int j = 0; j<horizontal_template.cols; j++) {
-            if((!flipped ? i>2 && i < height+2 : j>2&&j<height+2)) {
+            if((!flipped ? i>2 && i < height-2 : j>2&&j<height-2)) {
             horizontal_template.at<uchar>(i,j) = 255;
             }
             horizontal_mask.at<uchar>(i,j) = 255;
