@@ -14,6 +14,20 @@
 
 const int NUMBER_SEQUENCES = 5;
 
+/**
+ * @brief Main function that performs parking spot detection, segmentation, classification, and performance evaluation on a dataset.
+ *
+ * This function executes the following steps:
+ * 
+ * 1. Loads a dataset of parking lot images and sequences.
+ * 2. Detects parking spots in the base sequence.
+ * 3. Performs segmentation on both the base sequence and dataset sequences.
+ * 4. Classifies the segmented parking spots in both the base sequence and dataset sequences.
+ * 5. Evaluates the performance metrics (Mean Average Precision and Mean Intersection over Union) for both the base sequence and the dataset.
+ * 6. Displays the results, including images, bounding boxes, segmented masks, classified masks, and performance metrics.
+ * 
+ * @return int Returns 0 upon successful execution.
+ */
 int main() {  
 
 // STEP 1: Load the dataset
@@ -21,8 +35,6 @@ int main() {
     // Read the images from the dataset
     std::vector<cv::Mat> baseSequence;
     loadBaseSequenceFrames("../dataset", baseSequence);
-    cv::imshow("Base sequence", produceSingleImage(baseSequence, 3));
-    cv::waitKey();
 
     std::vector<std::vector<cv::Mat>> dataset;
     loadSequencesFrames("../dataset", NUMBER_SEQUENCES, dataset);
@@ -130,10 +142,69 @@ int main() {
         averageDatasetIoU.push_back(averageSequenceIoU);
     }
 
-    // STEP 6: Display results
+// STEP 6: Display results
     
     // Display the visual results
 
+    // Display the base sequence
+    cv::imshow("Base sequence", produceSingleImage(baseSequence, 3));
+    cv::waitKey();
+
+    // Display the bounding boxes found in the base sequence
+    std::vector<cv::Mat> baseSequenceBBoxes;
+    for(int i = 0; i < baseSequence.size(); i++) {
+        cv::Mat output = baseSequence[i].clone();
+        for(int j = 0; j < parkingSpot.size(); j++) {
+            cv::rectangle(output, parkingSpot[j].rect.boundingRect(), cv::Scalar(0, 255, 0), 2);
+        }
+        baseSequenceBBoxes.push_back(output);
+    }
+    cv::imshow("Base Sequence BBoxes", produceSingleImage(baseSequenceBBoxes, 3));
+    cv::waitKey();
+
+    // Display the segmented masks for the base sequence
+    cv::imshow("Base Sequence Masks", produceSingleImage(baseSequenceMasks, 3));
+    cv::waitKey();
+
+    // Display the classified masks for the base sequence
+    std::vector<cv::Mat> classifiedBaseSequenceMasksBGR;
+    convertGreyMaskToBGR(classifiedBaseSequenceMasks, classifiedBaseSequenceMasksBGR);
+    cv::imshow("Base Sequence Classified Masks", produceSingleImage(classifiedBaseSequenceMasksBGR, 3));
+    cv::waitKey();
+
+    // Convert the greyscale masks to BGR
+    std::vector<std::vector<cv::Mat>> classifiedDatasetMasksBGR;
+    convertGreyMaskToBGR(classifiedDatasetMasks, classifiedDatasetMasksBGR);
+
+    // Display the results on the dataset one sequence at a time
+    for(int i = 0; i < NUMBER_SEQUENCES; i++) {
+        // For the sequence i:
+
+        // Display the image
+        cv::imshow("Sequence " + std::to_string(i + 1), produceSingleImage(dataset[i], 3));
+        cv::waitKey();
+
+        // Display the bounding boxes found in the dataset
+        std::vector<cv::Mat> sequenceBBoxes;
+        for(int j = 0; j < dataset[i].size(); j++) {
+            cv::Mat output = dataset[i][j].clone();
+            for(int k = 0; k < parkingSpot.size(); k++) {
+                cv::rectangle(output, parkingSpot[k].rect.boundingRect(), cv::Scalar(0, 255, 0), 2);
+            }
+            sequenceBBoxes.push_back(output);
+        }
+
+        cv::imshow("Sequence " + std::to_string(i + 1) + " BBoxes", produceSingleImage(sequenceBBoxes, 3));
+        cv::waitKey();
+
+        // Display the segmented masks for the dataset
+        cv::imshow("Sequence " + std::to_string(i + 1) + " Masks", produceSingleImage(datasetMasks[i], 3));
+        cv::waitKey();
+
+        // Display the classified masks for the dataset
+        cv::imshow("Sequence " + std::to_string(i + 1) + " Classified Masks", produceSingleImage(classifiedDatasetMasksBGR[i], 3));
+        cv::waitKey();
+    }
     // Display the performance metrics
 
     // Print performance for the base sequence
@@ -141,6 +212,8 @@ int main() {
     printPerformanceMetrics(baseSequenceMAP, baseSequenceIoU);
     std::cout << "Average MAP: " << std::fixed << std::setprecision(4) << averageBaseSequenceMAP << std::endl;
     std::cout << "Average IoU: " << std::fixed << std::setprecision(4) << averageBaseSequenceIoU << std::endl;
+    std::cout << std::string(36, '-') << std::endl;
+    std::cout << std::endl;
 
     std::cout << std::string(36, '=') << std::endl;
 
@@ -154,7 +227,6 @@ int main() {
         std::cout << std::string(36, '-') << std::endl;
         std::cout << std::endl;
     }
-    
 
     return 0;
 }

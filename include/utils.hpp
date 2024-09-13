@@ -60,6 +60,8 @@ void loadSequencesGroundTruth(const std::string& datasetPath, int numSequences, 
  */
 void convertGreyMaskToBGR(const std::vector<std::vector<cv::Mat>> &srcImages, std::vector<std::vector<cv::Mat>> &dstImages);
 
+void convertGreyMaskToBGR(const std::vector<cv::Mat> &srcImages, std::vector<cv::Mat> &dstImages);
+
 void printPerformanceMetrics(const std::vector<double>& mAP, const std::vector<double>& IoU);
 
 #endif // UTILS_HPP
