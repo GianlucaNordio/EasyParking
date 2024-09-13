@@ -26,11 +26,11 @@ class Segmentation {
         void segmentImage(const cv::Mat &image, cv::Mat &outputMask);
 
         /** 
-         * @brief perform segmentation on a multiple images
+         * @brief perform segmentation on a sequence of images
          * @param images the images on which segmentation should be performed
          * @param outputMasks the masks on which we should store the background substraction
          */
-        void segmentVectorImages(const std::vector<cv::Mat> &images, std::vector<cv::Mat> &outputMasks);
+        void segmentSequence(const std::vector<cv::Mat> &images, std::vector<cv::Mat> &outputMasks);
 };
 
 

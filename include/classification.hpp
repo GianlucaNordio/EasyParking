@@ -13,7 +13,9 @@ enum labelId
 
 const float PERCENTAGE_OUTSIDE_THRESHOLD = 0.5;
 
-cv::Mat classifyCars(std::vector<ParkingSpot> spaces, cv::Mat segmentationMasks);
+void classifySequence(std::vector<ParkingSpot> spaces, std::vector<cv::Mat> masks, std::vector<cv::Mat>& output);
+
+void classifyImage(std::vector<ParkingSpot> spaces, cv::Mat segmentationMasks, cv::Mat& output);
 
 void calculateComponentInsideRotatedRect(const cv::Mat& labels, const cv::Mat& stats, cv::Mat& output, ParkingSpot& rotatedRect, int componentLabel);
 

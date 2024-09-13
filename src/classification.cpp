@@ -5,11 +5,20 @@
 #include <opencv2/highgui.hpp>
 #include <opencv2/imgproc.hpp>
 
-cv::Mat classifyCars(std::vector<ParkingSpot> spaces, cv::Mat segmentationMasks) {
+
+void classifySequence(std::vector<ParkingSpot> spaces, std::vector<cv::Mat> segmentationMasks, std::vector<cv::Mat>& output) {
+    for (int i = 0; i < segmentationMasks.size(); i++) {
+        cv::Mat classifiedMask;
+        classifyImage(spaces, segmentationMasks[i], classifiedMask);
+        output.push_back(classifiedMask);
+    }
+
+}
+
+void classifyImage(std::vector<ParkingSpot> spaces, cv::Mat segmentationMasks, cv::Mat& output) {
     // Extract connected components only once
     cv::Mat labels, stats, centroids;
     int numComponents = cv::connectedComponentsWithStats(segmentationMasks, labels, stats, centroids);
-    cv::Mat output;
     segmentationMasks.copyTo(output);  // Initialize output mask
     
     // Loop through all parking spaces
@@ -19,8 +28,6 @@ cv::Mat classifyCars(std::vector<ParkingSpot> spaces, cv::Mat segmentationMasks)
             calculateComponentInsideRotatedRect(labels, stats, output, spaces[i], j); 
         }
     }
-
-    return output;
 }
 
 void calculateComponentInsideRotatedRect(const cv::Mat& labels, const cv::Mat& stats, cv::Mat& output, ParkingSpot& parkingSpot, int componentLabel) {
