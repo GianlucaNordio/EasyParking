@@ -62,7 +62,7 @@ void Segmentation::segmentImage(const cv::Mat &image, cv::Mat &outputMask) {
 
 }
 
-void Segmentation::segmentVectorImages(const std::vector<cv::Mat> &images, std::vector<cv::Mat> &outputMasks) {
+void Segmentation::segmentSequence(const std::vector<cv::Mat> &images, std::vector<cv::Mat> &outputMasks) {
  
     // Apply segmentImage to each element of the vector separately
     for(int i = 0; i < images.size(); i++) {
