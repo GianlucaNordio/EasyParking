@@ -90,7 +90,7 @@ std::vector<ParkingSpot> detectParkingSpotInImage(const cv::Mat& image) {
 
     // offsets from avg values
     std::vector<int> angle_offsets = {-8,-7,-6,-5,-4,-3,-2,-1,0,1,2,3,4,5,6,7,8};
-    std::vector<float> length_scales = {1.25,1.5,2};
+    std::vector<float> length_scales = {1.25,1.5,1.75,2};
     std::vector<cv::RotatedRect> list_boxes;
     std::vector<float> rect_scores(list_boxes.size(), -1); // Initialize scores with -1 for non-existing rects
 
@@ -276,6 +276,12 @@ std::vector<ParkingSpot> detectParkingSpotInImage(const cv::Mat& image) {
     distance_threshold = avg_neg_width*0.4;
     std::vector<cv::Vec4f> filtered_segments_pos = filter_close_segments(segments_pos, distance_threshold);
 
+    for(cv::Vec4f& line_neg: filtered_segments_neg) {
+        for(cv::Vec4f line_pos: filtered_segments_pos) {
+            trim_if_intersect(line_neg,line_pos);
+        }
+    }
+
   // Thresholds
     float angle_threshold = CV_PI / 180.0f * 3;  // 10 degrees
     float length_threshold = 3;  // 30 pixels
@@ -296,7 +302,9 @@ std::vector<ParkingSpot> detectParkingSpotInImage(const cv::Mat& image) {
                  cv::Point2f(line_segment[2], line_segment[3]), cv::Scalar(255, 0, 0), 2);
     }
 
-    std::cout << "number of segments " << filtered_segments_pos.size() << std::endl;
+    std::cout << "number of segments ORIGINAL" << segments_neg.size() << std::endl;
+    std::cout << "number of segments FILTERED" << filtered_segments_neg.size() << std::endl;
+    // std::cout << "number of segments MERGED" << merged_segments.size() << std::endl;
 
     // Process the segments
     std::vector<cv::RotatedRect> rotated_rects = process_segments(filtered_segments_pos, image);
@@ -377,6 +385,29 @@ bool are_rects_aligned(const cv::RotatedRect& rect1, const cv::RotatedRect& rect
     return std::abs(rect1.angle - rect2.angle) <= angle_tolerance;
 }
 
+// Function to shrink a rotated rect
+cv::RotatedRect shrink_rotated_rect(const cv::RotatedRect& rect, float shorten_percentage) {
+    // Get the current size of the rectangle
+    cv::Size2f size = rect.size;
+
+    // Determine which side is the shortest and which is the longest
+    float short_side = std::min(size.width, size.height);
+    float long_side = std::max(size.width, size.height);
+
+    // Shorten the longest side by the given percentage
+    float new_long_side = long_side * (1.0f - shorten_percentage);
+
+    // Set the new size, keeping the shortest side unchanged
+    if (size.width > size.height) {
+        size.width = new_long_side;
+    } else {
+        size.height = new_long_side;
+    }
+
+    // Return a new rotated rect with the updated size
+    return cv::RotatedRect(rect.center, size, rect.angle);
+}
+
 // Function to get the right-most endpoint of a segment
 cv::Point2f get_rightmost_endpoint(const cv::Vec4f& segment) {
     cv::Point2f p1(segment[0], segment[1]);  // First endpoint (x1, y1)
@@ -406,6 +437,14 @@ cv::Vec4f extend_segment(const cv::Vec4f& seg, float extension_ratio) {
 
     // Return the new extended segment
     return cv::Vec4f(extended_p1.x, extended_p1.y, extended_q1.x, extended_q1.y);
+}
+
+void trim_if_intersect(cv::Vec4f& seg1, const cv::Vec4f& seg2) {
+    cv::Point2f intersection;
+    if(segments_intersect(seg1, seg2, intersection)) {
+        seg1[0] = intersection.x;
+        seg1[1] = intersection.y;
+    }
 }
 
 // Function to check if two segments intersect (after extending)
@@ -508,8 +547,11 @@ cv::RotatedRect build_rotatedrect_from_movement(const cv::Vec4f& segment, const 
         //         cv::Scalar(0, 0, 255), 2, cv::LINE_AA); 
         //     cv::line(image, cv::Point(segment[0], segment[1]), cv::Point(segment[2], segment[3]), 
         //         cv::Scalar(0, 0, 255), 2, cv::LINE_AA); 
-        
-        return cv::minAreaRect(std::vector<cv::Point2f>{endpoint1, endpoint2,right_endpoint,left_endpoint});
+        cv::RotatedRect bounding_box = cv::minAreaRect(std::vector<cv::Point2f>{endpoint1, endpoint2,right_endpoint,left_endpoint});
+        //if(bounding_box.size.aspectRatio() > 1.5|| bounding_box.size.aspectRatio() < 1/1.5) {
+        //    return shrink_rotated_rect(bounding_box, 0.8);
+        //}
+        return bounding_box;
     }
 
     // If no intersection is found, return a default (empty) rotated rect
