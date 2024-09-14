@@ -38,6 +38,7 @@ void parseXML(const std::string& filePath, std::vector<ParkingSpot> &parkingSpot
                 parkingSpot.push_back(currentSpace);
             } else if(token.find("id=") != std::string::npos) {
                 currentSpace.id = std::stoi(token.substr(token.find("\"") + 1, token.find_last_of("\"") - token.find("\"") - 1));
+                // Break if the id is greater or equal to 38 to remove the rightmost parking spots (allowed by the project requirements)
                 if(currentSpace.id >= 38) {
                     parkingSpot.pop_back();
                     break;
