@@ -45,8 +45,8 @@ std::vector<ParkingSpot> detectParkingSpotInImage(const cv::Mat& image) {
             segments.push_back(line_segm[i]);
         }
     }
-    double distance_threshold = 200.0;
-    std::vector<cv::Vec4f> filtered_segments = filter_segments_near_top_right(segments, cv::Size(image.cols,image.rows), distance_threshold);
+    double distance_threshold;
+    std::vector<cv::Vec4f> filtered_segments = filter_segments_near_top_right(segments, cv::Size(image.cols,image.rows));
 
     std::vector<double> pos_angles;
     std::vector<double> neg_angles;
@@ -297,13 +297,12 @@ std::vector<ParkingSpot> detectParkingSpotInImage(const cv::Mat& image) {
         segments_neg.push_back(line_segment);
     }
     
-    distance_threshold = 250.0;
-    std::vector<cv::Vec4f> no_top_right_neg = filter_segments_near_top_right(segments_neg,cv::Size(image.cols,image.rows),distance_threshold);
-    std::vector<cv::Vec4f> no_top_right_pos = filter_segments_near_top_right(segments_pos,cv::Size(image.cols,image.rows),distance_threshold);
+    std::vector<cv::Vec4f> no_top_right_neg = filter_segments_near_top_right(segments_neg,cv::Size(image.cols,image.rows));
+    std::vector<cv::Vec4f> no_top_right_pos = filter_segments_near_top_right(segments_pos,cv::Size(image.cols,image.rows));
 
     distance_threshold = avg_pos_width*0.4;
     std::vector<cv::Vec4f> filtered_segments_neg = filter_close_segments(no_top_right_neg, distance_threshold);
-    distance_threshold = avg_neg_width*0.4;
+    distance_threshold = avg_pos_width*0.4;
     std::vector<cv::Vec4f> filtered_segments_pos = filter_close_segments(no_top_right_pos, distance_threshold);
 
     for(cv::Vec4f& line_neg: filtered_segments_neg) {
@@ -323,19 +322,6 @@ std::vector<ParkingSpot> detectParkingSpotInImage(const cv::Mat& image) {
 
     // Merge parallel and nearby segments
     std::vector<cv::Vec4f> merged_segments = merge_parallel_segments(filtered_segments_pos,angle_threshold,length_threshold, image);
-
-    for (const auto& line_segment : merged_segments) {
-        // Draw the line on the image
-        cv::line(image, cv::Point2f(line_segment[0], line_segment[1]),
-                 cv::Point2f(line_segment[2], line_segment[3]), cv::Scalar(0, 0, 255), 2);
-    }
-
-    // Loop through all bounding boxes
-    for (const auto& line_segment : filtered_segments_neg) {
-        // Draw the line on the image
-        cv::line(image, cv::Point2f(line_segment[0], line_segment[1]),
-                 cv::Point2f(line_segment[2], line_segment[3]), cv::Scalar(255, 0, 0), 2);
-    }
 
     cv::imshow("ppp", image);
     cv::waitKey(0);
@@ -377,6 +363,26 @@ std::vector<ParkingSpot> detectParkingSpotInImage(const cv::Mat& image) {
     std::vector<double> areas;
     double median_area;
 
+    for (const auto& rect : rotated_rects) {
+        if(rect.size.area()<1) continue;
+        areas.push_back(rect.size.area());
+    }
+    median_area = compute_median(areas);
+    areas.clear();
+
+    std::vector<cv::RotatedRect> remove_big_small_pos;
+    std::vector<cv::RotatedRect> all_rects;
+    std::cout << "median area " << median_area << std::endl;
+    for (const auto& rect : rotated_rects) {
+        std::cout << "rect area "<< rect.size.area() << std::endl;
+            cv::Point2f vertices[4];
+            rect.points(vertices);
+            for (int i = 0; i < 4; i++) {
+                vertices_all.push_back(vertices[i]);
+            }
+            remove_big_small_pos.push_back(rect);        
+    }
+
     for (const auto& rect : filtered_rects) {
         if(rect.size.area()<1) continue;
         areas.push_back(rect.size.area());
@@ -388,29 +394,35 @@ std::vector<ParkingSpot> detectParkingSpotInImage(const cv::Mat& image) {
     for (const auto& rect : filtered_rects) {
         std::cout << "rect area "<< rect.size.area() << std::endl;
         if(rect.size.area()>median_area/2.25 && rect.size.area()<median_area*2) {
-            cv::Point2f vertices[4];
-            rect.points(vertices);
-            for (int i = 0; i < 4; i++) {
-                vertices_all.push_back(vertices[i]);
-                cv::line(image, vertices[i], vertices[(i+1) % 4], cv::Scalar(0, 0, 255), 2);
-            }
             remove_big_small_2.push_back(rect);
+            all_rects.push_back(rect);
         }
     }
-
 
     // Set the amount to shift when resolving overlaps
     float shift_amount = 5.0;
 
     // Resolve overlaps between vector1 and vector2
-    resolve_overlaps(remove_big_small_2, rotated_rects, shift_amount);
+    resolve_overlaps(remove_big_small_2, remove_big_small_pos, shift_amount);
 
-    for (const auto& rect : rotated_rects) {
+    for (const auto& rect : remove_big_small_pos) {
         cv::Point2f vertices[4];
-        if(rect.size.area()> 500) {
+        rect.points(vertices);
+        for (int i = 0; i < 4; i++) {
+            vertices_all.push_back(vertices[i]);
+            all_rects.push_back(rect);
+        }
+    }
+
+    std::vector<cv::RotatedRect> all_close_rects;
+    for(const cv::RotatedRect& rect:all_rects) {
+        if(!is_alone(rect,all_rects)) {
+            all_close_rects.push_back(rect);
+            cv::Point2f vertices[4];
             rect.points(vertices);
             for (int i = 0; i < 4; i++) {
                 vertices_all.push_back(vertices[i]);
+                all_rects.push_back(rect);
                 cv::line(image, vertices[i], vertices[(i+1) % 4], cv::Scalar(0, 255, 0), 2);
             }
         }
@@ -505,6 +517,18 @@ std::vector<ParkingSpot> detectParkingSpotInImage(const cv::Mat& image) {
 
 	return parkingSpots;
 }
+bool is_alone(cv::RotatedRect rect, std::vector<cv::RotatedRect> rects) {
+    cv::RotatedRect extended = scale_rotated_rect(rect,1.5);
+    for(const cv::RotatedRect other_rect:rects) {
+        if(are_rects_overlapping(extended,other_rect)) {
+            if(other_rect.center != rect.center && abs(rect.size.area()*2-other_rect.size.area())) {
+                return false;
+            } 
+        }
+    }
+
+    return true;
+}
 
 // Function to shift a rotated rect along its longest direction by a given shift amount
 cv::RotatedRect shift_along_longest_axis(const cv::RotatedRect& rect, float shift_amount, bool invert_direction) {
@@ -585,18 +609,6 @@ std::vector<cv::RotatedRect> filter_by_surrounding(const std::vector<cv::Rotated
         rect_part1 = scale_rotated_rect(rect_part1, 1.25);
         rect_part2 = scale_rotated_rect(rect_part2, 1.25);
         
-        cv::Point2f vertices[4];
-        rect_part1.points(vertices);
-        for (int i = 0; i < 4; i++) {
-            cv::line(image, vertices[i], vertices[(i+1) % 4], cv::Scalar(255, 0, 0), 2);
-        }
-        rect_part2.points(vertices);
-        for (int i = 0; i < 4; i++) {
-            cv::line(image, vertices[i], vertices[(i+1) % 4], cv::Scalar(0, 255, 0), 2);
-        }
-        // cv::imshow("splitting",image);
-        // cv::waitKey(0);
-
         bool part1_overlap = false, part2_overlap = false;
 
         // Check if both parts overlap with any rect in rects2
@@ -814,10 +826,6 @@ cv::RotatedRect build_rotatedrect_from_movement(const cv::Vec4f& segment, const 
     bool found_intersection = false;
     cv::Vec4f closest_segment;
 
-    cv::circle(image,start,5,cv::Scalar(0,0,255));
-    cv::line(image, start, perp_end, cv::Scalar(0, 0, 255), 2, cv::LINE_AA); 
-    cv::line(image, start, perp_end, cv::Scalar(0, 0, 0), 2, cv::LINE_AA); 
-
     // Check intersection of the perpendicular segment with every other segment
     for (const auto& other_segment : segments) {
         cv::Point2f intersection;
@@ -828,12 +836,11 @@ cv::RotatedRect build_rotatedrect_from_movement(const cv::Vec4f& segment, const 
             float dist = cv::norm(start-intersection);
             // last conditions to ensure that close segments of another parking slot line does not interfere
             // 
-            if (dist > 10 && dist < min_distance && dist < length*2) { // last conditions to ensure that close segments of another parking slot line does not interfere) { 
+            if (dist > 10 && dist < min_distance && dist < length*2.5) { // last conditions to ensure that close segments of another parking slot line does not interfere) { 
                 min_distance = dist;
                 closest_intersection = intersection;
                 found_intersection = true;
                 closest_segment = other_segment;
-                    cv::circle(image,intersection,5,cv::Scalar(0,0,255),5);
                 // cv::imshow("projections", image);
                 // cv::waitKey(0);
             }
@@ -850,10 +857,6 @@ cv::RotatedRect build_rotatedrect_from_movement(const cv::Vec4f& segment, const 
         cv::Point2f destination_right(endpoint2.x, endpoint2.x*slope+intercept);
 
         cv::Point2f destination_bottom = destination_right + cv::Point2f(perpendicular_direction[0] * min_distance, perpendicular_direction[1] * min_distance);
-        cv::circle(image,destination_right,5,cv::Scalar(0,0,255));
-        cv::circle(image,destination_bottom,5,cv::Scalar(0,255,0));
-        cv::circle(image,left_endpoint,5,cv::Scalar(255,0,0));
-
 
         cv::RotatedRect bounding_box;
         if(slope>0) {
@@ -927,23 +930,24 @@ std::vector<cv::RotatedRect> merge_overlapping_rects(std::vector<cv::RotatedRect
 }
 
 // Function to filter segments that are too close to the top-right corner
-std::vector<cv::Vec4f> filter_segments_near_top_right(const std::vector<cv::Vec4f>& segments, const cv::Size& image_size, double distance_threshold) {
+std::vector<cv::Vec4f> filter_segments_near_top_right(const std::vector<cv::Vec4f>& segments, const cv::Size& image_size) {
     // Define the top-right corner of the image
     cv::Point2f top_right_corner(image_size.width - 1, 0);
+    cv::Point2f start(850,0);
+    cv::Point2f end(image_size.width-1,300);
+
+    std::vector<cv::Point2f> hull;
+    cv::convexHull(std::vector<cv::Point2f>{top_right_corner,start,end}, hull);
 
     std::vector<cv::Vec4f> filtered_segments;
 
     for (const auto& segment : segments) {
-        // Extract the endpoints of the segment
-        cv::Point2f p1(segment[0], segment[1]);
-        cv::Point2f p2(segment[2], segment[3]);
+        cv::Point2f p1(segment[0],segment[1]);
+        cv::Point2f p2(segment[2],segment[3]);
+        double result1 = cv::pointPolygonTest(hull, p1, false);  // False = no distance calculation needed
+        double result2 = cv::pointPolygonTest(hull, p2, false);  // False = no distance calculation needed
 
-        // Calculate the distances of both endpoints from the top-right corner
-        double dist_p1 =cv::norm(p1-top_right_corner);
-        double dist_p2 = cv::norm(p2-top_right_corner);
-
-        // Only add the segment to the filtered list if both endpoints are farther than the threshold from the top-right corner
-        if (dist_p1 > distance_threshold && dist_p2 > distance_threshold) {
+        if(result1<0 && result2<0) {
             filtered_segments.push_back(segment);
         }
     }

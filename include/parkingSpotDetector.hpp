@@ -30,7 +30,7 @@ double computeIntersectionArea(const cv::RotatedRect& rect1, const cv::RotatedRe
 void nms(std::vector<cv::RotatedRect>& vec, std::vector<cv::RotatedRect>& elementsToRemove, double threshold);
 std::vector<cv::RotatedRect>::const_iterator elementIterator(const std::vector<cv::RotatedRect>& vec, const cv::RotatedRect& elem);
 cv::Vec4f merge_segments(const cv::Vec4f& seg1, const cv::Vec4f& seg2);
-std::vector<cv::Vec4f> filter_segments_near_top_right(const std::vector<cv::Vec4f>& segments, const cv::Size& image_size, double distance_threshold);
+std::vector<cv::Vec4f> filter_segments_near_top_right(const std::vector<cv::Vec4f>& segments, const cv::Size& image_size);
 bool are_rects_overlapping(const cv::RotatedRect& rect1, const cv::RotatedRect& rect2);
 std::vector<cv::RotatedRect> merge_overlapping_rects(std::vector<cv::RotatedRect>& rects);
 // Helper function to check if two rotated rectangles are aligned (same angle within a tolerance)
@@ -50,4 +50,5 @@ cv::RotatedRect shift_along_longest_axis(const cv::RotatedRect& rect, float shif
 cv::Mat applyGammaTransform(const cv::Mat& src, double gamma);
 std::pair<cv::RotatedRect, cv::RotatedRect> split_rotated_rect(const cv::RotatedRect& rect);
 std::pair<cv::RotatedRect, cv::RotatedRect> split_and_shift_rotated_rect(const cv::RotatedRect& rect, cv::Mat image);
+bool is_alone(cv::RotatedRect rect, std::vector<cv::RotatedRect> rects);
 #endif // PARKINGSPOTDETECTOR_HPP
