@@ -375,12 +375,9 @@ std::vector<ParkingSpot> detectParkingSpotInImage(const cv::Mat& image) {
     std::cout << "median area " << median_area << std::endl;
     for (const auto& rect : rotated_rects) {
         std::cout << "rect area "<< rect.size.area() << std::endl;
-            cv::Point2f vertices[4];
-            rect.points(vertices);
-            for (int i = 0; i < 4; i++) {
-                vertices_all.push_back(vertices[i]);
-            }
-            remove_big_small_pos.push_back(rect);        
+        if(rect.size.area()>median_area/4 && rect.size.area()<median_area*2.25) {
+            remove_big_small_pos.push_back(rect);
+        }
     }
 
     for (const auto& rect : filtered_rects) {
@@ -393,7 +390,7 @@ std::vector<ParkingSpot> detectParkingSpotInImage(const cv::Mat& image) {
     std::cout << "median area " << median_area << std::endl;
     for (const auto& rect : filtered_rects) {
         std::cout << "rect area "<< rect.size.area() << std::endl;
-        if(rect.size.area()>median_area/2.25 && rect.size.area()<median_area*2) {
+        if(rect.size.area()>median_area/4 && rect.size.area()<median_area*2.25) {
             remove_big_small_2.push_back(rect);
             all_rects.push_back(rect);
         }
@@ -409,7 +406,6 @@ std::vector<ParkingSpot> detectParkingSpotInImage(const cv::Mat& image) {
         cv::Point2f vertices[4];
         rect.points(vertices);
         for (int i = 0; i < 4; i++) {
-            vertices_all.push_back(vertices[i]);
             all_rects.push_back(rect);
         }
     }
@@ -520,10 +516,8 @@ std::vector<ParkingSpot> detectParkingSpotInImage(const cv::Mat& image) {
 bool is_alone(cv::RotatedRect rect, std::vector<cv::RotatedRect> rects) {
     cv::RotatedRect extended = scale_rotated_rect(rect,1.5);
     for(const cv::RotatedRect other_rect:rects) {
-        if(are_rects_overlapping(extended,other_rect)) {
-            if(other_rect.center != rect.center && abs(rect.size.area()*2-other_rect.size.area())) {
-                return false;
-            } 
+        if(other_rect.center != rect.center && are_rects_overlapping(extended,other_rect)) {
+            return false;
         }
     }
 
