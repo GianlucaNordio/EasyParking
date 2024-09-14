@@ -1,4 +1,95 @@
 #include "performanceMeasurement.hpp"
+#include "utils.hpp"
+
+/**
+ * Computes performance metrics for a set of parking spot detection results.
+ *
+ * This function evaluates the performance of parking spot detection algorithms on a base sequence and
+ * a dataset of sequences. It calculates metrics such as Mean Average Precision (mAP) and Mean Intersection
+ * over Union (mIoU) for each frame in the base sequence and the dataset sequences. The function also computes
+ * average mAP and IoU values for both the base sequence and each sequence on the dataset.
+ * 
+ * @param DATASET_PATH The base path to the dataset containing the ground truth and mask images.
+ * @param NUMBER_SEQUENCES The number of sequences in the dataset.
+ * @param parkingSpot A vector of `ParkingSpot` objects representing the detected parking spots for evaluation.
+ * @param baseSequence A vector of `cv::Mat` representing the images in the base sequence.
+ * @param dataset A vector of vectors of `cv::Mat` where each inner vector represents the images for a sequence in the dataset.
+ * @param classifiedDatasetMasks A vector of vectors of `cv::Mat` where each inner vector contains the results of classification task for a sequence in the dataset.
+ * @param classifiedBaseSequenceMasks A vector of `cv::Mat` containing the result of classification task for the base sequence.
+ * @param baseSequenceMAP A vector of doubles where each element represents the Mean Average Precision for a frame in the base sequence.
+ * @param baseSequenceIoU A vector of doubles where each element represents the Mean Intersection over Union for a frame in the base sequence.
+ * @param averageBaseSequenceMAP A double representing the average Mean Average Precision across the base sequence.
+ * @param averageBaseSequenceIoU A double representing the average Mean Intersection over Union across the base sequence.
+ * @param datasetMAP A vector of vectors of doubles where each inner vector contains the Mean Average Precision values for a sequence in the dataset.
+ * @param datasetIoU A vector of vectors of doubles where each inner vector contains the Mean Intersection over Union values for a sequence in the dataset.
+ * @param averageDatasetMAP A vector of doubles where each element represents the average Mean Average Precision for a sequence in the dataset.
+ * @param averageDatasetIoU A vector of doubles where each element represents the average Mean Intersection over Union for a sequence in the dataset.
+ */
+void performanceMeasurement(const std::string DATASET_PATH, const int NUMBER_SEQUENCES, const std::vector<ParkingSpot>& parkingSpot, const std::vector<cv::Mat>& baseSequence, 
+    const std::vector<std::vector<cv::Mat>>& dataset, const std::vector<std::vector<cv::Mat>>& classifiedDatasetMasks, const std::vector<cv::Mat>& classifiedBaseSequenceMasks,
+    std::vector<double>& baseSequenceMAP, std::vector<double>& baseSequenceIoU, double& averageBaseSequenceMAP, double& averageBaseSequenceIoU, 
+    std::vector<std::vector<double>>& datasetMAP, std::vector<std::vector<double>>& datasetIoU, std::vector<double> averageDatasetMAP, std::vector<double> averageDatasetIoU) {
+    
+    // Load the ground truth
+    cv::Mat baseSequenceMaskGT = cv::Mat::zeros(baseSequence[0].size(), CV_8UC1);
+    std::vector<std::vector<ParkingSpot>> baseSequenceParkingSpotGT;
+    std::vector<std::vector<std::vector<ParkingSpot>>> datasetParkingSpotGT;
+    std::vector<std::vector<cv::Mat>> sequenceMaskGTGray;
+    std::vector<std::vector<cv::Mat>> sequenceMaskGTBGR;
+
+    loadBaseSequenceGroundTruth(DATASET_PATH, baseSequenceParkingSpotGT);
+    loadSequencesGroundTruth(DATASET_PATH, NUMBER_SEQUENCES, datasetParkingSpotGT);
+    loadSequencesSegMasks(DATASET_PATH, NUMBER_SEQUENCES, sequenceMaskGTGray);
+
+    // Compute performance for the base sequence
+
+    
+    
+    for(int i = 0; i < baseSequence.size(); i++) {
+        baseSequenceMAP.push_back(calculateMeanAveragePrecision(baseSequenceParkingSpotGT[i], parkingSpot));
+        baseSequenceIoU.push_back(calculateMeanIntersectionOverUnion(classifiedBaseSequenceMasks[i], baseSequenceMaskGT));
+    }
+
+    for(int i = 0; i < baseSequenceMAP.size(); i++) {
+        averageBaseSequenceMAP += baseSequenceMAP[i];
+        averageBaseSequenceIoU += baseSequenceIoU[i];
+    }
+
+    averageBaseSequenceMAP /= baseSequenceMAP.size();
+    averageBaseSequenceIoU /= baseSequenceIoU.size();
+
+    // Compute performance for the dataset
+
+
+    for(int i = 0; i < NUMBER_SEQUENCES; i++) {
+        std::vector<double> sequenceMAP;
+        std::vector<double> sequenceIoU;
+
+        for(int j = 0; j < dataset[i].size(); j++) {
+            sequenceMAP.push_back(calculateMeanAveragePrecision(datasetParkingSpotGT[i][j], parkingSpot));
+            sequenceIoU.push_back(calculateMeanIntersectionOverUnion(classifiedDatasetMasks[i][j], sequenceMaskGTGray[i][j]));
+        }
+
+        datasetMAP.push_back(sequenceMAP);
+        datasetIoU.push_back(sequenceIoU);
+    }
+
+    for(int i = 0; i < datasetMAP.size(); i++) {
+        double averageSequenceMAP = 0;
+        double averageSequenceIoU = 0;
+
+        for(int j = 0; j < datasetMAP[i].size(); j++) {
+            averageSequenceMAP += datasetMAP[i][j];
+            averageSequenceIoU += datasetIoU[i][j];
+        }
+
+        averageSequenceMAP /= datasetMAP[i].size();
+        averageSequenceIoU /= datasetIoU[i].size();
+
+        averageDatasetMAP.push_back(averageSequenceMAP);
+        averageDatasetIoU.push_back(averageSequenceIoU);
+    }
+}
 
 /**
  * Calculates the mean Average Precision (mAP) for parking spot predictions.

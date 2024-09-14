@@ -151,30 +151,75 @@ void loadSequencesSegMasks(const std::string& datasetPath, const int numSequence
     }
 }
 
-void loadBaseSequenceGroundTruth(const std::string& datasetPath, std::vector<ParkingSpot> &groundTruth){
+/**
+ * Loads ground truth data for the base sequence from the specified dataset path.
+ *
+ * This function retrieves all ground truth files for the base sequence (indexed by `BASE_SEQUENCE_INDEX`)
+ * from a designated folder within the dataset path. Each file contains parking spot annotations, which are
+ * parsed into `ParkingSpot` objects. The parsed data for each file is appended to the `groundTruth` vector.
+ * 
+ * The ground truth data is organized as a vector of vectors, where each inner vector contains the parking
+ * spots for a frame.
+ * 
+ * @param datasetPath The base path to the dataset containing the base sequence folder.
+ * @param groundTruth A vector of vectors of `ParkingSpot` objects where each inner vector contains the parking
+ *                    spots for a frame in the base sequence.
+ */
+void loadBaseSequenceGroundTruth(const std::string& datasetPath, std::vector<std::vector<ParkingSpot>> &groundTruth){
     std::string folderPath = datasetPath + SLASH + SEQUENCE + std::to_string(BASE_SEQUENCE_INDEX) + SLASH + BOUNDING_BOX_FOLDER;
-    folderPath += SLASH + getFirstFileInFolder(folderPath);
-    loadGroundTruth(folderPath, groundTruth);
+    std::vector<std::string> files;
+        for (const auto& entry : std::filesystem::directory_iterator(folderPath)) {
+            if (std::filesystem::is_regular_file(entry)) {
+                files.push_back(entry.path().filename().string());
+            }
+        }
+        
+        for (int j = 0; j < files.size(); j++) {
+            std::string filePath = folderPath + SLASH + files[j];
+            
+            std::vector<ParkingSpot> spots;
+            loadGroundTruth(filePath, spots);
+
+            groundTruth.push_back(spots);
+        }
 }
 
 /**
- * Loads ground truth data for the base sequence from a specified dataset path.
- * The ground truth data is read from an XML file located in the base sequence directory.
+ * Loads ground truth data for a series of sequences from the specified dataset path.
  *
- * @param datasetPath The path to the dataset directory.
- * @param groundTruth A reference to a vector of ParkingSpot objects where the loaded ground truth data will be stored.
+ * This function iterates over a number of sequences, each stored in its own folder within the dataset path.
+ * For each sequence, it collects all ground truth files (containing parking spot annotations) and parses them
+ * into `ParkingSpot` objects. The parsed data is organized into a nested vector structure:
+ * `groundTruth[sequenceIndex][frameIndex]` contains the parking spots for a particular frame in the sequence.
+ *
+ * @param datasetPath The base path to the dataset containing sequence folders.
+ * @param numSequences The number of sequences to process.
+ * @param groundTruth A nested vector of `ParkingSpot` objects where each entry represents the ground truth
+ *                    for a specific frame within a specific sequence.
  */
-void loadSequencesGroundTruth(const std::string& datasetPath, int numSequences, std::vector<std::vector<ParkingSpot>> &groundTruth){
-    // Move over all the sequences
-    for(int i = 0; i < numSequences; i++) {
-        // Initialize the vector relative to the i-th sequence
-        std::vector<ParkingSpot> empty;   
-        groundTruth.push_back(empty);
+void loadSequencesGroundTruth(const std::string& datasetPath, int numSequences, std::vector<std::vector<std::vector<ParkingSpot>>> &groundTruth) {
+    for (int i = 0; i < numSequences; i++) {
+        
+        std::vector<std::vector<ParkingSpot>> sequence;
+        groundTruth.push_back(sequence);
 
-        // Create the path relative to the i-th sequence
         std::string folderPath = datasetPath + SLASH + SEQUENCE + std::to_string(i + 1) + SLASH + BOUNDING_BOX_FOLDER;
-        folderPath += SLASH + getFirstFileInFolder(folderPath);
-        loadGroundTruth(folderPath, groundTruth[i]);
+        
+        std::vector<std::string> files;
+        for (const auto& entry : std::filesystem::directory_iterator(folderPath)) {
+            if (std::filesystem::is_regular_file(entry)) {
+                files.push_back(entry.path().filename().string());
+            }
+        }
+        
+        for (int j = 0; j < files.size(); j++) {
+            std::string filePath = folderPath + SLASH + files[j];
+            
+            std::vector<ParkingSpot> spots;
+            loadGroundTruth(filePath, spots);
+
+            groundTruth[i].push_back(spots);
+        }
     }
 }
 
@@ -189,18 +234,31 @@ void loadGroundTruth(std::string path, std::vector<ParkingSpot> &groundTruth) {
 }
 
 /**
- * Retrieves the name of the first file found in a specified folder.
+ * Retrieves the filename at the specified index from a folder.
  *
- * @param folderPath The path to the folder.
- * @return           The name of the first file found in the folder, or an empty string if no files are found.
+ * This function collects all regular files in the specified directory and returns the filename
+ * of the file at the given index. If the index is out of bounds, an empty string is returned.
+ *
+ * @param folderPath The path to the folder containing the files.
+ * @param index The index of the file to retrieve.
+ * @return The filename of the file at the specified index, or an empty string if the index is invalid.
  */
-std::string getFirstFileInFolder(const std::string& folderPath) {
+std::string getFileInFolder(const std::string& folderPath, int index) {
+    std::vector<std::string> files;
+    
+    // Accumula tutti i file regolari nella cartella
     for (const auto& entry : std::filesystem::directory_iterator(folderPath)) {
         if (std::filesystem::is_regular_file(entry)) {
-            return entry.path().filename().string();
+            files.push_back(entry.path().filename().string());
         }
     }
-    return "";
+    
+    // Verifica se l'indice richiesto è valido
+    if (index >= 0 && index < files.size()) {
+        return files[index];
+    } else {
+        return ""; // Ritorna una stringa vuota se l'indice non è valido
+    }
 }
 
 /**
