@@ -288,9 +288,16 @@ void printParkingSpot(const std::vector<ParkingSpot>& parkingSpot, const std::ve
         for(int j = 0; j < parkingSpot.size(); j++) {
             cv::Point2f vertices[4];
             parkingSpot[j].rect.points(vertices);
-            for (int l = 0; l < 4; l++) {
-                cv::line(output, vertices[l], vertices[(l + 1) % 4], cv::Scalar(0, 0, 255), 2);
+            if(parkingSpot[j].occupied) {
+                for (int l = 0; l < 4; l++) {
+                    cv::line(output, vertices[l], vertices[(l + 1) % 4], cv::Scalar(0, 0, 255), 2);
+                }
+            }else{
+                for (int l = 0; l < 4; l++) {
+                    cv::line(output, vertices[l], vertices[(l + 1) % 4], cv::Scalar(255, 0, 0), 2);
+                }
             }
+
         }
         baseSequenceBBoxes.push_back(output);
     }
