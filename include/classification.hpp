@@ -23,10 +23,10 @@ enum labelId
 };
 
 /**
- * A constant threshold used to determine if car is outside a parking spot.
- * If more than 50% of the component is outside the parking spot, it is classified as 'outside'.
+ * A constant threshold used to determine if car is inside a parking spot.
+ * If more than 50% of the component is inside the parking spot, it is classified as 'inside'.
  */
-const float PERCENTAGE_OUTSIDE_THRESHOLD = 0.5;
+const float PERCENTAGE_INSIDE_THRESHOLD = 0.5;
 
 /**
  * Classifies a sequence of parking spots by processing segmentation masks and 

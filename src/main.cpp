@@ -97,13 +97,9 @@ int main() {
     // Perform classification on the dataset
     std::vector<std::vector<cv::Mat>> classifiedDatasetMasks;
 
-    std::vector<std::vector<std::vector<ParkingSpot>>> datasetParkingSpotGT;
-    loadSequencesGroundTruth(DATASET_PATH, NUMBER_SEQUENCES, datasetParkingSpotGT);
-
-
     for(int i=0; i < NUMBER_SEQUENCES; i++) {
         std::vector<cv::Mat> classifiedSequenceMasks;
-        classifySequence(datasetParkingSpotGT[i], datasetMasks[i], classifiedSequenceMasks);
+        classifySequence(datasetParkingSpot[i], datasetMasks[i], classifiedSequenceMasks);
         classifiedDatasetMasks.push_back(classifiedSequenceMasks);    
     }    
     

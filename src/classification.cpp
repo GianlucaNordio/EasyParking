@@ -33,6 +33,11 @@ void classifyImage(std::vector<ParkingSpot> parkingSpot, cv::Mat segmentationMas
 
     classifiedMask = cv::Mat::zeros(segmentationMask.size(), CV_8UC1); // Initialize with zeros
 
+    for(int j = 1; j < numComponents; j++){
+        // Set at 2 all the components pixel
+        classifiedMask.setTo(2, labels == j);
+    }
+
     // Create a mask for each parking spot in parallel
     for (auto& spot : parkingSpot) {
         cv::Mat spotMask = cv::Mat::zeros(segmentationMask.size(), CV_8UC1);
@@ -51,25 +56,11 @@ void classifyImage(std::vector<ParkingSpot> parkingSpot, cv::Mat segmentationMas
             int insidePixels = cv::countNonZero(intersectionMask);
             float percentageInside = (static_cast<float>(insidePixels) / componentArea) * 100.0f;
 
-            std::cout << "Component " << j << " is " << percentageInside << "% inside the parking spot." << std::endl;
-
             // Update classifiedMask based on percentage inside
-            if ((1 - percentageInside) > PERCENTAGE_OUTSIDE_THRESHOLD) {
-                classifiedMask.setTo(labelId::carOutsideParkingSpot, componentMask);
-            } else {
-                classifiedMask.setTo(labelId::carInsideParkingSpot, componentMask);
+            if (percentageInside > PERCENTAGE_INSIDE_THRESHOLD) {
+                classifiedMask.setTo(1, componentMask);
                 spot.occupied = true;
             }
         }
-
-        cv::Mat mostra = classifiedMask.clone();
-        std::vector<cv::Mat> channels;
-        channels.push_back(mostra);
-        cv::Mat result = cv::Mat::zeros(segmentationMask.size(), CV_8UC3);
-        std::vector<cv::Mat> channel;
-        channel.push_back(result);
-        convertGreyMaskToBGR(channels, channel);
-        cv::imshow("Classified Mask", channel[0]);
-        cv::waitKey(0);
     }
 }
