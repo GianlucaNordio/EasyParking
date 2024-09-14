@@ -42,9 +42,12 @@ std::vector<cv::RotatedRect> process_segments(const std::vector<cv::Vec4f>& segm
 cv::Vec4f extend_segment(const cv::Vec4f& seg, float extension_ratio);
 cv::RotatedRect shrink_rotated_rect(const cv::RotatedRect& rect, float shorten_percentage);
 void trim_if_intersect(cv::Vec4f& seg1, cv::Vec4f& seg2);
-std::vector<cv::RotatedRect> filter_by_surrounding(const std::vector<cv::RotatedRect>& rects1, const std::vector<cv::RotatedRect>& rects2);
+std::vector<cv::RotatedRect> filter_by_surrounding(const std::vector<cv::RotatedRect>& rects1, const std::vector<cv::RotatedRect>& rects2,cv::Mat image);
 cv::RotatedRect scale_rotated_rect(const cv::RotatedRect& rect, float scale_factor);
 double compute_median(std::vector<double>& data);
-
+void resolve_overlaps(std::vector<cv::RotatedRect>& vector1, std::vector<cv::RotatedRect>& vector2, float shift_amount);
+cv::RotatedRect shift_along_longest_axis(const cv::RotatedRect& rect, float shift_amount, bool invert_direction);
 cv::Mat applyGammaTransform(const cv::Mat& src, double gamma);
+std::pair<cv::RotatedRect, cv::RotatedRect> split_rotated_rect(const cv::RotatedRect& rect);
+std::pair<cv::RotatedRect, cv::RotatedRect> split_and_shift_rotated_rect(const cv::RotatedRect& rect, cv::Mat image);
 #endif // PARKINGSPOTDETECTOR_HPP
