@@ -21,11 +21,26 @@ void classifySequence(std::vector<std::vector<ParkingSpot>> parkingSpot, std::ve
 }
 
 /**
- * Classifies a single image by processing the segmentation mask and marking parking spots as occupied or not.
+ * @brief Classifies parking spots in an image based on segmentation mask.
  *
- * @param parkingSpot            A vector of ParkingSpot objects representing the parking spaces.
- * @param segmentationMask       A cv::Mat representing the segmentation mask for the image.
- * @param classifiedMask         A reference to a cv::Mat where the classified output will be stored.
+ * This function processes an input segmentation mask to classify parking spots 
+ * as either occupied or free. It utilizes connected components analysis to identify
+ * distinct components in the segmentation mask and then checks each parking spot 
+ * against these components. The classification is based on the percentage of each 
+ * component that overlaps with the parking spot.
+ *
+ * @param[in] parkingSpot        A vector of `ParkingSpot` objects, each representing a 
+ *                                 parking spot with its associated rectangle.
+ * @param[in] segmentationMask   A binary mask where connected components are 
+ *                                 identified and labeled.
+ * @param[out] classifiedMask    An output mask of the same size as the 
+ *                                 segmentationMask, where each pixel value indicates 
+ *                                 the classification of the component (0: background, 
+ *                                 1: car inside, 2: car outside).
+ *
+ * @note The `PERCENTAGE_INSIDE_THRESHOLD` is used to determine if a parking spot 
+ *       is considered occupied based on the percentage of the component's area 
+ *       covered by the parking spot.
  */
 void classifyImage(std::vector<ParkingSpot> parkingSpot, cv::Mat segmentationMask, cv::Mat& classifiedMask) {
     cv::Mat labels, stats, centroids;
@@ -38,7 +53,7 @@ void classifyImage(std::vector<ParkingSpot> parkingSpot, cv::Mat segmentationMas
         classifiedMask.setTo(2, labels == j);
     }
 
-    // Create a mask for each parking spot in parallel
+    // Create a mask for each parking spot
     for (auto& spot : parkingSpot) {
         cv::Mat spotMask = cv::Mat::zeros(segmentationMask.size(), CV_8UC1);
         cv::Point2f vertices[4];
@@ -46,7 +61,6 @@ void classifyImage(std::vector<ParkingSpot> parkingSpot, cv::Mat segmentationMas
         std::vector<cv::Point> contour(vertices, vertices + 4);
         cv::fillConvexPoly(spotMask, contour, cv::Scalar(255));
 
-        // Process each component
         for (int j = 1; j < numComponents; j++) {
             cv::Mat componentMask = (labels == j);
             cv::Mat intersectionMask;
