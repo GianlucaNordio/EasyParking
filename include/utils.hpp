@@ -7,60 +7,147 @@
 #include "parser.hpp"
 
 /**
- * @brief Produce a single image starting from a vector containing one or more images
- * @param images vector of images (has to be at least of size greater then 1) that have all same witdth and height
- * @param imagesPerLine number of images required for each line 
+ * The name of the directory containing segmentation masks.
+ */
+const std::string MASKS_FOLDER = "masks";
+
+/**
+ * The name of the directory containing bounding box annotations for ground truth.
+ */
+const std::string BOUNDING_BOX_FOLDER = "bounding_boxes";
+
+/**
+ * The name of the directory containing the parking images.
+ */
+const std::string FRAMES_FOLDER = "frames";
+
+/**
+ * The prefix used for sequence directories.
+ */
+const std::string SEQUENCE = "sequence";
+
+/**
+ * The directory separator character used in paths.
+ */
+const std::string SLASH = "/";
+
+/**
+ * The index of the base sequence.
+ */
+const int BASE_SEQUENCE_INDEX = 0;
+
+/**
+ * Creates a single image by concatenating a sequence of input images in a grid format.
+ * The number of images per row is specified by the `imagesPerLine` parameter.
+ * The function checks that all images have the same size and adjusts the number of images per row if necessary.
+ *
+ * @param images         A vector of cv::Mat objects representing the input images to be concatenated.
+ * @param imagesPerLine The number of images to place per row in the output image.
+ * @return              A cv::Mat object containing the concatenated image.
+ * @throws std::invalid_argument if no images are provided or if images have different sizes.
  */
 cv::Mat produceSingleImage(const std::vector<cv::Mat>& images, int imagesPerLine);
 
 /**
- * @brief Loads the images from the sequence used to detect the path
- * @param datasetPath path of the dataset (for example ../dataset)
- * @param images vector that will contain the obtained images
+ * Loads frames from a base sequence dataset directory into a vector of cv::Mat objects.
+ * The frames are loaded from a predefined folder path that includes the base sequence index.
+ *
+ * @param datasetPath The path to the dataset directory.
+ * @param images      A reference to a vector of cv::Mat objects where the loaded frames will be stored.
  */
 void loadBaseSequenceFrames(const std::string& datasetPath, std::vector<cv::Mat> &images);
 
-
 /**
- * @brief Loads the images from the test sequences
- * @param datasetPath path of the dataset (for example ../dataset)
- * @param images vector containing each sequence as a vector of images
+ * Loads frames from multiple sequences of a dataset into a vector of vectors of cv::Mat objects.
+ * Frames are loaded from directories corresponding to each sequence.
+ *
+ * @param datasetPath The path to the dataset directory.
+ * @param numSequences The number of sequences to load.
+ * @param images      A reference to a vector of vectors of cv::Mat objects where the loaded frames will be stored.
  */
 void loadSequencesFrames(const std::string& datasetPath, int numSequences, std::vector<std::vector<cv::Mat>> &images);
 
 /**
- * @brief Loads the images from the given path
- * @param path path of the images to load
- * @param images vector that will contain the found images
+ * Loads images from a specified directory into a vector of cv::Mat objects.
+ * Only regular files are processed, and empty or unreadable images are reported.
+ *
+ * @param path   The path to the directory containing images.
+ * @param images A reference to a vector of cv::Mat objects where the loaded images will be stored.
+ * @throws std::invalid_argument if the provided path is not a directory.
+ * @throws std::runtime_error if an image file is empty or cannot be read.
  */
-void loadImages(std::string path, std::vector<cv::Mat> &images);
+void loadImages(const std::string path, std::vector<cv::Mat> &images);
 
 /**
- * @brief Loads the masks used as grouund truth for segmentation from the given path
- * @param path path of the masks to load
- * @param numSequences number of sequences present in the data
+ * Loads segmentation masks for multiple sequences of a dataset into a vector of vectors of cv::Mat objects.
+ * Each mask image is converted to grayscale.
+ *
+ * @param datasetPath The path to the dataset directory.
+ * @param numSequences The number of sequences to load.
+ * @param segMasks    A reference to a vector of vectors of cv::Mat objects where the loaded masks will be stored.
  */
 void loadSequencesSegMasks(const std::string& datasetPath, int numSequences, std::vector<std::vector<cv::Mat>> &segMasks);
 
+/**
+ * Loads ground truth data for the base sequence from a specified dataset path.
+ * The ground truth data is read from an XML file located in the base sequence directory.
+ *
+ * @param datasetPath The path to the dataset directory.
+ * @param groundTruth A reference to a vector of ParkingSpot objects where the loaded ground truth data will be stored.
+ */
 void loadBaseSequenceGroundTruth(const std::string& datasetPath, std::vector<ParkingSpot> &groundTruth);
 
+/**
+ * Loads ground truth data for multiple sequences from a specified dataset path.
+ * Each sequence's ground truth data is read from an XML file located in its corresponding directory.
+ *
+ * @param datasetPath The path to the dataset directory.
+ * @param numSequences The number of sequences to load.
+ * @param groundTruth A reference to a vector of vectors of ParkingSpot objects where the loaded ground truth data will be stored.
+ */
 void loadSequencesGroundTruth(const std::string& datasetPath, int numSequences, std::vector<std::vector<ParkingSpot>> &groundTruth);
 
-void loadGroundTruth(const std::string path, std::vector<ParkingSpot> &groundTruth);
 /**
- * Allows to convert the greyscale masks provided by the dataset to BGR.
- * Performs the following mapping:
- * 0: (128,128,128)
- * 1: (255,0,0)
- * 2: (0,255,0
- * 
- * @param srcImages vector of greyscale images containing the mask (values are only 0, 1, 2)
- * @param dstImages vector of BGR images produced by perorming the mapping on the input masks
+ * Loads ground truth data from an XML file into a vector of ParkingSpot objects.
+ *
+ * @param path        The path to the XML file containing the ground truth data.
+ * @param groundTruth A reference to a vector of ParkingSpot objects where the loaded ground truth data will be stored.
  */
-void convertGreyMasksToBGR(const std::vector<std::vector<cv::Mat>> &srcImages, std::vector<std::vector<cv::Mat>> &dstImages);
+void loadGroundTruth(const std::string path, std::vector<ParkingSpot> &groundTruth);
 
-void convertGreyMaskToBGR(const std::vector<cv::Mat> &srcImages, std::vector<cv::Mat> &dstImages);
+/**
+ * Retrieves the name of the first file found in a specified folder.
+ *
+ * @param folderPath The path to the folder.
+ * @return           The name of the first file found in the folder, or an empty string if no files are found.
+ */
+std::string getFirstFileInFolder(const std::string& folderPath);
 
-void printPerformanceMetrics(const std::vector<double>& mAP, const std::vector<double>& IoU);
+/**
+ * Converts a vector of grayscale images to a vector of BGR images.
+ * The grayscale values are mapped to specific BGR colors.
+ *
+ * @param greyImages A vector of vectors of grayscale images to be converted.
+ * @param BGRImages  A reference to a vector of vectors of BGR images where the converted images will be stored.
+ */
+void convertGreyMasksToBGR(const std::vector<std::vector<cv::Mat>> &greyImages, std::vector<std::vector<cv::Mat>> &BGRImages);
+
+/**
+ * Converts a vector of grayscale images to BGR images.
+ * The grayscale values are mapped to specific BGR colors.
+ *
+ * @param greyImage A vector of grayscale images to be converted.
+ * @param BGRImage  A reference to a vector of BGR images where the converted images will be stored.
+ */
+void convertGreyMaskToBGR(const std::vector<cv::Mat> &greyImage, std::vector<cv::Mat> &BGRImage);
+
+/**
+ * Prints performance metrics including mean Average Precision (mAP) and Intersection over Union (IoU) for each frame.
+ * The metrics are formatted in a table with fixed precision.
+ *
+ * @param mAPs A vector of mean Average Precision values for each frame.
+ * @param IoUs A vector of Intersection over Union values for each frame.
+ */
+void printPerformanceMetrics(const std::vector<double>& mAPs, const std::vector<double>& IoUs);
 
 #endif // UTILS_HPP

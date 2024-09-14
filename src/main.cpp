@@ -13,6 +13,7 @@
 #include "performanceMeasurement.hpp"
 
 const int NUMBER_SEQUENCES = 5;
+const std::string DATASET_PATH = "../dataset";
 
 /**
  * @brief Main function that performs parking spot detection, segmentation, classification, and performance evaluation on a dataset.
@@ -36,10 +37,10 @@ int main() {
 
     // Read the images from the dataset
     std::vector<cv::Mat> baseSequence;
-    loadBaseSequenceFrames("../dataset", baseSequence);
+    loadBaseSequenceFrames(DATASET_PATH, baseSequence);
 
     std::vector<std::vector<cv::Mat>> dataset;
-    loadSequencesFrames("../dataset", NUMBER_SEQUENCES, dataset);
+    loadSequencesFrames(DATASET_PATH, NUMBER_SEQUENCES, dataset);
     
 // STEP 2: Detect parking spots
 
@@ -100,9 +101,9 @@ int main() {
     std::vector<std::vector<cv::Mat>> sequenceMaskGTGray;
     std::vector<std::vector<cv::Mat>> sequenceMaskGTBGR;
 
-    loadBaseSequenceGroundTruth("../dataset", baseSequenceParkingSpotGT);
-    loadSequencesGroundTruth("../dataset", NUMBER_SEQUENCES, datasetParkingSpotGT);
-    loadSequencesSegMasks("../dataset", NUMBER_SEQUENCES, sequenceMaskGTGray);
+    loadBaseSequenceGroundTruth(DATASET_PATH, baseSequenceParkingSpotGT);
+    loadSequencesGroundTruth(DATASET_PATH, NUMBER_SEQUENCES, datasetParkingSpotGT);
+    loadSequencesSegMasks(DATASET_PATH, NUMBER_SEQUENCES, sequenceMaskGTGray);
 
     // Compute performance for the base sequence
     std::vector<double> baseSequenceMAP;
