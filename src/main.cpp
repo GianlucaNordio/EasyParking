@@ -49,6 +49,21 @@ int main() {
     std::vector<ParkingSpot> parkingSpot;
     detectParkingSpots(baseSequence, parkingSpot); 
 
+    // Create a copy of the parkingSpot vector for each immage in the dataset
+    std::vector<std::vector<ParkingSpot>> baseSequenceParkingSpot;
+    for(int i = 0; i < baseSequence.size(); i++) {
+        baseSequenceParkingSpot.push_back(parkingSpot);
+    }
+
+    std::vector<std::vector<std::vector<ParkingSpot>>> datasetParkingSpot;
+    for(int i = 0; i < NUMBER_SEQUENCES; i++) {
+        std::vector<std::vector<ParkingSpot>> sequenceParkingSpot;
+        for(int j = 0; j < dataset[i].size(); j++) {
+            sequenceParkingSpot.push_back(parkingSpot);
+        }
+        datasetParkingSpot.push_back(sequenceParkingSpot);
+    }
+
     std::cout << "Detected parking spots in the base sequence.\n";
 
 // STEP 3: Perform segmentation
@@ -77,14 +92,14 @@ int main() {
 
     // Perform classification on the base sequence
     std::vector<cv::Mat> classifiedBaseSequenceMasks;
-    classifySequence(parkingSpot, baseSequenceMasks, classifiedBaseSequenceMasks);
+    classifySequence(baseSequenceParkingSpot, baseSequenceMasks, classifiedBaseSequenceMasks);
 
     // Perform classification on the dataset
     std::vector<std::vector<cv::Mat>> classifiedDatasetMasks;
 
     for(int i=0; i < NUMBER_SEQUENCES; i++) {
         std::vector<cv::Mat> classifiedSequenceMasks;
-        classifySequence(parkingSpot, datasetMasks[i], classifiedSequenceMasks);
+        classifySequence(datasetParkingSpot[i], datasetMasks[i], classifiedSequenceMasks);
         classifiedDatasetMasks.push_back(classifiedSequenceMasks);    
     }    
     

@@ -30,11 +30,11 @@ const float PERCENTAGE_OUTSIDE_THRESHOLD = 0.5;
  * Classifies a sequence of parking spots by processing segmentation masks and 
  * stores the classified results in the output vector.
  *
- * @param parkingSpot            A vector of ParkingSpot objects representing the parking spaces.
+ * @param parkingSpot            A vector of vector of ParkingSpot objects representing the parking spaces.
  * @param segmentationMasks      A vector of cv::Mat representing the segmentation masks for each image.
  * @param classifiedMasks        A reference to a vector of cv::Mat where the classified results will be stored.
  */
-void classifySequence(std::vector<ParkingSpot> parkingSpot, std::vector<cv::Mat> segmentationMasks, std::vector<cv::Mat>& classifiedMasks);
+void classifySequence(std::vector<std::vector<ParkingSpot>> parkingSpot, std::vector<cv::Mat> segmentationMasks, std::vector<cv::Mat>& classifiedMasks);
 
 /**
  * Classifies a single image by processing the segmentation mask and marking parking spots as occupied or not.
