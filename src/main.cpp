@@ -175,17 +175,8 @@ int main() {
 
     // Display the bounding boxes found in the base sequence
     std::vector<cv::Mat> baseSequenceBBoxes;
-    for(int i = 0; i < baseSequence.size(); i++) {
-        cv::Mat output = baseSequence[i].clone();
-        for(int j = 0; j < parkingSpot.size(); j++) {
-            cv::Point2f vertices[4];
-            parkingSpot[j].rect.points(vertices);
-            for (int l = 0; l < 4; l++) {
-                cv::line(output, vertices[l], vertices[(l + 1) % 4], cv::Scalar(0, 0, 255), 2);
-            }
-        }
-        baseSequenceBBoxes.push_back(output);
-    }
+    printParkingSpot(parkingSpot, baseSequence, baseSequenceBBoxes);
+    
     cv::imshow("Base Sequence BBoxes", produceSingleImage(baseSequenceBBoxes, 3));
     cv::waitKey();
 
@@ -213,17 +204,7 @@ int main() {
 
         // Display the bounding boxes found in the dataset
         std::vector<cv::Mat> sequenceBBoxes;
-        for(int j = 0; j < dataset[i].size(); j++) {
-            cv::Mat output = dataset[i][j].clone();
-            for(int k = 0; k < parkingSpot.size(); k++) {
-                cv::Point2f vertices[4];
-                parkingSpot[k].rect.points(vertices);
-                for (int l = 0; l < 4; l++) {
-                    cv::line(output, vertices[l], vertices[(l + 1) % 4], cv::Scalar(0, 0, 255), 2);
-                }
-            }
-            sequenceBBoxes.push_back(output);
-        }
+        printParkingSpot(parkingSpot, dataset[i], sequenceBBoxes);
 
         cv::imshow("Sequence " + std::to_string(i + 1) + " BBoxes", produceSingleImage(sequenceBBoxes, 3));
         cv::waitKey();

@@ -150,4 +150,18 @@ void convertGreyMaskToBGR(const std::vector<cv::Mat> &greyImage, std::vector<cv:
  */
 void printPerformanceMetrics(const std::vector<double>& mAPs, const std::vector<double>& IoUs);
 
+/**
+ * Draws bounding boxes for parking spots on the given sequence of images.
+ *
+ * For each image in the base sequence, this function creates a copy of the image and draws 
+ * bounding boxes around each parking spot using the rectangle coordinates from the `ParkingSpot` objects.
+ * The bounding boxes are drawn in red with a thickness of 2 pixels.
+ * The modified images with bounding boxes are then stored in the `baseSequenceBBoxes` vector.
+ *
+ * @param parkingSpot A vector of `ParkingSpot` objects representing the parking spots to be drawn.
+ * @param baseSequence A vector of `cv::Mat` objects where each `cv::Mat` represents an image in the base sequence.
+ * @param baseSequenceBBoxes A vector of `cv::Mat` objects where each `cv::Mat` will store the image with drawn bounding boxes.
+ */
+void printParkingSpot(const std::vector<ParkingSpot>& parkingSpot, const std::vector<cv::Mat>& baseSequence, std::vector<cv::Mat>& baseSequenceBBoxes);
+
 #endif // UTILS_HPP
