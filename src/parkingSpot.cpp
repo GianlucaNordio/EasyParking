@@ -1,6 +1,9 @@
 #include "parkingSpot.hpp"
 
-// Function to display the status of the parking spot
+/**
+ * Displays the status of the parking spot, including its ID, occupancy status, and confidence score.
+ * This function is intended to provide a quick overview of the parking spot's state.
+ */
 void ParkingSpot::displayStatus() const {
     std::cout << "Parking spot " << id << " is ";
     if(occupied)
