@@ -4,7 +4,13 @@
 #include <opencv2/highgui.hpp>
 #include <opencv2/imgproc.hpp>
 
-
+/**
+ * Constructor for the Segmentation class.
+ * Initializes a background subtractor (MOG2) with a specified history length, variance threshold, and shade detection setting.
+ * It applies the background subtractor to the provided background images to initialize the model.
+ *
+ * @param backgroundImages A vector of cv::Mat objects representing the background images used to initialize the background subtractor.
+ */
 Segmentation::Segmentation(const std::vector<cv::Mat> &backgroundImages) {
     const int HISTORY_DEFAULT_VALUE = 500;
     const bool SHADES_DETECTION = true; 
@@ -19,6 +25,31 @@ Segmentation::Segmentation(const std::vector<cv::Mat> &backgroundImages) {
 
 }
 
+/**
+* Segments a sequence of images by applying the segmentImage function to each image in the input vector.
+* The results are stored in a vector of output masks corresponding to each image.
+*
+* @param images       A vector of cv::Mat objects representing the input images to be segmented.
+* @param outputMasks  A reference to a vector of cv::Mat objects where the output masks for each image will be stored.
+*/
+void Segmentation::segmentSequence(const std::vector<cv::Mat> &images, std::vector<cv::Mat> &outputMasks) {
+ 
+    // Apply segmentImage to each element of the vector separately
+    for(int i = 0; i < images.size(); i++) {
+        outputMasks.push_back(cv::Mat());
+        segmentImage(images[i], outputMasks[i]);
+    }
+
+}
+
+/**
+ * Segments a single image using background subtraction and connected component analysis.
+ * The method removes noise, filters small connected components, and applies morphological operations
+ * to generate a refined output mask.
+ *
+ * @param image      A cv::Mat object representing the input image to be segmented.
+ * @param outputMask A reference to a cv::Mat object where the output binary mask will be stored.
+ */
 void Segmentation::segmentImage(const cv::Mat &image, cv::Mat &outputMask) {
 
     const int PIXEL_SIZE_THRESHOLD = 700;   // Threshold for the minumum size of the connected component to be kept
@@ -56,18 +87,5 @@ void Segmentation::segmentImage(const cv::Mat &image, cv::Mat &outputMask) {
     cv::morphologyEx(mask, closedMask, cv::MORPH_OPEN, element);
 
     // Apply the refined mask to the input image
-    //image.copyTo(closedMask, mask); // SIMPLY VISUALIZATION TOOL
     outputMask = closedMask;
-    
-
-}
-
-void Segmentation::segmentSequence(const std::vector<cv::Mat> &images, std::vector<cv::Mat> &outputMasks) {
- 
-    // Apply segmentImage to each element of the vector separately
-    for(int i = 0; i < images.size(); i++) {
-        outputMasks.push_back(cv::Mat());
-        segmentImage(images[i], outputMasks[i]);
-    }
-
 }

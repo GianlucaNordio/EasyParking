@@ -16,21 +16,34 @@ class Segmentation {
         const int BACKGROUND_NOT_UPDATED = 0;
 
     public:
+
+        /**
+        * Constructor for the Segmentation class.
+        * Initializes a background subtractor (MOG2) with a specified history length, variance threshold, and shade detection setting.
+        * It applies the background subtractor to the provided background images to initialize the model.
+        *
+        * @param backgroundImages A vector of cv::Mat objects representing the background images used to initialize the background subtractor.
+        */
         Segmentation(const std::vector<cv::Mat> &backgroundImages);
 
-        /** 
-         * @brief perform segmentation on a single image
-         * @param image the image on which segmentation should be performed
-         * @param outputMask the mask on which we should store the background substraction
-         */
-        void segmentImage(const cv::Mat &image, cv::Mat &outputMask);
-
-        /** 
-         * @brief perform segmentation on a sequence of images
-         * @param images the images on which segmentation should be performed
-         * @param outputMasks the masks on which we should store the background substraction
-         */
+        /**
+        * Segments a sequence of images by applying the segmentImage function to each image in the input vector.
+        * The results are stored in a vector of output masks corresponding to each image.
+        *
+        * @param images       A vector of cv::Mat objects representing the input images to be segmented.
+        * @param outputMasks  A reference to a vector of cv::Mat objects where the output masks for each image will be stored.
+        */
         void segmentSequence(const std::vector<cv::Mat> &images, std::vector<cv::Mat> &outputMasks);
+        
+        /**
+        * Segments a single image using background subtraction and connected component analysis.
+        * The method removes noise, filters small connected components, and applies morphological operations
+        * to generate a refined output mask.
+        *
+        * @param image      A cv::Mat object representing the input image to be segmented.
+        * @param outputMask A reference to a cv::Mat object where the output binary mask will be stored.
+        */
+        void segmentImage(const cv::Mat &image, cv::Mat &outputMask);
 };
 
 
