@@ -395,14 +395,14 @@ std::vector<ParkingSpot> detectParkingSpotInImage(const cv::Mat& image) {
     std::cout << "median area " << median_area << std::endl;
     for (const auto& rect : filtered_rects) {
         std::cout << "rect area "<< rect.size.area() << std::endl;
+        if(rect.size.area()>median_area/2 && rect.size.area()<median_area*1.75) {
             cv::Point2f vertices[4];
             rect.points(vertices);
             for (int i = 0; i < 4; i++) {
                 vertices_all.push_back(vertices[i]);
                 cv::line(image, vertices[i], vertices[(i+1) % 4], cv::Scalar(0, 0, 255), 2);
             }
-        
-        
+        }
     }
 
     cv::imshow("ppp", image);
@@ -486,11 +486,11 @@ std::vector<ParkingSpot> detectParkingSpotInImage(const cv::Mat& image) {
     }
 
     std::vector<cv::Point2f> to_hom_points = {cv::Point2f(999,0), cv::Point2f(999,999), cv::Point2f(0,0), cv::Point2f(0,999)};
-    cv::Mat F = cv::findHomography(hom_points, to_hom_points);
-
-    cv::Mat result(1000, 1000, CV_8U);
-    cv::warpPerspective(image, result, F, cv::Size(1000,1000));
-    cv::imshow("result", result);
+    // cv::Mat F = cv::findHomography(hom_points, to_hom_points);
+// 
+    // cv::Mat result(1000, 1000, CV_8U);
+    // cv::warpPerspective(image, result, F, cv::Size(1000,1000));
+    // cv::imshow("result", result);
 
 	return parkingSpots;
 }
@@ -699,8 +699,11 @@ cv::RotatedRect build_rotatedrect_from_movement(const cv::Vec4f& segment, const 
     cv::Vec2f direction = cv::Vec2f(right_endpoint - left_endpoint);
     float length = std::sqrt(direction[0] * direction[0] + direction[1] * direction[1]);
 
-    // Normalize the direction
+    // Normalize the direction vector
     direction /= length;
+
+    double slope = tan(get_segment_angular_coefficient(segment)*CV_PI/180);
+    double intercept =  segment[1] - slope * segment[0];
 
     cv::Point2f start = left_endpoint+cv::Point2f(direction[0]*length*0.6,direction[1]*length*0.6);
 
@@ -747,8 +750,6 @@ cv::RotatedRect build_rotatedrect_from_movement(const cv::Vec4f& segment, const 
         cv::Point2f endpoint2(closest_segment[2], closest_segment[3]);
 
         double length_other = get_segment_length(closest_segment);
-        double slope = tan(get_segment_angular_coefficient(segment)*CV_PI/180);
-        double intercept =  segment[1] - slope * segment[0];
         cv::Point2f destination_right(endpoint2.x, endpoint2.x*slope+intercept);
 
         cv::Point2f destination_bottom = destination_right + cv::Point2f(perpendicular_direction[0] * min_distance, perpendicular_direction[1] * min_distance);
@@ -763,8 +764,9 @@ cv::RotatedRect build_rotatedrect_from_movement(const cv::Vec4f& segment, const 
         } 
         else {
             cv::Point2f destination_left((endpoint1.y-intercept)/slope,endpoint1.y);
+            // or choose the other
             cv::Point2f destination_up = destination_left + cv::Point2f(perpendicular_direction[0]*min_distance, perpendicular_direction[1] * min_distance);
-            bounding_box = cv::RotatedRect(right_endpoint,destination_left,destination_up);
+            bounding_box = cv::RotatedRect(right_endpoint,left_endpoint,left_endpoint + cv::Point2f(perpendicular_direction[0] *min_distance, perpendicular_direction[1] *min_distance));
         }
         //if(bounding_box.size.aspectRatio() > 1.5|| bounding_box.size.aspectRatio() < 1/1.5) {
         //    return shrink_rotated_rect(bounding_box, 0.8);
