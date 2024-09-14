@@ -42,8 +42,6 @@ void performanceMeasurement(const std::string DATASET_PATH, const int NUMBER_SEQ
     loadSequencesSegMasks(DATASET_PATH, NUMBER_SEQUENCES, sequenceMaskGTGray);
 
     // Compute performance for the base sequence
-
-    
     
     for(int i = 0; i < baseSequence.size(); i++) {
         baseSequenceMAP.push_back(calculateMeanAveragePrecision(parkingSpot, baseSequenceParkingSpotGT[i]));
