@@ -312,15 +312,15 @@ std::vector<ParkingSpot> detectParkingSpotInImage(const cv::Mat& image) {
             trim_if_intersect(line_neg,line_pos);
             double length_trimmed = get_segment_length(line_neg);
         }        
-        cv::line(image, cv::Point(line_neg[0], line_neg[1]), cv::Point(line_neg[2], line_neg[3]), 
-        cv::Scalar(255, 0, 0), 2, cv::LINE_AA); 
+        //cv::line(image, cv::Point(line_neg[0], line_neg[1]), cv::Point(line_neg[2], line_neg[3]), 
+        //cv::Scalar(255, 0, 0), 2, cv::LINE_AA); 
     }
 
   // Thresholds
     float angle_threshold = CV_PI / 180.0f * 3;  // 10 degrees
     float length_threshold = 3;  // 30 pixels
-    cv::imshow("ppp", image);
-    cv::waitKey(0);
+    // cv::imshow("ppp", image);
+    // cv::waitKey(0);
 
     std::cout << "number of segments ORIGINAL" << segments_neg.size() << std::endl;
     std::cout << "number of segments FILTERED" << filtered_segments_neg.size() << std::endl;
@@ -368,10 +368,12 @@ std::vector<ParkingSpot> detectParkingSpotInImage(const cv::Mat& image) {
     std::vector<cv::RotatedRect> remove_big_small_pos;
     std::vector<cv::RotatedRect> all_rects;
     std::cout << "median area " << median_area << std::endl;
+
     for (const auto& rect : rotated_rects) {
         std::cout << "rect area "<< rect.size.area() << std::endl;
+        if(rect.size.area()>median_area/4 && rect.size.area()<median_area*2.25) {
             remove_big_small_pos.push_back(rect);
-        
+        }
     }
 
     for (const auto& rect : filtered_rects) {
@@ -379,12 +381,13 @@ std::vector<ParkingSpot> detectParkingSpotInImage(const cv::Mat& image) {
         areas.push_back(rect.size.area());
     }
 
-    median_area = compute_median(areas);
     std::vector<cv::RotatedRect> remove_big_small_2;
+    median_area = compute_median(areas);
     std::cout << "median area " << median_area << std::endl;
+
     for (const auto& rect : filtered_rects) {
         std::cout << "rect area "<< rect.size.area() << std::endl;
-        if(rect.size.area()>median_area/4 && rect.size.area()<median_area*2) {
+        if(rect.size.area()>median_area/4 && rect.size.area()<median_area*2.25) {
             remove_big_small_2.push_back(rect);
             all_rects.push_back(rect);
         }
@@ -407,12 +410,10 @@ std::vector<ParkingSpot> detectParkingSpotInImage(const cv::Mat& image) {
     std::vector<cv::RotatedRect> all_close_rects;
     for(const cv::RotatedRect& rect:all_rects) {
         if(!is_alone(rect,all_rects)) {
-            all_close_rects.push_back(rect);
             cv::Point2f vertices[4];
             rect.points(vertices);
             for (int i = 0; i < 4; i++) {
                 vertices_all.push_back(vertices[i]);
-                all_rects.push_back(rect);
                 cv::line(image, vertices[i], vertices[(i+1) % 4], cv::Scalar(0, 255, 0), 2);
             }
         }
@@ -814,9 +815,9 @@ cv::RotatedRect build_rotatedrect_from_movement(const cv::Vec4f& segment, const 
     float min_distance = std::numeric_limits<float>::max();
     bool found_intersection = false;
     cv::Vec4f closest_segment;
-        cv::circle(image,start,5,cv::Scalar(0,0,255));
-    cv::line(image, start, perp_end, cv::Scalar(0, 0, 255), 2, cv::LINE_AA); 
-    cv::line(image, start, perp_end, cv::Scalar(0, 0, 0), 2, cv::LINE_AA); 
+    // cv::circle(image,start,5,cv::Scalar(0,0,255));
+    // cv::line(image, start, perp_end, cv::Scalar(0, 0, 255), 2, cv::LINE_AA); 
+    // cv::line(image, start, perp_end, cv::Scalar(0, 0, 0), 2, cv::LINE_AA); 
 
     // Check intersection of the perpendicular segment with every other segment
     for (const auto& other_segment : segments) {
@@ -866,7 +867,7 @@ cv::RotatedRect build_rotatedrect_from_movement(const cv::Vec4f& segment, const 
         cv::Point2f vertices[4];
         bounding_box.points(vertices);
         for (int i = 0; i < 4; i++) {
-            cv::line(image, vertices[i], vertices[(i+1) % 4], cv::Scalar(0, 0, 255), 2);
+            // cv::line(image, vertices[i], vertices[(i+1) % 4], cv::Scalar(0, 0, 255), 2);
         }
         // cv::imshow("projections", image);
         // cv::waitKey(0);        
