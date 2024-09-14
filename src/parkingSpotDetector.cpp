@@ -59,14 +59,14 @@ std::vector<ParkingSpot> detectParkingSpotInImage(const cv::Mat& image) {
             pos_angles.push_back(angle);
             pos_lengths.push_back(length);
 
-            cv::line(intermediate_results, cv::Point(segment[0], segment[1]), cv::Point(segment[2], segment[3]), 
-                 cv::Scalar(0, 255, 0), 2, cv::LINE_AA); 
+            //cv::line(intermediate_results, cv::Point(segment[0], segment[1]), cv::Point(segment[2], segment[3]), 
+            //     cv::Scalar(0, 255, 0), 2, cv::LINE_AA); 
         } else if (angle < 0) {
             neg_angles.push_back(angle);
             neg_lengths.push_back(length);
 
-            cv::line(intermediate_results, cv::Point(segment[0], segment[1]), cv::Point(segment[2], segment[3]), 
-            cv::Scalar(255, 0, 0), 2, cv::LINE_AA); 
+            //cv::line(intermediate_results, cv::Point(segment[0], segment[1]), cv::Point(segment[2], segment[3]), 
+            //cv::Scalar(255, 0, 0), 2, cv::LINE_AA); 
         }
     }
 
@@ -81,12 +81,12 @@ std::vector<ParkingSpot> detectParkingSpotInImage(const cv::Mat& image) {
     std::cout << "Median width of negative angle lines: " << avg_neg_width << std::endl;
 
     // Display the result
-    cv::imshow("Detected Line Segments", intermediate_results);
-    cv::waitKey(0);
+    //cv::imshow("Detected Line Segments", intermediate_results);
+    //cv::waitKey(0);
 
     preprocessed = preprocess_find_parking_lines(image);
-    cv::imshow("TM Input", preprocessed);
-    cv::waitKey(0);
+    //cv::imshow("TM Input", preprocessed);
+    //cv::waitKey(0);
 
     // offsets from avg values
     std::vector<int> angle_offsets = {-6,-5,-4,-3,-2,-1,0,1,2,3,4,5,6};
@@ -173,17 +173,17 @@ std::vector<ParkingSpot> detectParkingSpotInImage(const cv::Mat& image) {
                 cv::Point2f vertices[4];
         rect.points(vertices);
         for (int i = 0; i < 4; i++) {
-            cv::line(image, vertices[i], vertices[(i+1) % 4], cv::Scalar(0, 255, 0), 2);
+            // cv::line(image, vertices[i], vertices[(i+1) % 4], cv::Scalar(0, 255, 0), 2);
         }
     }
-    cv::imshow("ppp", image);
-    cv::waitKey(0);
+    //cv::imshow("ppp", image);
+    //cv::waitKey(0);
 
     std::vector<cv::RotatedRect> list_boxes2;
     std::vector<float> rect_scores2(list_boxes2.size(), -1); // Initialize scores with -1 for non-existing rects
 
     angle_offsets = {-12,-11,-10,-9,-8,-7,-6,-5,-4,-3,-2,-1,0,1,2,3,4,5,6,7,8,9,10,11,12};
-    length_scales = {0.8,1,1.25,1.5};
+    length_scales = {1,1.25,1.5};
     for(int l = 0; l<length_scales.size(); l++) {
         for(int k = 0; k<angle_offsets.size(); k++) {
             int template_width = avg_neg_width*length_scales[l];
@@ -223,7 +223,7 @@ std::vector<ParkingSpot> detectParkingSpotInImage(const cv::Mat& image) {
                 cv::Point2f vertices[4];
                 rotated_rect.points(vertices);
                 for (int i = 0; i < 4; i++) {
-                    cv::line(image, vertices[i], vertices[(i+1) % 4], cv::Scalar(0, 255, 0), 2);
+                    //cv::line(image, vertices[i], vertices[(i+1) % 4], cv::Scalar(0, 255, 0), 2);
                 }
 
                 // Check overlap with existing rects in list_boxes2
@@ -291,7 +291,7 @@ std::vector<ParkingSpot> detectParkingSpotInImage(const cv::Mat& image) {
         segments_neg.push_back(line_segment);
     }
     
-    distance_threshold = 200.0;
+    distance_threshold = 250.0;
     std::vector<cv::Vec4f> no_top_right_neg = filter_segments_near_top_right(segments_neg,cv::Size(image.cols,image.rows),distance_threshold);
     std::vector<cv::Vec4f> no_top_right_pos = filter_segments_near_top_right(segments_pos,cv::Size(image.cols,image.rows),distance_threshold);
 
@@ -550,11 +550,11 @@ cv::RotatedRect build_rotatedrect_from_movement(const cv::Vec4f& segment, const 
     bool found_intersection = false;
     cv::Vec4f closest_segment;
 
-    cv::circle(image,start,5,cv::Scalar(0,0,255));
-    cv::line(image, start, perp_end, cv::Scalar(0, 0, 255), 2, cv::LINE_AA); 
-    cv::imshow("projections", image);
-    cv::waitKey(0);
-    cv::line(image, start, perp_end, cv::Scalar(0, 0, 0), 2, cv::LINE_AA); 
+    //cv::circle(image,start,5,cv::Scalar(0,0,255));
+    //cv::line(image, start, perp_end, cv::Scalar(0, 0, 255), 2, cv::LINE_AA); 
+    //cv::imshow("projections", image);
+    //cv::waitKey(0);
+    //cv::line(image, start, perp_end, cv::Scalar(0, 0, 0), 2, cv::LINE_AA); 
 
     // Check intersection of the perpendicular segment with every other segment
     for (const auto& other_segment : segments) {
@@ -565,7 +565,7 @@ cv::RotatedRect build_rotatedrect_from_movement(const cv::Vec4f& segment, const 
             float dist = cv::norm(start-intersection);
             // last conditions to ensure that close segments of another parking slot line does not interfere
             // 
-            if (dist > 10 && dist < min_distance && dist < length*5) { // last conditions to ensure that close segments of another parking slot line does not interfere) { 
+            if (dist > 10 && dist < min_distance && dist < length*1.5) { // last conditions to ensure that close segments of another parking slot line does not interfere) { 
                 min_distance = dist;
                 closest_intersection = intersection;
                 found_intersection = true;
@@ -608,8 +608,8 @@ cv::RotatedRect build_rotatedrect_from_movement(const cv::Vec4f& segment, const 
         for (int i = 0; i < 4; i++) {
             cv::line(image, vertices[i], vertices[(i+1) % 4], cv::Scalar(0, 0, 255), 2);
         }
-        cv::imshow("projections", image);
-        cv::waitKey(0);
+        //cv::imshow("projections", image);
+        //cv::waitKey(0);
         
         return bounding_box;
     }
@@ -861,8 +861,8 @@ cv::Mat preprocess_find_white_lines(const cv::Mat& src) {
     cv::dilate(magnitude,adpt,element,cv::Point(-1,-1),4);
     cv::erode(adpt,adpt,element,cv::Point(-1,-1),3);
 
-    cv::imshow("grayscale", adpt);
-    cv::waitKey(0);
+    //cv::imshow("grayscale", adpt);
+    //cv::waitKey(0);
     return adpt;
 }
 
@@ -893,7 +893,7 @@ cv::Mat preprocess_find_parking_lines(const cv::Mat& src) {
     cv::adaptiveThreshold(grad_magn,grad_magn_proc,255, cv::ADAPTIVE_THRESH_GAUSSIAN_C ,cv::THRESH_BINARY, 45,-40);
     cv::dilate(grad_magn_proc,grad_magn_proc,element,cv::Point(-1,-1),1);
     cv::erode(grad_magn_proc,grad_magn_proc,element,cv::Point(-1,-1),1);
-    cv::imshow("adaptive thold grad magn",grad_magn_proc+grad_magn);
+    //cv::imshow("adaptive thold grad magn",grad_magn_proc+grad_magn);
     return grad_magn_proc;
     cv::Mat adpt;
     cv::waitKey(0);
@@ -1057,7 +1057,7 @@ std::vector<cv::RotatedRect>::const_iterator elementIterator(const std::vector<c
 void nms(std::vector<cv::RotatedRect> &vec, std::vector<cv::RotatedRect> &elementsToRemove) {
     for (const auto& rect1 : vec) {
         for (const auto& rect2 : vec) {
-            if (!(rect1.center.x == rect2.center.x && rect1.center.y == rect2.center.y) && (computeIntersectionArea(rect1, rect2) > 0.99)) {
+            if (!(rect1.center.x == rect2.center.x && rect1.center.y == rect2.center.y) && (computeIntersectionArea(rect1, rect2) > 0.5)) {
                 if (rect1.size.area() > rect2.size.area()){
                     elementsToRemove.push_back(rect2);
                 } else {
