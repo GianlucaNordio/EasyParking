@@ -147,6 +147,7 @@ void loadSequencesSegMasks(const std::string& datasetPath, const int numSequence
         // Conver the images to greyscale
         for(int j = 0; j < segMasks[i].size(); j++) {
             cv::cvtColor(segMasks[i][j], segMasks[i][j], cv::COLOR_BGR2GRAY);
+            maskRightTopCorner(segMasks[i][j]);
         }
     }
 }
@@ -246,18 +247,16 @@ void loadGroundTruth(std::string path, std::vector<ParkingSpot> &groundTruth) {
 std::string getFileInFolder(const std::string& folderPath, int index) {
     std::vector<std::string> files;
     
-    // Accumula tutti i file regolari nella cartella
     for (const auto& entry : std::filesystem::directory_iterator(folderPath)) {
         if (std::filesystem::is_regular_file(entry)) {
             files.push_back(entry.path().filename().string());
         }
     }
     
-    // Verifica se l'indice richiesto è valido
     if (index >= 0 && index < files.size()) {
         return files[index];
     } else {
-        return ""; // Ritorna una stringa vuota se l'indice non è valido
+        return ""; 
     }
 }
 
@@ -297,9 +296,9 @@ void convertGreyMaskToBGR(const std::vector<cv::Mat> &greyImage, std::vector<cv:
                     color[2] = 128;
                 }
                 else if (src.at<uchar>(y, x) == 1) {
-                    color[0] = 255;
+                    color[0] = 0;
                     color[1] = 0;
-                    color[2] = 0;
+                    color[2] = 255;
                 }
                 else if (src.at<uchar>(y, x) == 2) {
                     color[0] = 0;
@@ -358,5 +357,49 @@ void printParkingSpot(const std::vector<ParkingSpot>& parkingSpot, const std::ve
 
         }
         baseSequenceBBoxes.push_back(output);
+    }
+}
+
+/**
+ * @brief Masks the region above a specified line in the image by setting pixel values to 0.
+ * 
+ * This function modifies the input image by setting all pixel values to 0 for those located above
+ * a line defined by two points: (850, 0) and (width, 230). The line equation is used to determine the
+ * boundary, and all pixels with y-coordinates less than the line's y-value at the corresponding x-coordinate
+ * are set to 0.
+ * 
+ * @param img The input image (cv::Mat) to be modified. This image is assumed to be of type CV_8UC1 
+ *            (8-bit single-channel), typically used for grayscale images.
+ * 
+ * @note The function assumes that the input image is in grayscale format. For color images or other
+ *       image types, modifications to the function may be necessary.
+ * 
+ * @warning This function performs pixel-wise operations and may be slow for large images. Optimization
+ *          may be required for performance-critical applications.
+ */
+void maskRightTopCorner(cv::Mat& img) {
+
+    int width = img.cols;
+    int height = img.rows;
+
+    const int x1 = 850;
+    const int y1 = 0;
+    const int x2 = width;
+    const int y2 = 230;
+
+    cv::Point pt1(x1, y1);
+    cv::Point pt2(x2, y2);
+
+    double m = static_cast<double>(pt2.y - pt1.y) / (pt2.x - pt1.x);
+    double q = pt1.y - m * pt1.x;
+
+    for (int y = 0; y < height; ++y) {
+        for (int x = 0; x < width; ++x) {
+            double lineY = m * x + q;
+
+            if (y < lineY) {
+                img.at<uchar>(y, x) = 0;
+            }
+        }
     }
 }

@@ -180,4 +180,22 @@ void printPerformanceMetrics(const std::vector<double>& mAPs, const std::vector<
  */
 void printParkingSpot(const std::vector<ParkingSpot>& parkingSpot, const std::vector<cv::Mat>& baseSequence, std::vector<cv::Mat>& baseSequenceBBoxes);
 
+/**
+ * @brief Masks the region above a specified line in the image by setting pixel values to 0.
+ * 
+ * This function modifies the input image by setting all pixel values to 0 for those located above
+ * a line defined by two points: (850, 0) and (width, 230). The line equation is used to determine the
+ * boundary, and all pixels with y-coordinates less than the line's y-value at the corresponding x-coordinate
+ * are set to 0.
+ * 
+ * @param img The input image (cv::Mat) to be modified. This image is assumed to be of type CV_8UC1 
+ *            (8-bit single-channel), typically used for grayscale images.
+ * 
+ * @note The function assumes that the input image is in grayscale format. For color images or other
+ *       image types, modifications to the function may be necessary.
+ * 
+ * @warning This function performs pixel-wise operations and may be slow for large images. Optimization
+ *          may be required for performance-critical applications.
+ */
+void maskRightTopCorner(cv::Mat& img);
 #endif // UTILS_HPP

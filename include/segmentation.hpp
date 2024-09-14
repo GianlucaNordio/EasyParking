@@ -3,6 +3,8 @@
 
 #include <opencv2/opencv.hpp>
 
+#include "utils.hpp"
+
 /**
  * @brief Class that allows to perform segmentation based on background subtraction.
  * To work we first need to call the constructor with the set of images about the background.

@@ -86,6 +86,9 @@ void Segmentation::segmentImage(const cv::Mat &image, cv::Mat &outputMask) {
     cv::Mat closedMask;
     cv::morphologyEx(mask, closedMask, cv::MORPH_OPEN, element);
 
+    // Mask the top right corner of the image as specified in the project assumptions
+    maskRightTopCorner(closedMask);
+
     // Apply the refined mask to the input image
     outputMask = closedMask;
 }
