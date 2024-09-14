@@ -2,7 +2,9 @@
 #define CLASSIFICATION_HPP
 
 #include <opencv2/opencv.hpp>
+
 #include "parkingSpot.hpp"
+#include "utils.hpp"
 
 /**
  * Enum representing different labels for components in an image.
