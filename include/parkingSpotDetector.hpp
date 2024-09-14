@@ -27,7 +27,7 @@ cv::Point2f compute_midpoint(const cv::Vec4f& segment);
 std::vector<cv::Vec4f> filter_close_segments(const std::vector<cv::Vec4f>& segments, float distance_threshold);
 std::vector<cv::Vec4f> merge_parallel_segments(std::vector<cv::Vec4f>& segments, float angle_threshold, float distance_threshold, cv::Mat image);
 double computeIntersectionArea(const cv::RotatedRect& rect1, const cv::RotatedRect& rect2);
-void nms(std::vector<cv::RotatedRect>& vec, std::vector<cv::RotatedRect>& elementsToRemove);
+void nms(std::vector<cv::RotatedRect>& vec, std::vector<cv::RotatedRect>& elementsToRemove, double threshold);
 std::vector<cv::RotatedRect>::const_iterator elementIterator(const std::vector<cv::RotatedRect>& vec, const cv::RotatedRect& elem);
 cv::Vec4f merge_segments(const cv::Vec4f& seg1, const cv::Vec4f& seg2);
 std::vector<cv::Vec4f> filter_segments_near_top_right(const std::vector<cv::Vec4f>& segments, const cv::Size& image_size, double distance_threshold);
@@ -44,6 +44,7 @@ cv::RotatedRect shrink_rotated_rect(const cv::RotatedRect& rect, float shorten_p
 void trim_if_intersect(cv::Vec4f& seg1, cv::Vec4f& seg2);
 std::vector<cv::RotatedRect> filter_by_surrounding(const std::vector<cv::RotatedRect>& rects1, const std::vector<cv::RotatedRect>& rects2);
 cv::RotatedRect scale_rotated_rect(const cv::RotatedRect& rect, float scale_factor);
+double compute_median(std::vector<double>& data);
 
 cv::Mat applyGammaTransform(const cv::Mat& src, double gamma);
 #endif // PARKINGSPOTDETECTOR_HPP

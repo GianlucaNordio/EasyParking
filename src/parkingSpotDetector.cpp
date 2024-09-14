@@ -91,7 +91,7 @@ std::vector<ParkingSpot> detectParkingSpotInImage(const cv::Mat& image) {
     //cv::waitKey(0);
 
     preprocessed = preprocess_find_parking_lines(image);
-    //cv::imshow("TM Input", preprocessed);
+    cv::imshow("TM Input", preprocessed);
     //cv::waitKey(0);
 
     // offsets from avg values
@@ -350,7 +350,9 @@ std::vector<ParkingSpot> detectParkingSpotInImage(const cv::Mat& image) {
 
     // Apply NMS filtering
     std::vector<cv::RotatedRect> elementsToRemove;
-    nms(rotated_rects, elementsToRemove);
+    nms(rotated_rects, elementsToRemove,0.3);
+    std::vector<cv::RotatedRect> elementsToRemove2;
+    nms(rotated_rects2, elementsToRemove2, 0.3);
 
     // Remove the elements determined by NMS filtering
     for (cv::RotatedRect element : elementsToRemove) {
@@ -360,29 +362,135 @@ std::vector<ParkingSpot> detectParkingSpotInImage(const cv::Mat& image) {
         }
     }
 
+    // Remove the elements determined by NMS filtering
+    for (cv::RotatedRect element : elementsToRemove2) {
+        std::vector<cv::RotatedRect>::const_iterator iterator = elementIterator(rotated_rects2, element);
+        if (iterator != rotated_rects2.cend()) {
+            rotated_rects2.erase(iterator);
+        }
+    }
+
     // Output the result
+    std::vector<cv::Point2f> vertices_all;
     for (const auto& rect : rotated_rects) {
         cv::Point2f vertices[4];
-        if(rect.size.area()> 0) {
+        if(rect.size.area()> 500) {
             rect.points(vertices);
             for (int i = 0; i < 4; i++) {
+                vertices_all.push_back(vertices[i]);
                 cv::line(image, vertices[i], vertices[(i+1) % 4], cv::Scalar(0, 255, 0), 2);
             }
         }
     }
     // Output the result
     std::vector filtered_rects = filter_by_surrounding(rotated_rects2,rotated_rects);
+    std::vector<double> areas;
+    double median_area;
+
     for (const auto& rect : filtered_rects) {
-        cv::Point2f vertices[4];
-        if(rect.size.area()>0) {
-            scale_rotated_rect(rect,1.5).points(vertices);
+        areas.push_back(rect.size.area());
+    }
+
+    median_area = compute_median(areas);
+    std::cout << "median area " << median_area << std::endl;
+    for (const auto& rect : filtered_rects) {
+        std::cout << "rect area "<< rect.size.area() << std::endl;
+            cv::Point2f vertices[4];
+            rect.points(vertices);
             for (int i = 0; i < 4; i++) {
+                vertices_all.push_back(vertices[i]);
                 cv::line(image, vertices[i], vertices[(i+1) % 4], cv::Scalar(0, 0, 255), 2);
+            }
+        
+        
+    }
+
+    cv::imshow("ppp", image);
+    cv::waitKey(0);
+
+    std::vector<cv::Point2f> hull;
+    cv::convexHull(vertices_all, hull);
+    cv::Mat hull_image(image.rows, image.cols, CV_8U);
+
+    // Draw the convex hull
+    std::vector<std::pair<double, std::pair<cv::Point2f, cv::Point2f>>> hullLines;    
+    for (size_t i = 0; i < hull.size(); i++) {
+        cv::Point2f p1 = hull[i];
+        cv::Point2f p2 = hull[(i + 1) % hull.size()]; // Wrap around to form a closed hull
+        double distance = cv::norm(p1-p2);
+        hullLines.push_back(std::make_pair(distance, std::make_pair(p1, p2)));
+
+        cv::line(image, hull[i], hull[(i + 1) % hull.size()], 255, 2);
+    }
+
+    cv::imshow("hull image",image);
+    cv::waitKey(0);
+
+    // Sort the lines by their length in descending order
+    std::sort(hullLines.begin(), hullLines.end(), [](const auto& a, const auto& b) {
+        return a.first > b.first;
+    });
+
+    std::vector<double> ms;
+    std::vector<double> bs;
+    
+    // Highlight the 4 longest lines in red
+    for (size_t i = 0; i < std::min(hullLines.size(), size_t(4)); i++) {
+        auto& line = hullLines[i];
+        double m = static_cast<double>(line.second.second.y - line.second.first.y) / (line.second.second.x - line.second.first.x);
+        double b = line.second.first.y - m * line.second.first.x;
+        ms.push_back(m);
+        bs.push_back(b);
+        cv::line(image, line.second.first, line.second.second, cv::Scalar(0, 0, 255), (i+1)*(i+1));
+    }
+
+    std::vector<cv::Point2f> hom_points;
+    // Check all pairs of lines for intersections
+    for (size_t i = 0; i < ms.size(); ++i) {
+        for (size_t j = i + 1; j < ms.size(); ++j) {
+            double m1 = ms[i];
+            double b1 = bs[i];
+            double m2 = ms[j];
+            double b2 = bs[j];
+
+            std::cout << "Lines " << i << " m: "<< m1 << " and " << j << " m: " << m2 << std::endl;
+            // Check if lines are parallel (have the same slope)
+            if ((m1 < 0) == (m2 < 0)) {
+                std::cout << "Lines " << i << " and " << j << " are parallel and do not intersect." << std::endl;
+                continue;
+            }
+
+            // Calculate intersection point (x, y)
+            double x = (b2 - b1) / (m1 - m2);
+            double y = m1 * x + b1;
+
+            if(x<0) x = 0;
+            if(x >= image.cols) x = image.cols-1;
+            if(y <0) y = 0;
+            if(y >= image.rows) y = image.rows -1;
+
+            // Check if the intersection point is inside the image
+            if (x >= 0 && x < image.cols && y >= 0 && y < image.rows) {
+                cv::circle(image, cv::Point(static_cast<int>(x), static_cast<int>(y)), 5, cv::Scalar(0, 0, 255), -1);
+                hom_points.push_back(cv::Point2f(static_cast<int>(x), static_cast<int>(y)));
+            } else {
+                std::cout << "Intersection of lines " << i << " and " << j 
+                          << " is at (" << x << ", " << y << ") and is outside the image." << std::endl;
             }
         }
     }
-    cv::imshow("ppp", image);
-    cv::waitKey(0);
+
+    // Iterate over the points to determine the corners
+    for (const auto& point : hom_points) {
+            std::cout << point << std::endl;
+    }
+
+    std::vector<cv::Point2f> to_hom_points = {cv::Point2f(999,0), cv::Point2f(999,999), cv::Point2f(0,0), cv::Point2f(0,999)};
+    cv::Mat F = cv::findHomography(hom_points, to_hom_points);
+
+    cv::Mat result(1000, 1000, CV_8U);
+    cv::warpPerspective(image, result, F, cv::Size(1000,1000));
+    cv::imshow("result", result);
 
 	return parkingSpots;
 }
@@ -410,19 +518,31 @@ std::vector<cv::RotatedRect> filter_by_surrounding(const std::vector<cv::Rotated
             }
 
             // If more than three surrounding rects are found, break early
-                std::cout << surrounding_count << std::endl;
             if (surrounding_count >= 3) {
                 break;
             }
         }
 
         // Only keep rect1 if it is not surrounded by more than 3 rects from rects2
-        if (surrounding_count < 3) {
+        if (surrounding_count < 3 && rect1.size.area()>1) {
+            // TODO: problema: l'erase del nms lascia rettangoli con area 0
             filtered_rects.push_back(rect1);
         }
     }
 
     return filtered_rects;
+}
+
+// Function to calculate the median of a vector
+double compute_median(std::vector<double>& data) {
+    if (data.empty()) return 0.0;
+    std::sort(data.begin(), data.end());
+    size_t n = data.size();
+    if (n % 2 == 0) {
+        return (data[n / 2 - 1] + data[n / 2]) / 2.0;
+    } else {
+        return data[n / 2];
+    }
 }
 
 // Function to check overlap between two rotated rectangles
@@ -643,8 +763,8 @@ cv::RotatedRect build_rotatedrect_from_movement(const cv::Vec4f& segment, const 
         } 
         else {
             cv::Point2f destination_left((endpoint1.y-intercept)/slope,endpoint1.y);
-            cv::Point2f destination_up = destination_left + cv::Point2f(perpendicular_direction[0]*1.25, perpendicular_direction[1] * min_distance*1.25);
-            bounding_box = cv::RotatedRect(right_endpoint,left_endpoint,left_endpoint + cv::Point2f(perpendicular_direction[0] *min_distance, perpendicular_direction[1] *min_distance));
+            cv::Point2f destination_up = destination_left + cv::Point2f(perpendicular_direction[0]*min_distance, perpendicular_direction[1] * min_distance);
+            bounding_box = cv::RotatedRect(right_endpoint,destination_left,destination_up);
         }
         //if(bounding_box.size.aspectRatio() > 1.5|| bounding_box.size.aspectRatio() < 1/1.5) {
         //    return shrink_rotated_rect(bounding_box, 0.8);
@@ -1096,10 +1216,10 @@ std::vector<cv::RotatedRect>::const_iterator elementIterator(const std::vector<c
     return vec.cend(); // Restituiamo end() se l'elemento non è stato trovato
 }
 
-void nms(std::vector<cv::RotatedRect> &vec, std::vector<cv::RotatedRect> &elementsToRemove) {
+void nms(std::vector<cv::RotatedRect> &vec, std::vector<cv::RotatedRect> &elementsToRemove, double threshold) {
     for (const auto& rect1 : vec) {
         for (const auto& rect2 : vec) {
-            if (!(rect1.center.x == rect2.center.x && rect1.center.y == rect2.center.y) && (computeIntersectionArea(rect1, rect2) > 0.3)) {
+            if (!(rect1.center.x == rect2.center.x && rect1.center.y == rect2.center.y) && (computeIntersectionArea(rect1, rect2) > threshold)) {
                 if (rect1.size.area() > rect2.size.area()){
                     elementsToRemove.push_back(rect2);
                 } else {
