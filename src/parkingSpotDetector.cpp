@@ -296,7 +296,7 @@ std::vector<ParkingSpot> detectParkingSpotInImage(const cv::Mat& image) {
         cv::Vec4f line_segment = convert_rect_to_line(rect);
         segments_neg.push_back(line_segment);
     }
-    
+
     std::vector<cv::Vec4f> no_top_right_neg = filter_segments_near_top_right(segments_neg,cv::Size(image.cols,image.rows));
     std::vector<cv::Vec4f> no_top_right_pos = filter_segments_near_top_right(segments_pos,cv::Size(image.cols,image.rows));
 
@@ -305,30 +305,25 @@ std::vector<ParkingSpot> detectParkingSpotInImage(const cv::Mat& image) {
     distance_threshold = avg_pos_width*0.4;
     std::vector<cv::Vec4f> filtered_segments_pos = filter_close_segments(no_top_right_pos, distance_threshold);
 
+    std::vector<cv::Vec4f> trimmed_segments_neg;
     for(cv::Vec4f& line_neg: filtered_segments_neg) {
         double length = get_segment_length(line_neg);
         for(cv::Vec4f line_pos: filtered_segments_pos) {
             trim_if_intersect(line_neg,line_pos);
             double length_trimmed = get_segment_length(line_neg);
-            if(length_trimmed < length/2) {
-                break;
-            }
-        }
+        }        
+        cv::line(image, cv::Point(line_neg[0], line_neg[1]), cv::Point(line_neg[2], line_neg[3]), 
+        cv::Scalar(255, 0, 0), 2, cv::LINE_AA); 
     }
 
   // Thresholds
     float angle_threshold = CV_PI / 180.0f * 3;  // 10 degrees
     float length_threshold = 3;  // 30 pixels
-
-    // Merge parallel and nearby segments
-    std::vector<cv::Vec4f> merged_segments = merge_parallel_segments(filtered_segments_pos,angle_threshold,length_threshold, image);
-
     cv::imshow("ppp", image);
     cv::waitKey(0);
 
     std::cout << "number of segments ORIGINAL" << segments_neg.size() << std::endl;
     std::cout << "number of segments FILTERED" << filtered_segments_neg.size() << std::endl;
-    // std::cout << "number of segments MERGED" << merged_segments.size() << std::endl;
 
     // Process the segments
     std::vector<cv::RotatedRect> rotated_rects = process_segments(filtered_segments_pos, image);
@@ -338,7 +333,7 @@ std::vector<ParkingSpot> detectParkingSpotInImage(const cv::Mat& image) {
     std::vector<cv::RotatedRect> elementsToRemove;
     nms(rotated_rects, elementsToRemove,0.3);
     std::vector<cv::RotatedRect> elementsToRemove2;
-    nms(rotated_rects2, elementsToRemove2, 0.3);
+    nms(rotated_rects2, elementsToRemove2, 0.15);
 
     // Remove the elements determined by NMS filtering
     for (cv::RotatedRect element : elementsToRemove) {
@@ -375,9 +370,8 @@ std::vector<ParkingSpot> detectParkingSpotInImage(const cv::Mat& image) {
     std::cout << "median area " << median_area << std::endl;
     for (const auto& rect : rotated_rects) {
         std::cout << "rect area "<< rect.size.area() << std::endl;
-        if(rect.size.area()>median_area/4 && rect.size.area()<median_area*2.25) {
             remove_big_small_pos.push_back(rect);
-        }
+        
     }
 
     for (const auto& rect : filtered_rects) {
@@ -390,7 +384,7 @@ std::vector<ParkingSpot> detectParkingSpotInImage(const cv::Mat& image) {
     std::cout << "median area " << median_area << std::endl;
     for (const auto& rect : filtered_rects) {
         std::cout << "rect area "<< rect.size.area() << std::endl;
-        if(rect.size.area()>median_area/4 && rect.size.area()<median_area*2.25) {
+        if(rect.size.area()>median_area/4 && rect.size.area()<median_area*2) {
             remove_big_small_2.push_back(rect);
             all_rects.push_back(rect);
         }
@@ -810,15 +804,19 @@ cv::RotatedRect build_rotatedrect_from_movement(const cv::Vec4f& segment, const 
 
     // Find the perpendicular direction (rotate by 90 degrees)
     cv::Vec2f perpendicular_direction(-direction[1], direction[0]);
+    double search_length = std::min(2.5*length, 200.0);
 
     // Create the perpendicular segment from the rightmost endpoint
-    cv::Point2f perp_end = start + cv::Point2f(perpendicular_direction[0] * 3*length, perpendicular_direction[1] * 3*length);
+    cv::Point2f perp_end = start + cv::Point2f(perpendicular_direction[0] * search_length, perpendicular_direction[1] * search_length);
 
     // Initialize variables to store the closest intersection point
     cv::Point2f closest_intersection;
     float min_distance = std::numeric_limits<float>::max();
     bool found_intersection = false;
     cv::Vec4f closest_segment;
+        cv::circle(image,start,5,cv::Scalar(0,0,255));
+    cv::line(image, start, perp_end, cv::Scalar(0, 0, 255), 2, cv::LINE_AA); 
+    cv::line(image, start, perp_end, cv::Scalar(0, 0, 0), 2, cv::LINE_AA); 
 
     // Check intersection of the perpendicular segment with every other segment
     for (const auto& other_segment : segments) {
@@ -830,7 +828,7 @@ cv::RotatedRect build_rotatedrect_from_movement(const cv::Vec4f& segment, const 
             float dist = cv::norm(start-intersection);
             // last conditions to ensure that close segments of another parking slot line does not interfere
             // 
-            if (dist > 10 && dist < min_distance && dist < length*2.5) { // last conditions to ensure that close segments of another parking slot line does not interfere) { 
+            if (dist > 22.5 && dist < min_distance) { // last conditions to ensure that close segments of another parking slot line does not interfere) { 
                 min_distance = dist;
                 closest_intersection = intersection;
                 found_intersection = true;
@@ -851,7 +849,6 @@ cv::RotatedRect build_rotatedrect_from_movement(const cv::Vec4f& segment, const 
         cv::Point2f destination_right(endpoint2.x, endpoint2.x*slope+intercept);
 
         cv::Point2f destination_bottom = destination_right + cv::Point2f(perpendicular_direction[0] * min_distance, perpendicular_direction[1] * min_distance);
-
         cv::RotatedRect bounding_box;
         if(slope>0) {
             bounding_box = cv::RotatedRect(left_endpoint,destination_right,destination_bottom);
@@ -866,9 +863,13 @@ cv::RotatedRect build_rotatedrect_from_movement(const cv::Vec4f& segment, const 
         //if(bounding_box.size.aspectRatio() > 1.5|| bounding_box.size.aspectRatio() < 1/1.5) {
         //    return shrink_rotated_rect(bounding_box, 0.8);
         //}
-        //cv::imshow("projections", image);
-        //cv::waitKey(0);
-        
+        cv::Point2f vertices[4];
+        bounding_box.points(vertices);
+        for (int i = 0; i < 4; i++) {
+            cv::line(image, vertices[i], vertices[(i+1) % 4], cv::Scalar(0, 0, 255), 2);
+        }
+        // cv::imshow("projections", image);
+        // cv::waitKey(0);        
         return bounding_box;
     }
 
@@ -993,108 +994,6 @@ std::vector<cv::Vec4f> filter_close_segments(const std::vector<cv::Vec4f>& segme
     return filtered_segments;
 }
 
-// Function to split a segment into two smaller segments
-std::vector<cv::Vec4f> split_segment(const cv::Vec4f& segment) {
-    std::vector<cv::Vec4f> split_segments;
-    
-    // Find midpoint
-    cv::Point2f p1(segment[0], segment[1]);
-    cv::Point2f p2(segment[2], segment[3]);
-    cv::Point2f midpoint((p1.x + p2.x) / 2, (p1.y + p2.y) / 2);
-    
-    // Split into two segments
-    split_segments.push_back(cv::Vec4f(p1.x, p1.y, midpoint.x, midpoint.y));
-    split_segments.push_back(cv::Vec4f(midpoint.x, midpoint.y, p2.x, p2.y));
-    
-    return split_segments;
-}
-
-// Helper function to merge two segments into one
-cv::Vec4f merge_segments(const cv::Vec4f& seg1, const cv::Vec4f& seg2) {
-    // Find the endpoints of the combined segment
-    cv::Point2f points[] = {
-        cv::Point2f(seg1[0], seg1[1]),
-        cv::Point2f(seg1[2], seg1[3]),
-        cv::Point2f(seg2[0], seg2[1]),
-        cv::Point2f(seg2[2], seg2[3])
-    };
-
-    // Find the minimum and maximum x and y values to determine the new segment's endpoints
-    cv::Point2f min_pt = points[0];
-    cv::Point2f max_pt = points[0];
-
-    for (int i = 1; i < 4; ++i) {
-        if (points[i].x < min_pt.x || (points[i].x == min_pt.x && points[i].y < min_pt.y)) {
-            min_pt = points[i];
-        }
-        if (points[i].x > max_pt.x || (points[i].x == max_pt.x && points[i].y > max_pt.y)) {
-            max_pt = points[i];
-        }
-    }
-
-    // Return the new segment
-    return cv::Vec4f(min_pt.x, min_pt.y, max_pt.x, max_pt.y);
-}
-
-// Function to merge overlapping or near-parallel segments
-std::vector<cv::Vec4f> merge_parallel_segments(std::vector<cv::Vec4f>& segments, float angle_threshold, float distance_threshold, cv::Mat image) {
-    std::vector<cv::Vec4f> merged_segments;
-    std::vector<bool> merged(segments.size(), false);  // Keep track of merged segments
-
-    for (size_t i = 0; i < segments.size(); ++i) {
-        if (merged[i]) continue;  // Skip already merged segments
-
-        cv::Vec4f current_segment = segments[i];
-        merged[i] = true;  // Mark the current segment as merged
-
-        float current_angle = get_segment_angular_coefficient(current_segment);  // Compute the angle of the current segment
-
-        // Compare with remaining segments
-        for (size_t j = i + 1; j < segments.size(); ++j) {
-            if (merged[j]) continue;  // Skip already merged segments
-
-            // Compute the angle of the other segment
-            float other_angle = get_segment_angular_coefficient(segments[j]);
-            float angle_diff = std::abs(current_angle - other_angle);
-
-            // Ensure the angle difference is within the specified threshold
-            if (angle_diff > angle_threshold) continue;
-
-            // Check if the segments are close enough in terms of distance
-            cv::Point2f seg1_start(current_segment[0], current_segment[1]);
-            cv::Point2f seg1_end(current_segment[2], current_segment[3]);
-            cv::Point2f seg2_start(segments[j][0], segments[j][1]);
-            cv::Point2f seg2_end(segments[j][2], segments[j][3]);
-
-            // Compute the distances between the endpoints
-            float dist1 = cv::norm(seg1_start - seg2_start);
-            float dist2 = cv::norm(seg1_start - seg2_end);
-            float dist3 = cv::norm(seg1_end - seg2_start);
-            float dist4 = cv::norm(seg1_end - seg2_end);
-
-            //cv::line(image, cv::Point(current_segment[0], current_segment[1]), cv::Point(current_segment[2], current_segment[3]), 
-            //    cv::Scalar(255, 0, 0), 2, cv::LINE_AA); 
-            //cv::line(image, cv::Point(segments[j][0], segments[j][1]), cv::Point(segments[j][2], segments[j][3]), 
-            //    cv::Scalar(0, 255, 0), 2, cv::LINE_AA); 
-           ////  cv::imshow("rightmost", image);
-           ////  cv::waitKey(0);
-            //cv::line(image, cv::Point(segments[j][0], segments[j][1]), cv::Point(segments[j][2], segments[j][3]), 
-            //    cv::Scalar(0, 0, 255), 2, cv::LINE_AA); 
-            //cv::line(image, cv::Point(current_segment[0], current_segment[1]), cv::Point(current_segment[2], current_segment[3]), 
-            //    cv::Scalar(0, 0, 255), 2, cv::LINE_AA); 
-//
-            // If any of the distances is below the threshold, merge the segments
-            if (dist1 < distance_threshold || dist2 < distance_threshold || dist3 < distance_threshold || dist4 < distance_threshold) {
-                current_segment = merge_segments(current_segment, segments[j]);
-                merged[j] = true;  // Mark this segment as merged
-            }
-        }
-
-        // Add the merged segment to the result
-        merged_segments.push_back(current_segment);
-    }
-    return merged_segments;
-}
 cv::Mat preprocess_find_white_lines(const cv::Mat& src) {
     cv::Mat filteredImage;
     cv::bilateralFilter(src, filteredImage, -1, 40, 10);
@@ -1229,7 +1128,8 @@ std::vector<cv::Mat> generate_template(double width, double height, double angle
         template_width = height;
         rotation_angle = -90-angle; // negative rotation_angle for flipped (angle is negative)
         rotated_width = template_height*cos(-angle*CV_PI/180)+template_width; // needs positive angle
-        rotated_height = template_height; // needs positive angle
+        rotated_height = template_height;   // giusto così sennò si mangia un pezzo di riga e se matcha con la riga mangiata viene generato 
+                                            // un rotatedrect lunghissimo
     }
 
     // Horizontal template and mask definition
