@@ -46,7 +46,7 @@ void performanceMeasurement(const std::string DATASET_PATH, const int NUMBER_SEQ
     
     
     for(int i = 0; i < baseSequence.size(); i++) {
-        baseSequenceMAP.push_back(calculateMeanAveragePrecision(baseSequenceParkingSpotGT[i], parkingSpot));
+        baseSequenceMAP.push_back(calculateMeanAveragePrecision(parkingSpot, baseSequenceParkingSpotGT[i]));
         baseSequenceIoU.push_back(calculateMeanIntersectionOverUnion(classifiedBaseSequenceMasks[i], baseSequenceMaskGT));
     }
 
