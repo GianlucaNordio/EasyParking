@@ -66,7 +66,7 @@ void performanceMeasurement(const std::string DATASET_PATH, const int NUMBER_SEQ
         std::vector<double> sequenceIoU;
 
         for(int j = 0; j < dataset[i].size(); j++) {
-            sequenceMAP.push_back(calculateMeanAveragePrecision(datasetParkingSpotGT[i][j], parkingSpot));
+            sequenceMAP.push_back(calculateMeanAveragePrecision(parkingSpot, datasetParkingSpotGT[i][j]));
             sequenceIoU.push_back(calculateMeanIntersectionOverUnion(classifiedDatasetMasks[i][j], sequenceMaskGTGray[i][j]));
         }
 
@@ -132,7 +132,7 @@ double calculateMeanAveragePrecision(const std::vector<ParkingSpot>& predictions
     // Check if there are no predictions for ParkingSpot with car
     if (!predictionsParkingSpotWithCar.empty()){
         // Calculate the Precision-Recall curve for ParkingSpot with car
-        std::vector<std::pair<double, double>> precisionRecallPointsWithCar = calculatePrecisionRecallCurve(groundTruthsParkingSpotWithCar, predictionsParkingSpotWithCar);
+        std::vector<std::pair<double, double>> precisionRecallPointsWithCar = calculatePrecisionRecallCurve(predictionsParkingSpotWithCar, groundTruthsParkingSpotWithCar);
         // Calculate the Average Precision (AP) for ParkingSpot with car
         APParkingSpotWithCar = calculateAveragePrecision(precisionRecallPointsWithCar);
     }
@@ -140,7 +140,7 @@ double calculateMeanAveragePrecision(const std::vector<ParkingSpot>& predictions
     // Check if there are no predictions for ParkingSpot without car
     if (!predictionsParkingSpotWithoutCar.empty()){
         // Calculate the Precision-Recall curve for ParkingSpot without car
-        std::vector<std::pair<double, double>> precisionRecallPointsWithoutCar = calculatePrecisionRecallCurve(groundTruthsParkingSpotWithoutCar, predictionsParkingSpotWithoutCar);
+        std::vector<std::pair<double, double>> precisionRecallPointsWithoutCar = calculatePrecisionRecallCurve(predictionsParkingSpotWithoutCar, groundTruthsParkingSpotWithoutCar);
         // Calculate the Average Precision (AP) for ParkingSpot without car
         APParingSpotWithoutCar = calculateAveragePrecision(precisionRecallPointsWithoutCar);
     }
@@ -159,11 +159,11 @@ double calculateMeanAveragePrecision(const std::vector<ParkingSpot>& predictions
  * precision and recall values at each prediction step. It returns a vector of (recall, precision) pairs
  * that form the Precision-Recall curve.
  *
+ * @param predictions    A vector of ParkingSpot objects representing the predicted parking spots.
  * @param groundTruths  A vector of ParkingSpot objects representing the ground truth parking spots.
- * @param detections    A vector of ParkingSpot objects representing the predicted parking spots.
  * @return              A vector of pairs, where each pair contains the recall and precision values.
  */
-std::vector<std::pair<double, double>> calculatePrecisionRecallCurve(const std::vector<ParkingSpot>& groundTruths, const std::vector<ParkingSpot>& detections){
+std::vector<std::pair<double, double>> calculatePrecisionRecallCurve(const std::vector<ParkingSpot>& predictions, const std::vector<ParkingSpot>& groundTruths){
 
     std::vector<std::pair<double, double>> precisionRecallPoints;
     int truePositives = 0;
@@ -172,7 +172,7 @@ std::vector<std::pair<double, double>> calculatePrecisionRecallCurve(const std::
     std::vector<bool> detected(groundTruths.size(), false);
 
     // Sort the predictions by confidence in descending order to ensure highest confidence detections are considered first
-    std::vector<ParkingSpot> sortedPredictions = detections;
+    std::vector<ParkingSpot> sortedPredictions = predictions;
     std::sort(sortedPredictions.begin(), sortedPredictions.end(), 
               [](const ParkingSpot& a, const ParkingSpot& b) {
                   return a.confidence > b.confidence; 

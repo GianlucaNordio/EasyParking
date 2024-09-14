@@ -49,7 +49,7 @@ void performanceMeasurement(const std::string DATASET_PATH, const int NUMBER_SEQ
  * @param groundTruths  A vector of ParkingSpot objects representing the ground truth parking spots.
  * @return              The mean Average Precision (mAP) for the parking spot predictions.
  */
-double calculateMeanAveragePrecision(const std::vector<ParkingSpot>& groundTruths, const std::vector<ParkingSpot>& detections);
+double calculateMeanAveragePrecision(const std::vector<ParkingSpot>& predictions, const std::vector<ParkingSpot>& groundTruths);
 
 /**
  * Calculates the mean Intersection over Union (mIoU) for the given masks.
@@ -73,11 +73,11 @@ double calculateMeanIntersectionOverUnion(const cv::Mat &foundMask, const cv::Ma
  * precision and recall values at each prediction step. It returns a vector of (recall, precision) pairs
  * that form the Precision-Recall curve.
  *
+ * @param predictions    A vector of ParkingSpot objects representing the predicted parking spots.
  * @param groundTruths  A vector of ParkingSpot objects representing the ground truth parking spots.
- * @param detections    A vector of ParkingSpot objects representing the predicted parking spots.
  * @return              A vector of pairs, where each pair contains the recall and precision values.
  */
-std::vector<std::pair<double, double>> calculatePrecisionRecallCurve(const std::vector<ParkingSpot>& groundTruths, const std::vector<ParkingSpot>& detections);
+std::vector<std::pair<double, double>> calculatePrecisionRecallCurve(const std::vector<ParkingSpot>& predictions, const std::vector<ParkingSpot>& groundTruths);
 
 /**
  * Calculates the Intersection over Union (IoU) between two parking spots.
