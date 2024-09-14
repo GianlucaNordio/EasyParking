@@ -225,7 +225,8 @@ std::vector<ParkingSpot> detectParkingSpotInImage(const cv::Mat& image) {
                 center.x = pt.x + rotated_template.cols / 2;
                 center.y = pt.y + rotated_template.rows / 2;
 
-                cv::RotatedRect rotated_rect(center, cv::Size(template_width*1, template_height*1), angle);
+                // passare come parametro uno scale di questo rotatedrect perchè in quelli orizzontali serve fare*1.25width e height
+                cv::RotatedRect rotated_rect(center, cv::Size(template_width, template_height), angle);
                 cv::Point2f vertices[4];
                 rotated_rect.points(vertices);
                 for (int i = 0; i < 4; i++) {
@@ -312,8 +313,8 @@ std::vector<ParkingSpot> detectParkingSpotInImage(const cv::Mat& image) {
             trim_if_intersect(line_neg,line_pos);
             double length_trimmed = get_segment_length(line_neg);
         }        
-        //cv::line(image, cv::Point(line_neg[0], line_neg[1]), cv::Point(line_neg[2], line_neg[3]), 
-        //cv::Scalar(255, 0, 0), 2, cv::LINE_AA); 
+        // cv::line(image, cv::Point(line_neg[0], line_neg[1]), cv::Point(line_neg[2], line_neg[3]), 
+        // cv::Scalar(255, 0, 0), 2, cv::LINE_AA); 
     }
 
   // Thresholds
@@ -437,9 +438,6 @@ std::vector<ParkingSpot> detectParkingSpotInImage(const cv::Mat& image) {
         cv::line(image, hull[i], hull[(i + 1) % hull.size()], 255, 2);
     }
 
-    cv::imshow("hull image",image);
-    cv::waitKey(0);
-
     // Sort the lines by their length in descending order
     std::sort(hullLines.begin(), hullLines.end(), [](const auto& a, const auto& b) {
         return a.first > b.first;
@@ -478,19 +476,11 @@ std::vector<ParkingSpot> detectParkingSpotInImage(const cv::Mat& image) {
             double x = (b2 - b1) / (m1 - m2);
             double y = m1 * x + b1;
 
-            if(x<0) x = 0;
-            if(x >= image.cols) x = image.cols-1;
-            if(y <0) y = 0;
-            if(y >= image.rows) y = image.rows -1;
 
-            // Check if the intersection point is inside the image
-            if (x >= 0 && x < image.cols && y >= 0 && y < image.rows) {
+
                 cv::circle(image, cv::Point(static_cast<int>(x), static_cast<int>(y)), 5, cv::Scalar(0, 0, 255), -1);
                 hom_points.push_back(cv::Point2f(static_cast<int>(x), static_cast<int>(y)));
-            } else {
-                std::cout << "Intersection of lines " << i << " and " << j 
-                          << " is at (" << x << ", " << y << ") and is outside the image." << std::endl;
-            }
+
         }
     }
 
@@ -500,11 +490,14 @@ std::vector<ParkingSpot> detectParkingSpotInImage(const cv::Mat& image) {
     }
 
     std::vector<cv::Point2f> to_hom_points = {cv::Point2f(999,0), cv::Point2f(999,999), cv::Point2f(0,0), cv::Point2f(0,999)};
-    // cv::Mat F = cv::findHomography(hom_points, to_hom_points);
-// 
-    // cv::Mat result(1000, 1000, CV_8U);
-    // cv::warpPerspective(image, result, F, cv::Size(1000,1000));
-    // cv::imshow("result", result);
+    cv::Mat F = cv::findHomography(hom_points, to_hom_points);
+
+    cv::Mat result(1000, 1000, CV_8U);
+    cv::warpPerspective(image, result, F, cv::Size(1000,1000));
+    cv::imshow("result", result);
+
+    cv::imshow("hull image",image);
+    cv::waitKey(0);
 
 	return parkingSpots;
 }
@@ -800,7 +793,8 @@ cv::RotatedRect build_rotatedrect_from_movement(const cv::Vec4f& segment, const 
         start = left_endpoint+cv::Point2f(direction[0]*length*0.6,direction[1]*length*0.6);
     }
     else {
-        start = left_endpoint;
+        // eventualmente lasciare solo left_endpoint, non cambia nulla se rotatedrect per template verticali non viene scalato dopo il match
+        start = left_endpoint+cv::Point2f(direction[0]*length*0.25,direction[1]*length*0.25);
     }
 
     // Find the perpendicular direction (rotate by 90 degrees)
@@ -940,10 +934,12 @@ std::vector<cv::Vec4f> filter_segments_near_top_right(const std::vector<cv::Vec4
     for (const auto& segment : segments) {
         cv::Point2f p1(segment[0],segment[1]);
         cv::Point2f p2(segment[2],segment[3]);
+        cv::Point2f midpoint = compute_midpoint(segment);
         double result1 = cv::pointPolygonTest(hull, p1, false);  // False = no distance calculation needed
         double result2 = cv::pointPolygonTest(hull, p2, false);  // False = no distance calculation needed
+        double result3 = cv::pointPolygonTest(hull,midpoint,false);
 
-        if(result1<0 && result2<0) {
+        if(result1<0 && result2<0 && result3 < 0) {
             filtered_segments.push_back(segment);
         }
     }
