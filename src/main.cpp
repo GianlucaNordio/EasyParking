@@ -200,7 +200,7 @@ int main() {
 
     // Convert the greyscale masks to BGR
     std::vector<std::vector<cv::Mat>> classifiedDatasetMasksBGR;
-    convertGreyMaskToBGR(classifiedDatasetMasks, classifiedDatasetMasksBGR);
+    convertGreyMasksToBGR(classifiedDatasetMasks, classifiedDatasetMasksBGR);
 
     // Display the results on the dataset one sequence at a time
     for(int i = 0; i < NUMBER_SEQUENCES; i++) {

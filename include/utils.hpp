@@ -42,12 +42,11 @@ void loadImages(std::string path, std::vector<cv::Mat> &images);
  */
 void loadSequencesSegMasks(const std::string& datasetPath, int numSequences, std::vector<std::vector<cv::Mat>> &segMasks);
 
-void loadGroundTruth(const std::string path, std::vector<ParkingSpot> &groundTruth);
-
 void loadBaseSequenceGroundTruth(const std::string& datasetPath, std::vector<ParkingSpot> &groundTruth);
 
 void loadSequencesGroundTruth(const std::string& datasetPath, int numSequences, std::vector<std::vector<ParkingSpot>> &groundTruth);
 
+void loadGroundTruth(const std::string path, std::vector<ParkingSpot> &groundTruth);
 /**
  * Allows to convert the greyscale masks provided by the dataset to BGR.
  * Performs the following mapping:
@@ -58,7 +57,7 @@ void loadSequencesGroundTruth(const std::string& datasetPath, int numSequences, 
  * @param srcImages vector of greyscale images containing the mask (values are only 0, 1, 2)
  * @param dstImages vector of BGR images produced by perorming the mapping on the input masks
  */
-void convertGreyMaskToBGR(const std::vector<std::vector<cv::Mat>> &srcImages, std::vector<std::vector<cv::Mat>> &dstImages);
+void convertGreyMasksToBGR(const std::vector<std::vector<cv::Mat>> &srcImages, std::vector<std::vector<cv::Mat>> &dstImages);
 
 void convertGreyMaskToBGR(const std::vector<cv::Mat> &srcImages, std::vector<cv::Mat> &dstImages);
 

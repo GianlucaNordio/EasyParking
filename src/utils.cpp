@@ -1,26 +1,18 @@
 #include <opencv2/highgui.hpp>
 #include <opencv2/imgproc.hpp> 
 #include <iostream>
-
 #include <filesystem>
 
 #include "utils.hpp"
 
-
-
-const std::string FRAMES_FOLDER = "frames";
-const int BASE_SEQUENCE_INDEX = 0;
-const std::string SEQUENCE = "sequence";
-
-
-const std::string SLASH = "/";
-
 const std::string MASKS_FOLDER = "masks";
-
+const std::string FRAMES_FOLDER = "frames";
+const std::string SEQUENCE = "sequence";
+const std::string SLASH = "/";
+const int BASE_SEQUENCE_INDEX = 0;
 
 cv::Mat produceSingleImage(const std::vector<cv::Mat>& images, int imagesPerLine) {
-    // TODO understand if the exceptions I throw are okay
-    
+
     // Check if at least one  image was provided
     if(images.size() < 1) {
         throw std::invalid_argument("No image was provided");
@@ -37,6 +29,7 @@ cv::Mat produceSingleImage(const std::vector<cv::Mat>& images, int imagesPerLine
             throw std::invalid_argument("Images have different number of rows");
         }
     }
+
     // If total number of images smaller then images per line reduce the images per line
     if(imagesPerLine > images.size()) {
         imagesPerLine = images.size();
@@ -59,12 +52,10 @@ cv::Mat produceSingleImage(const std::vector<cv::Mat>& images, int imagesPerLine
         images[i].copyTo(position);
     }
 
-    // TODO remove this resize (used only to be able to fit the image in our screen)
     cv::resize(result, result, cv::Size(result.cols/2, result.rows/2));
 
     return result;
 }
-
 
 void loadBaseSequenceFrames(const std::string& datasetPath, std::vector<cv::Mat> &images) {
     std::string folderPath = datasetPath + SLASH + SEQUENCE + std::to_string(BASE_SEQUENCE_INDEX) + SLASH + FRAMES_FOLDER;
@@ -94,7 +85,6 @@ void loadImages(std::string path, std::vector<cv::Mat> &images) {
     }
 }
 
-
 void loadSequencesSegMasks(const std::string& datasetPath, const int numSequences, std::vector<std::vector<cv::Mat>> &segMasks) {
     // Move over all the sequences
     for(int i = 0; i < numSequences; i++) {
@@ -112,6 +102,36 @@ void loadSequencesSegMasks(const std::string& datasetPath, const int numSequence
     }
 }
 
+void loadBaseSequenceGroundTruth(const std::string& datasetPath, std::vector<ParkingSpot> &groundTruth){
+    std::string folderPath = datasetPath + SLASH + SEQUENCE + std::to_string(BASE_SEQUENCE_INDEX) + SLASH + "ground_truth";
+    loadGroundTruth(folderPath, groundTruth);
+}
+
+void loadSequencesGroundTruth(const std::string& datasetPath, int numSequences, std::vector<std::vector<ParkingSpot>> &groundTruth){
+    // Move over all the sequences
+    for(int i = 0; i < numSequences; i++) {
+        // Initialize the vector relative to the i-th sequence
+        std::vector<ParkingSpot> empty;   
+        groundTruth.push_back(empty);
+
+        // Create the path relative to the i-th sequence
+        std::string folderPath = datasetPath + SLASH + SEQUENCE + std::to_string(i + 1) + SLASH + "ground_truth";
+        loadGroundTruth(folderPath, groundTruth[i]);
+    }
+}
+
+void loadGroundTruth(std::string path, std::vector<ParkingSpot> &groundTruth) {
+    parseXML(path, groundTruth);
+}
+
+
+void convertGreyMasksToBGR(const std::vector<std::vector<cv::Mat>> &srcImages, std::vector<std::vector<cv::Mat>> &dstImages) {
+    for(int i = 0; i < srcImages.size(); i++) {
+        std::vector<cv::Mat> empty;
+        dstImages.push_back(empty);
+        convertGreyMaskToBGR(srcImages[i], dstImages[i]);
+    }
+}
 void convertGreyMaskToBGR(const std::vector<cv::Mat> &srcImages, std::vector<cv::Mat> &dstImages) {
     for(int i = 0; i < srcImages.size(); i++) {
         dstImages.push_back(cv::Mat(srcImages[i].rows,srcImages[i].cols, CV_8UC3, cv::Scalar(0 ,0 ,0)));
@@ -138,36 +158,6 @@ void convertGreyMaskToBGR(const std::vector<cv::Mat> &srcImages, std::vector<cv:
             }
         }
     }
-}
-
-void convertGreyMaskToBGR(const std::vector<std::vector<cv::Mat>> &srcImages, std::vector<std::vector<cv::Mat>> &dstImages) {
-    for(int i = 0; i < srcImages.size(); i++) {
-        std::vector<cv::Mat> empty;
-        dstImages.push_back(empty);
-        convertGreyMaskToBGR(srcImages[i], dstImages[i]);
-    }
-}
-
-void loadBaseSequenceGroundTruth(const std::string& datasetPath, std::vector<ParkingSpot> &groundTruth){
-    std::string folderPath = datasetPath + SLASH + SEQUENCE + std::to_string(BASE_SEQUENCE_INDEX) + SLASH + "ground_truth";
-    loadGroundTruth(folderPath, groundTruth);
-}
-
-void loadSequencesGroundTruth(const std::string& datasetPath, int numSequences, std::vector<std::vector<ParkingSpot>> &groundTruth){
-    // Move over all the sequences
-    for(int i = 0; i < numSequences; i++) {
-        // Initialize the vector relative to the i-th sequence
-        std::vector<ParkingSpot> empty;   
-        groundTruth.push_back(empty);
-
-        // Create the path relative to the i-th sequence
-        std::string folderPath = datasetPath + SLASH + SEQUENCE + std::to_string(i + 1) + SLASH + "ground_truth";
-        loadGroundTruth(folderPath, groundTruth[i]);
-    }
-}
-
-void loadGroundTruth(std::string path, std::vector<ParkingSpot> &groundTruth) {
-    parseXML(path, groundTruth);
 }
 
 void printPerformanceMetrics(const std::vector<double>& mAP, const std::vector<double>& IoU) {
