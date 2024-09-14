@@ -9,6 +9,12 @@ for other lines: if there is another segment in between, split bounding box
 
 if red ones are contained in green ones, then delete red one
 else do something with intersection with green ones maybe
+
+
+blues need to extend more like already done before
+if a green overlaps with a red, it means that it should be more to the left, or where most of itself is
+filter reds by area
+filter reds if they are surrounded by greens
 */
 
 // Function to detect parking spots in the images
@@ -182,7 +188,7 @@ std::vector<ParkingSpot> detectParkingSpotInImage(const cv::Mat& image) {
     std::vector<cv::RotatedRect> list_boxes2;
     std::vector<float> rect_scores2(list_boxes2.size(), -1); // Initialize scores with -1 for non-existing rects
 
-    angle_offsets = {-12,-11,-10,-9,-8,-7,-6,-5,-4,-3,-2,-1,0,1,2,3,4,5,6,7,8,9,10,11,12};
+    angle_offsets = {-16,-15,-14,-13,-12,-11,-10,-9,-8,-7,-6,-5,-4,-3,-2,-1,0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16};
     length_scales = {1,1.25,1.5};
     for(int l = 0; l<length_scales.size(); l++) {
         for(int k = 0; k<angle_offsets.size(); k++) {
@@ -365,10 +371,11 @@ std::vector<ParkingSpot> detectParkingSpotInImage(const cv::Mat& image) {
         }
     }
     // Output the result
-    for (const auto& rect : rotated_rects2) {
+    std::vector filtered_rects = filter_by_surrounding(rotated_rects2,rotated_rects);
+    for (const auto& rect : filtered_rects) {
         cv::Point2f vertices[4];
         if(rect.size.area()>0) {
-            rect.points(vertices);
+            scale_rotated_rect(rect,1.5).points(vertices);
             for (int i = 0; i < 4; i++) {
                 cv::line(image, vertices[i], vertices[(i+1) % 4], cv::Scalar(0, 0, 255), 2);
             }
@@ -378,6 +385,44 @@ std::vector<ParkingSpot> detectParkingSpotInImage(const cv::Mat& image) {
     cv::waitKey(0);
 
 	return parkingSpots;
+}
+
+// Function to scale a RotatedRect by a given scale factor
+cv::RotatedRect scale_rotated_rect(const cv::RotatedRect& rect, float scale_factor) {
+    // Scale the size (width and height) of the rotated rect
+    cv::Size2f new_size(rect.size.width * scale_factor, rect.size.height * scale_factor);
+
+    // Create a new rotated rect with the scaled size
+    return cv::RotatedRect(rect.center, new_size, rect.angle);
+}
+
+// Function to filter the first vector if an element is surrounded by more than three from the second vector
+std::vector<cv::RotatedRect> filter_by_surrounding(const std::vector<cv::RotatedRect>& rects1, const std::vector<cv::RotatedRect>& rects2) {
+    std::vector<cv::RotatedRect> filtered_rects;
+
+    for (const auto& rect1 : rects1) {
+        int surrounding_count = 0;
+
+        // Count how many rects from rects2 surround rect1
+        for (const auto& rect2 : rects2) {
+            if (computeIntersectionArea(scale_rotated_rect(rect1,1.5),rect2)>0.01) {
+                surrounding_count++;
+            }
+
+            // If more than three surrounding rects are found, break early
+                std::cout << surrounding_count << std::endl;
+            if (surrounding_count >= 3) {
+                break;
+            }
+        }
+
+        // Only keep rect1 if it is not surrounded by more than 3 rects from rects2
+        if (surrounding_count < 3) {
+            filtered_rects.push_back(rect1);
+        }
+    }
+
+    return filtered_rects;
 }
 
 // Function to check overlap between two rotated rectangles
@@ -474,6 +519,7 @@ cv::Vec4f extend_segment(const cv::Vec4f& seg, float extension_ratio) {
 void trim_if_intersect(cv::Vec4f& seg1, cv::Vec4f& seg2) {
     cv::Point2f intersection;
     if(segments_intersect(seg1, seg2, intersection)) {
+        std::cout<<"ciao"<<std::endl;
         seg1[0] = intersection.x;
         seg1[1] = intersection.y;
 
@@ -542,7 +588,7 @@ cv::RotatedRect build_rotatedrect_from_movement(const cv::Vec4f& segment, const 
     cv::Vec2f perpendicular_direction(-direction[1], direction[0]);
 
     // Create the perpendicular segment from the rightmost endpoint
-    cv::Point2f perp_end = start + cv::Point2f(perpendicular_direction[0] * 2*length, perpendicular_direction[1] * 2*length);
+    cv::Point2f perp_end = start + cv::Point2f(perpendicular_direction[0] * 3*length, perpendicular_direction[1] * 3*length);
 
     // Initialize variables to store the closest intersection point
     cv::Point2f closest_intersection;
@@ -597,17 +643,12 @@ cv::RotatedRect build_rotatedrect_from_movement(const cv::Vec4f& segment, const 
         } 
         else {
             cv::Point2f destination_left((endpoint1.y-intercept)/slope,endpoint1.y);
-            cv::Point2f destination_up = destination_left + cv::Point2f(perpendicular_direction[0] * min_distance, perpendicular_direction[1] * min_distance);
-            bounding_box = cv::RotatedRect(right_endpoint,destination_left,destination_up);
+            cv::Point2f destination_up = destination_left + cv::Point2f(perpendicular_direction[0]*1.25, perpendicular_direction[1] * min_distance*1.25);
+            bounding_box = cv::RotatedRect(right_endpoint,left_endpoint,left_endpoint + cv::Point2f(perpendicular_direction[0] *min_distance, perpendicular_direction[1] *min_distance));
         }
         //if(bounding_box.size.aspectRatio() > 1.5|| bounding_box.size.aspectRatio() < 1/1.5) {
         //    return shrink_rotated_rect(bounding_box, 0.8);
         //}
-        cv::Point2f vertices[4];
-        bounding_box.points(vertices);
-        for (int i = 0; i < 4; i++) {
-            cv::line(image, vertices[i], vertices[(i+1) % 4], cv::Scalar(0, 0, 255), 2);
-        }
         //cv::imshow("projections", image);
         //cv::waitKey(0);
         
@@ -954,6 +995,7 @@ std::vector<cv::Mat> generate_template(double width, double height, double angle
 
     height = 6;
     height = height + 4;
+    width +=4;
 
     // Rotate the template
     if(!flipped) {
@@ -979,7 +1021,7 @@ std::vector<cv::Mat> generate_template(double width, double height, double angle
     // Build the template and mask
     for(int i = 0; i< horizontal_template.rows; i++) {
         for(int j = 0; j<horizontal_template.cols; j++) {
-            if((!flipped ? i>2 && i < height-2 : j>2&&j<height-2)) {
+            if((!flipped ? i>2 && i < height-2 : j>2&&j<height-2) && (!flipped ? j>2 && j < width-2 : j>2&&j<width-2)) {
             horizontal_template.at<uchar>(i,j) = 255;
             horizontal_mask.at<uchar>(i,j) = 245;
             }
@@ -1057,7 +1099,7 @@ std::vector<cv::RotatedRect>::const_iterator elementIterator(const std::vector<c
 void nms(std::vector<cv::RotatedRect> &vec, std::vector<cv::RotatedRect> &elementsToRemove) {
     for (const auto& rect1 : vec) {
         for (const auto& rect2 : vec) {
-            if (!(rect1.center.x == rect2.center.x && rect1.center.y == rect2.center.y) && (computeIntersectionArea(rect1, rect2) > 0.5)) {
+            if (!(rect1.center.x == rect2.center.x && rect1.center.y == rect2.center.y) && (computeIntersectionArea(rect1, rect2) > 0.3)) {
                 if (rect1.size.area() > rect2.size.area()){
                     elementsToRemove.push_back(rect2);
                 } else {

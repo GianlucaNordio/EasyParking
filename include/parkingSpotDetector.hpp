@@ -42,6 +42,8 @@ std::vector<cv::RotatedRect> process_segments(const std::vector<cv::Vec4f>& segm
 cv::Vec4f extend_segment(const cv::Vec4f& seg, float extension_ratio);
 cv::RotatedRect shrink_rotated_rect(const cv::RotatedRect& rect, float shorten_percentage);
 void trim_if_intersect(cv::Vec4f& seg1, cv::Vec4f& seg2);
+std::vector<cv::RotatedRect> filter_by_surrounding(const std::vector<cv::RotatedRect>& rects1, const std::vector<cv::RotatedRect>& rects2);
+cv::RotatedRect scale_rotated_rect(const cv::RotatedRect& rect, float scale_factor);
 
 cv::Mat applyGammaTransform(const cv::Mat& src, double gamma);
 #endif // PARKINGSPOTDETECTOR_HPP
