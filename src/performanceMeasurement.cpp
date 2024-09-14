@@ -133,7 +133,7 @@ double calculateMeanAveragePrecision(const std::vector<ParkingSpot>& predictions
     double APParkingSpotWithoutCar = 1;
 
     // Check if there are no predictions for ParkingSpot with car
-    if (!predictionsParkingSpotWithCar.empty()){
+    if (!groundTruthsParkingSpotWithCar.empty()){
         // Calculate the Precision-Recall curve for ParkingSpot with car
         std::vector<std::pair<double, double>> precisionRecallPointsWithCar = calculatePrecisionRecallCurve(predictionsParkingSpotWithCar, groundTruthsParkingSpotWithCar);
         // Calculate the Average Precision (AP) for ParkingSpot with car
@@ -141,7 +141,7 @@ double calculateMeanAveragePrecision(const std::vector<ParkingSpot>& predictions
     }
 
     // Check if there are no predictions for ParkingSpot without car
-    if (!predictionsParkingSpotWithoutCar.empty()){
+    if (!groundTruthsParkingSpotWithoutCar.empty()){
         // Calculate the Precision-Recall curve for ParkingSpot without car
         std::vector<std::pair<double, double>> precisionRecallPointsWithoutCar = calculatePrecisionRecallCurve(predictionsParkingSpotWithoutCar, groundTruthsParkingSpotWithoutCar);
         // Calculate the Average Precision (AP) for ParkingSpot without car
@@ -171,6 +171,7 @@ std::vector<std::pair<double, double>> calculatePrecisionRecallCurve(const std::
     std::vector<std::pair<double, double>> precisionRecallPoints;
     int truePositives = 0;
     int falsePositives = 0;
+    int falseNegatives = 0;  // GT not detected
 
     std::vector<bool> detected(groundTruths.size(), false);
 
@@ -186,6 +187,7 @@ std::vector<std::pair<double, double>> calculatePrecisionRecallCurve(const std::
         double maxIoU = 0.0;
         int bestMatchIndex = -1;
 
+        // Find the best match for the prediction
         for (size_t i = 0; i < groundTruths.size(); ++i) {
             if (detected[i]) continue; 
 
@@ -198,19 +200,41 @@ std::vector<std::pair<double, double>> calculatePrecisionRecallCurve(const std::
 
         if (maxIoU >= IOU_THRESHOLD) {
             truePositives++;
-            detected[bestMatchIndex] = true;
+            detected[bestMatchIndex] = true;  // Best match found, it's a TP
         } else {
-            falsePositives++;
+            falsePositives++;  // No match found, it's a FP
         }
 
+        // Compute precision and recall
         double precision = truePositives / static_cast<double>(truePositives + falsePositives);
         double recall = truePositives / static_cast<double>(groundTruths.size());
         
         precisionRecallPoints.emplace_back(recall, precision);
     }
 
+    if(predictions.size() < groundTruths.size()) {
+        // Add false negatives (GT not detected)
+        for (size_t i = 0; i < groundTruths.size(); ++i) {
+            if (!detected[i]) {
+                falseNegatives++;
+            }
+        }
+
+        double finalPrecision = 0.0;
+
+        // Compute final precision and recall
+        if((truePositives + falsePositives) != 0)
+            finalPrecision = truePositives / static_cast<double>(truePositives + falsePositives);
+        
+        double finalRecall = truePositives / static_cast<double>(truePositives + falseNegatives);
+
+        precisionRecallPoints.emplace_back(finalRecall, finalPrecision);
+
+    }
+
     return precisionRecallPoints;
 }
+
 
 /**
  * Calculates the Intersection over Union (IoU) between two parking spots.
