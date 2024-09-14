@@ -28,7 +28,7 @@
 void performanceMeasurement(const std::string DATASET_PATH, const int NUMBER_SEQUENCES, const std::vector<ParkingSpot>& parkingSpot, const std::vector<cv::Mat>& baseSequence, 
     const std::vector<std::vector<cv::Mat>>& dataset, const std::vector<std::vector<cv::Mat>>& classifiedDatasetMasks, const std::vector<cv::Mat>& classifiedBaseSequenceMasks,
     std::vector<double>& baseSequenceMAP, std::vector<double>& baseSequenceIoU, double& averageBaseSequenceMAP, double& averageBaseSequenceIoU, 
-    std::vector<std::vector<double>>& datasetMAP, std::vector<std::vector<double>>& datasetIoU, std::vector<double> averageDatasetMAP, std::vector<double> averageDatasetIoU) {
+    std::vector<std::vector<double>>& datasetMAP, std::vector<std::vector<double>>& datasetIoU, std::vector<double>& averageDatasetMAP, std::vector<double>& averageDatasetIoU) {
     
     // Load the ground truth
     cv::Mat baseSequenceMaskGT = cv::Mat::zeros(baseSequence[0].size(), CV_8UC1);
