@@ -89,7 +89,7 @@ std::vector<ParkingSpot> detectParkingSpotInImage(const cv::Mat& image) {
     cv::waitKey(0);
 
     // offsets from avg values
-    std::vector<int> angle_offsets = {-8,-7,-6,-5,-4,-3,-2,-1,0,1,2,3,4,5,6,7,8};
+    std::vector<int> angle_offsets = {-6,-5,-4,-3,-2,-1,0,1,2,3,4,5,6};
     std::vector<float> length_scales = {1.25};
     std::vector<cv::RotatedRect> list_boxes;
     std::vector<float> rect_scores(list_boxes.size(), -1); // Initialize scores with -1 for non-existing rects
@@ -182,6 +182,8 @@ std::vector<ParkingSpot> detectParkingSpotInImage(const cv::Mat& image) {
     std::vector<cv::RotatedRect> list_boxes2;
     std::vector<float> rect_scores2(list_boxes2.size(), -1); // Initialize scores with -1 for non-existing rects
 
+    angle_offsets = {-12,-11,-10,-9,-8,-7,-6,-5,-4,-3,-2,-1,0,1,2,3,4,5,6,7,8,9,10,11,12};
+    length_scales = {0.8,1,1.25,1.5};
     for(int l = 0; l<length_scales.size(); l++) {
         for(int k = 0; k<angle_offsets.size(); k++) {
             int template_width = avg_neg_width*length_scales[l];
