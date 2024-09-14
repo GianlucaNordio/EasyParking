@@ -96,8 +96,8 @@ int main() {
     std::vector<double> baseSequenceMAP;
     std::vector<double> baseSequenceIoU;
 
-    double averageBaseSequenceMAP = 0;
-    double averageBaseSequenceIoU = 0;
+    double averageBaseSequenceMAP;
+    double averageBaseSequenceIoU;
 
     std::vector<std::vector<double>> datasetMAP;
     std::vector<std::vector<double>> datasetIoU;

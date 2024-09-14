@@ -50,6 +50,9 @@ void performanceMeasurement(const std::string DATASET_PATH, const int NUMBER_SEQ
         baseSequenceIoU.push_back(calculateMeanIntersectionOverUnion(classifiedBaseSequenceMasks[i], baseSequenceMaskGT));
     }
 
+    averageBaseSequenceMAP = 0;
+    averageBaseSequenceIoU = 0;
+
     for(int i = 0; i < baseSequenceMAP.size(); i++) {
         averageBaseSequenceMAP += baseSequenceMAP[i];
         averageBaseSequenceIoU += baseSequenceIoU[i];
@@ -127,7 +130,7 @@ double calculateMeanAveragePrecision(const std::vector<ParkingSpot>& predictions
     }
 
     double APParkingSpotWithCar = 1;
-    double APParingSpotWithoutCar = 1;
+    double APParkingSpotWithoutCar = 1;
 
     // Check if there are no predictions for ParkingSpot with car
     if (!predictionsParkingSpotWithCar.empty()){
@@ -142,12 +145,12 @@ double calculateMeanAveragePrecision(const std::vector<ParkingSpot>& predictions
         // Calculate the Precision-Recall curve for ParkingSpot without car
         std::vector<std::pair<double, double>> precisionRecallPointsWithoutCar = calculatePrecisionRecallCurve(predictionsParkingSpotWithoutCar, groundTruthsParkingSpotWithoutCar);
         // Calculate the Average Precision (AP) for ParkingSpot without car
-        APParingSpotWithoutCar = calculateAveragePrecision(precisionRecallPointsWithoutCar);
+        APParkingSpotWithoutCar = calculateAveragePrecision(precisionRecallPointsWithoutCar);
     }
     
 
     // Calculate the mean Average Precision (mAP) for the two classes
-    double mAP = (APParkingSpotWithCar + APParingSpotWithoutCar) / 2;
+    double mAP = (APParkingSpotWithCar + APParkingSpotWithoutCar) / 2;
 
     return mAP;
 }
