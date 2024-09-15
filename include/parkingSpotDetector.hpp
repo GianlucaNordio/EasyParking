@@ -50,6 +50,8 @@ std::pair<cv::RotatedRect, cv::RotatedRect> split_rotated_rect(const cv::Rotated
 std::pair<cv::RotatedRect, cv::RotatedRect> split_and_shift_rotated_rect(const cv::RotatedRect& rect, cv::Mat image);
 bool is_alone(cv::RotatedRect rect, std::vector<cv::RotatedRect> rects);
 std::vector<cv::Point2f> find_corners(const std::vector<cv::Point2f>& points);
-void align_points(std::vector<cv::Point2f>& points, float threshold);
+void align_rects(std::vector<cv::RotatedRect>& rects, float threshold);
+void center_minimap(const cv::Mat& minimap, cv::Mat& large_image);
+cv::Mat build_minimap(std::vector<ParkingSpot>& parkingSpots);
 
 #endif // PARKINGSPOTDETECTOR_HPP
