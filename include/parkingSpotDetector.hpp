@@ -20,7 +20,6 @@ double compute_avg(std::vector<double>& data);
 float get_segment_angular_coefficient(const cv::Vec4f& segment);
 float get_segment_length(const cv::Vec4f& segment);
 std::vector<cv::Mat> generate_template(double width, double height, double angle, bool flipped);
-std::vector<cv::Vec4f> split_segment(const cv::Vec4f& segment);
 cv::Vec4f convert_rect_to_line(const cv::RotatedRect& rect);
 cv::Point2f compute_perpendicular_direction(const cv::Vec4f& segment);
 cv::Point2f compute_midpoint(const cv::Vec4f& segment);
@@ -47,8 +46,9 @@ cv::RotatedRect scale_rotated_rect(const cv::RotatedRect& rect, float scale_fact
 double compute_median(std::vector<double>& data);
 void resolve_overlaps(std::vector<cv::RotatedRect>& vector1, std::vector<cv::RotatedRect>& vector2, float shift_amount);
 cv::RotatedRect shift_along_longest_axis(const cv::RotatedRect& rect, float shift_amount, bool invert_direction);
-cv::Mat applyGammaTransform(const cv::Mat& src, double gamma);
 std::pair<cv::RotatedRect, cv::RotatedRect> split_rotated_rect(const cv::RotatedRect& rect);
 std::pair<cv::RotatedRect, cv::RotatedRect> split_and_shift_rotated_rect(const cv::RotatedRect& rect, cv::Mat image);
 bool is_alone(cv::RotatedRect rect, std::vector<cv::RotatedRect> rects);
+std::vector<cv::Point2f> find_corners(const std::vector<cv::Point2f>& points);
+
 #endif // PARKINGSPOTDETECTOR_HPP
