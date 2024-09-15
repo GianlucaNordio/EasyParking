@@ -402,11 +402,25 @@ std::vector<ParkingSpot> detectParkingSpotInImage(const cv::Mat& image) {
     // Resolve overlaps between vector1 and vector2
     resolve_overlaps(remove_big_small_2, remove_big_small_pos, shift_amount);
 
+    // re-do nms after overlaps are resolved
+    std::vector<cv::RotatedRect> elementsToRemove3;
+    nms(remove_big_small_pos, elementsToRemove3, 0.5);
+
+    // Remove the elements determined by NMS filtering
+    for (cv::RotatedRect element : elementsToRemove3) {
+        std::vector<cv::RotatedRect>::const_iterator iterator = elementIterator(remove_big_small_pos, element);
+        if (iterator != remove_big_small_pos.cend()) {
+            remove_big_small_pos.erase(iterator);
+        }
+    }
+
     for (const auto& rect : remove_big_small_pos) {
-        cv::Point2f vertices[4];
-        rect.points(vertices);
-        for (int i = 0; i < 4; i++) {
-            all_rects.push_back(rect);
+        if(rect.size.area()>1) { // the if is needed because removing with the iterator produces rects with zero area
+            cv::Point2f vertices[4];
+            rect.points(vertices);
+            for (int i = 0; i < 4; i++) {
+                all_rects.push_back(rect);
+            }
         }
     }
 
