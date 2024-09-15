@@ -158,6 +158,13 @@ int main() {
     std::vector<std::vector<cv::Mat>> classifiedDatasetMasksBGR;
     convertGreyMasksToBGR(classifiedDatasetMasks, classifiedDatasetMasksBGR);
 
+    // 
+    std::vector<std::vector<cv::Mat>> classifiedDatasetMasksBGRwMask;
+    for(int i = 0; i < classifiedDatasetMasksBGR.size(); i++) {
+        for(int j = 0; j < classifiedDatasetMasksBGR[i].size(); j++) {
+            cv::addWeighted(datasetMasks[i][j], 1, classifiedDatasetMasksBGR[i][j], 0.4, 0, classifiedDatasetMasksBGRwMask[i][j]);
+        }
+    }
     // Display the results on the dataset one sequence at a time
     for(int i = 0; i < NUMBER_SEQUENCES; i++) {
         // For the sequence i:
@@ -178,7 +185,7 @@ int main() {
         cv::waitKey();
 
         // Display the classified masks for the dataset
-        cv::imshow("Sequence " + std::to_string(i + 1) + " Classified Masks", produceSingleImage(classifiedDatasetMasksBGR[i], 3));
+        cv::imshow("Sequence " + std::to_string(i + 1) + " Classified Masks", produceSingleImage(classifiedDatasetMasksBGRwMask[i], 3));
         cv::waitKey();
     }
     // Display the performance metrics

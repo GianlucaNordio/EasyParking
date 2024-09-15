@@ -4,7 +4,6 @@
 #include <opencv2/opencv.hpp>
 
 #include "parkingSpot.hpp"
-#include "utils.hpp"
 
 /**
  * Enum representing different labels for components in an image.
@@ -39,35 +38,27 @@ const float PERCENTAGE_INSIDE_THRESHOLD = 0.5;
 void classifySequence(std::vector<std::vector<ParkingSpot>> parkingSpot, std::vector<cv::Mat> segmentationMasks, std::vector<cv::Mat>& classifiedMasks);
 
 /**
- * Classifies a single image by processing the segmentation mask and marking parking spots as occupied or not.
+ * @brief Classifies parking spots in an image based on segmentation mask.
  *
- * @param parkingSpot            A vector of ParkingSpot objects representing the parking spaces.
- * @param segmentationMask       A cv::Mat representing the segmentation mask for the image.
- * @param classifiedMask         A reference to a cv::Mat where the classified output will be stored.
+ * This function processes an input segmentation mask to classify parking spots 
+ * as either occupied or free. It utilizes connected components analysis to identify
+ * distinct components in the segmentation mask and then checks each parking spot 
+ * against these components. The classification is based on the percentage of each 
+ * component that overlaps with the parking spot.
+ *
+ * @param[in] parkingSpot        A vector of `ParkingSpot` objects, each representing a 
+ *                                 parking spot with its associated rectangle.
+ * @param[in] segmentationMask   A binary mask where connected components are 
+ *                                 identified and labeled.
+ * @param[out] classifiedMask    An output mask of the same size as the 
+ *                                 segmentationMask, where each pixel value indicates 
+ *                                 the classification of the component (0: background, 
+ *                                 1: car inside, 2: car outside).
+ *
+ * @note The `PERCENTAGE_INSIDE_THRESHOLD` is used to determine if a parking spot 
+ *       is considered occupied based on the percentage of the component's area 
+ *       covered by the parking spot.
  */
 void classifyImage(std::vector<ParkingSpot> parkingSpot, cv::Mat segmentationMask, cv::Mat& classifiedMask);
-
-/**
- * Calculates if a connected component lies within a parking spot's rotated rectangle.
- * Updates the output mask based on whether the component is inside or outside the spot.
- *
- * @param labels               A cv::Mat representing the connected component labels.
- * @param stats                A cv::Mat containing the statistics of the connected components.
- * @param classifiedMask       A cv::Mat where the updated classification is stored.
- * @param parkingSpot          A reference to a ParkingSpot object representing the parking spot.
- * @param componentLabel       An integer representing the label of the connected component.
- */
-void calculateComponentInsideRotatedRect(const cv::Mat& labels, const cv::Mat& stats, cv::Mat& classifiedMask, ParkingSpot& rotatedRect, int componentLabel);
-
-/**
- * Changes the value of all pixels in a specific connected component in the output mask.
- *
- * @param labels                 A cv::Mat representing the connected component labels.
- * @param classifiedMask         A cv::Mat where the component's new value will be written.
- * @param componentLabel         An integer representing the label of the connected component.
- * @param labelId                The label ID to assign to the component in the mask
- * .
- */
-void changeComponentValue(const cv::Mat& labels, cv::Mat& classifiedMask, int componentLabel, labelId labelId);
 
 #endif // CLASSIFICATION_HPP
