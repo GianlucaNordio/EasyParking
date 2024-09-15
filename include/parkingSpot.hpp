@@ -9,6 +9,8 @@ class ParkingSpot {
         bool occupied;
         cv::RotatedRect rect;
 
+        ParkingSpot();
+        ParkingSpot(cv::RotatedRect bounding_box);
         void park();
         void leave();
         void displayStatus() const;

@@ -11,7 +11,7 @@
 
 void detectParkingSpots(const std::vector<cv::Mat>& images, std::vector<ParkingSpot>& parkingSpots);
 
-std::vector<ParkingSpot> detectParkingSpotInImage(const cv::Mat& image);
+std::vector<cv::RotatedRect> detectParkingSpotInImage(const cv::Mat& image);
 
 cv::Mat preprocess_find_white_lines(const cv::Mat& src);
 cv::Mat preprocess_find_parking_lines(const cv::Mat& src);
@@ -26,7 +26,7 @@ cv::Point2f compute_midpoint(const cv::Vec4f& segment);
 std::vector<cv::Vec4f> filter_close_segments(const std::vector<cv::Vec4f>& segments, float distance_threshold);
 std::vector<cv::Vec4f> merge_parallel_segments(std::vector<cv::Vec4f>& segments, float angle_threshold, float distance_threshold, cv::Mat image);
 double computeIntersectionArea(const cv::RotatedRect& rect1, const cv::RotatedRect& rect2);
-void nms(std::vector<cv::RotatedRect>& vec, std::vector<cv::RotatedRect>& elementsToRemove, double threshold);
+void nms(std::vector<cv::RotatedRect>& vec, std::vector<cv::RotatedRect>& elementsToRemove, double threshold, bool keep_smallest);
 std::vector<cv::RotatedRect>::const_iterator elementIterator(const std::vector<cv::RotatedRect>& vec, const cv::RotatedRect& elem);
 cv::Vec4f merge_segments(const cv::Vec4f& seg1, const cv::Vec4f& seg2);
 std::vector<cv::Vec4f> filter_segments_near_top_right(const std::vector<cv::Vec4f>& segments, const cv::Size& image_size);
@@ -50,5 +50,6 @@ std::pair<cv::RotatedRect, cv::RotatedRect> split_rotated_rect(const cv::Rotated
 std::pair<cv::RotatedRect, cv::RotatedRect> split_and_shift_rotated_rect(const cv::RotatedRect& rect, cv::Mat image);
 bool is_alone(cv::RotatedRect rect, std::vector<cv::RotatedRect> rects);
 std::vector<cv::Point2f> find_corners(const std::vector<cv::Point2f>& points);
+void align_points(std::vector<cv::Point2f>& points, float threshold);
 
 #endif // PARKINGSPOTDETECTOR_HPP

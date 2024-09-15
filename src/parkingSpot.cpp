@@ -1,5 +1,17 @@
 #include "parkingSpot.hpp"
 
+ParkingSpot::ParkingSpot(cv::RotatedRect bounding_box) {
+    rect = bounding_box;
+    id = 0;
+    occupied = false;
+}
+
+ParkingSpot::ParkingSpot(){
+    cv::RotatedRect rect;
+    id = 0;
+    occupied = false;
+}
+
 // Function to set as occupied the parking spot
 void ParkingSpot::park() {
     occupied = true;
