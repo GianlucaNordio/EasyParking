@@ -1,5 +1,4 @@
 #include "performanceMeasurement.hpp"
-#include "utils.hpp"
 
 /**
  * Computes performance metrics for a set of parking spot detection results.
@@ -210,7 +209,7 @@ std::vector<std::pair<double, double>> calculatePrecisionRecallCurve(const std::
         precisionRecallPoints.emplace_back(recall, precision);
     }
 
-    if(predictions.size() < groundTruths.size()) {
+    /* if(predictions.size() < groundTruths.size()) {
         // Add false negatives (GT not detected)
         for (size_t i = 0; i < groundTruths.size(); ++i) {
             if (!detected[i]) {
@@ -228,7 +227,7 @@ std::vector<std::pair<double, double>> calculatePrecisionRecallCurve(const std::
 
         precisionRecallPoints.emplace_back(finalRecall, finalPrecision);
 
-    }
+    } */
 
     return precisionRecallPoints;
 }
@@ -247,20 +246,52 @@ std::vector<std::pair<double, double>> calculatePrecisionRecallCurve(const std::
  */
 double calculateIoU(const ParkingSpot& parkingSpot1, const ParkingSpot& parkingSpot2) {
 
-    // Check if the two rectangles intersect
-    std::vector<cv::Point2f> intersectionPoints;
-    int intersectionType = cv::rotatedRectangleIntersection(parkingSpot1.rect, parkingSpot2.rect, intersectionPoints);
-    if (intersectionPoints.empty() || intersectionType == cv::INTERSECT_NONE) {
-        return 0.0; 
-    }    
-    
-    // Calculate the Intersection over Union (IoU)
-    double intersectionArea = cv::contourArea(intersectionPoints);
+    double intersectionArea = computeIntersectionArea(parkingSpot1.rect, parkingSpot2.rect);
+
     double areaRect1 = parkingSpot1.rect.size.area();
     double areaRect2 = parkingSpot2.rect.size.area();
+
+    std::cout << "Intersection Area: " << intersectionArea << " Area Rect 1: " << areaRect1 << " Area Rect 2: " << areaRect2 << std::endl;
+
     double iou = intersectionArea / (areaRect1 + areaRect2 - intersectionArea);
 
     return iou;
+}
+
+/**
+ * Computes the area of intersection between two rotated rectangles.
+ * 
+ * This method calculates the overlapping area of two rotated rectangles
+ * by obtaining their vertices, computing the convex hull of the intersection,
+ * and then calculating the intersection area.
+ * 
+ * @param rect1 The first rotated rectangle.
+ * @param rect2 The second rotated rectangle.
+ * @return The area of the intersection between the two rotated rectangles. 
+ *         If there is no intersection, the returned area will be 0.
+ * 
+ * @note This method uses OpenCV's `intersectConvexConvex` function to calculate 
+ *       the area of intersection.
+ */
+double computeIntersectionArea(const cv::RotatedRect& rect1, const cv::RotatedRect& rect2) {
+    std::vector<cv::Point2f> points1, points2;
+    cv::Point2f vertices1[4], vertices2[4];
+
+    double area1 = rect1.size.area();
+    double area2 = rect2.size.area();
+    
+    rect1.points(vertices1);
+    rect2.points(vertices2);
+    
+    for (int i = 0; i < 4; i++) {
+        points1.push_back(vertices1[i]);
+        points2.push_back(vertices2[i]);
+    }
+
+    std::vector<cv::Point2f> intersection;
+    double intersectionArea = cv::intersectConvexConvex(points1, points2, intersection);
+
+    return intersectionArea;
 }
 
 /**

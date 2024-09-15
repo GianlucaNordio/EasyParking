@@ -50,7 +50,6 @@ void detectParkingSpots(const std::vector<cv::Mat>& images, std::vector<ParkingS
             parkingSpots.push_back(ParkingSpot(0, 1 , false, rect));
             for (int i = 0; i < 4; i++) {
                 all_vertices.push_back(vertices[i]);
-                cv::line(final_result, vertices[i], vertices[(i+1) % 4], cv::Scalar(0, 255, 0), 2);
             }
         }
     }
@@ -550,19 +549,8 @@ std::vector<cv::RotatedRect> detectParkingSpotInImage(const cv::Mat& image) {
             all_close_rects.push_back(rect);
             cv::Point2f vertices[4];
             rect.points(vertices);
-            for (int i = 0; i < 4; i++) {
-                cv::line(image, vertices[i], vertices[(i+1) % 4], cv::Scalar(0, 255, 0), 2);
-            }
         }
     }
-
-    // cv::imshow("ppp", image);
-    // cv::waitKey(0);
-
-    // cv::imshow("result", minimap);
-
-    //cv::imshow("hull image",image);
-    //cv::waitKey(0);
 
 	return all_close_rects;
 }
@@ -663,7 +651,7 @@ void resolve_overlaps(std::vector<cv::RotatedRect>& vector1, std::vector<cv::Rot
     for (auto& rect1 : vector1) {
         for (auto& rect2 : vector2) {
             // Check if the two rectangles overlap
-            while (computeIntersectionArea(rect1, rect2)>0.1) {
+            while (computeIntersectionAreaNormalized(rect1, rect2)>0.1) {
                 // Shift rect2 along its longest axis until it no longer overlaps
                 //rect1 = shift_along_longest_axis(rect1,shift_amount,true);
                 rect2 = shift_along_longest_axis(rect2, shift_amount,false);
@@ -721,10 +709,10 @@ std::vector<cv::RotatedRect> filter_by_surrounding(const std::vector<cv::Rotated
 
         // Check if both parts overlap with any rect in rects2
         for (const auto& rect2 : rects2) {
-            if (computeIntersectionArea(rect_part1, rect2) > 0) {
+            if (computeIntersectionAreaNormalized(rect_part1, rect2) > 0) {
                 part1_overlap = true;
             }
-            if (computeIntersectionArea(rect_part2, rect2) > 0) {
+            if (computeIntersectionAreaNormalized(rect_part2, rect2) > 0) {
                 part2_overlap = true;
             }
             // If both parts overlap with at least one rect, we can discard rect1
@@ -1271,7 +1259,7 @@ std::vector<cv::Mat> generate_template(double width, double height, double angle
     return std::vector<cv::Mat>{rotated_template,rotated_mask};
 }
 
-double computeIntersectionArea(const cv::RotatedRect& rect1, const cv::RotatedRect& rect2) {
+double computeIntersectionAreaNormalized(const cv::RotatedRect& rect1, const cv::RotatedRect& rect2) {
     // Converti i RotatedRect in vettori di punti (poligoni)
     std::vector<cv::Point2f> points1, points2;
     cv::Point2f vertices1[4], vertices2[4];
@@ -1308,7 +1296,7 @@ std::vector<cv::RotatedRect>::const_iterator elementIterator(const std::vector<c
 void nms(std::vector<cv::RotatedRect> &vec, std::vector<cv::RotatedRect> &elementsToRemove, double threshold, bool keep_smallest) {
     for (const auto& rect1 : vec) {
         for (const auto& rect2 : vec) {
-            if (!(rect1.center.x == rect2.center.x && rect1.center.y == rect2.center.y) && (computeIntersectionArea(rect1, rect2) > threshold)) {
+            if (!(rect1.center.x == rect2.center.x && rect1.center.y == rect2.center.y) && (computeIntersectionAreaNormalized(rect1, rect2) > threshold)) {
                 if (keep_smallest ? rect1.size.area() < rect2.size.area() : rect1.size.area() > rect2.size.area()){
                     elementsToRemove.push_back(rect2);
                 } else {

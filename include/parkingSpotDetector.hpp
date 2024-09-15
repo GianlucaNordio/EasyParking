@@ -25,7 +25,7 @@ cv::Point2f compute_perpendicular_direction(const cv::Vec4f& segment);
 cv::Point2f compute_midpoint(const cv::Vec4f& segment);
 std::vector<cv::Vec4f> filter_close_segments(const std::vector<cv::Vec4f>& segments, float distance_threshold);
 std::vector<cv::Vec4f> merge_parallel_segments(std::vector<cv::Vec4f>& segments, float angle_threshold, float distance_threshold, cv::Mat image);
-double computeIntersectionArea(const cv::RotatedRect& rect1, const cv::RotatedRect& rect2);
+double computeIntersectionAreaNormalized(const cv::RotatedRect& rect1, const cv::RotatedRect& rect2);
 void nms(std::vector<cv::RotatedRect>& vec, std::vector<cv::RotatedRect>& elementsToRemove, double threshold, bool keep_smallest);
 std::vector<cv::RotatedRect>::const_iterator elementIterator(const std::vector<cv::RotatedRect>& vec, const cv::RotatedRect& elem);
 cv::Vec4f merge_segments(const cv::Vec4f& seg1, const cv::Vec4f& seg2);

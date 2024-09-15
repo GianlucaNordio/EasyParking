@@ -6,6 +6,7 @@
 
 #include "parkingSpot.hpp"
 #include "classification.hpp"
+#include "utils.hpp"
 
 const float IOU_THRESHOLD = 0.5;
 
@@ -78,6 +79,23 @@ double calculateMeanIntersectionOverUnion(const cv::Mat &foundMask, const cv::Ma
  * @return              A vector of pairs, where each pair contains the recall and precision values.
  */
 std::vector<std::pair<double, double>> calculatePrecisionRecallCurve(const std::vector<ParkingSpot>& predictions, const std::vector<ParkingSpot>& groundTruths);
+
+/**
+ * Computes the area of intersection between two rotated rectangles.
+ * 
+ * This method calculates the overlapping area of two rotated rectangles
+ * by obtaining their vertices, computing the convex hull of the intersection,
+ * and then calculating the intersection area.
+ * 
+ * @param rect1 The first rotated rectangle.
+ * @param rect2 The second rotated rectangle.
+ * @return The area of the intersection between the two rotated rectangles. 
+ *         If there is no intersection, the returned area will be 0.
+ * 
+ * @note This method uses OpenCV's `intersectConvexConvex` function to calculate 
+ *       the area of intersection.
+ */
+double computeIntersectionArea(const cv::RotatedRect& rect1, const cv::RotatedRect& rect2);
 
 /**
  * Calculates the Intersection over Union (IoU) between two parking spots.
