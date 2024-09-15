@@ -11,9 +11,12 @@
 #include "parser.hpp"
 #include "classification.hpp"
 #include "performanceMeasurement.hpp"
+#include "minimap.hpp"
 
 const int NUMBER_SEQUENCES = 5;
 const std::string DATASET_PATH = "../dataset";
+const int MINIMAP_ROWS = 300;
+const int MINIMAP_COLS = 500;
 
 /**
  * @brief Main function that performs parking spot detection, segmentation, classification, and performance evaluation on a dataset.
@@ -105,9 +108,38 @@ int main() {
     
     std::cout << "Classified the base sequence and dataset sequences.\n";
 
-// STEP 5: Calculate performance metrics
-
+// STEP 5: Minimap creation
+    
     std::cout << "STEP 5:" << std::endl;
+
+    std::vector<cv::Mat> baseSequenceMinimap;
+    std::vector<std::vector<cv::Mat>> datasetMinimap;
+
+    for(int i = 0; i < baseSequence.size(); i++)
+        baseSequenceMinimap.push_back(cv::Mat(MINIMAP_ROWS, MINIMAP_COLS, CV_8UC3, cv::Scalar(255, 255, 255)));
+        
+    for(int i = 0; i < NUMBER_SEQUENCES; i++) {
+        datasetMinimap.push_back(std::vector<cv::Mat>());
+        for(int j = 0; j < dataset[i].size(); j++) {
+            datasetMinimap[i].push_back(cv::Mat(MINIMAP_ROWS, MINIMAP_COLS, CV_8UC3, cv::Scalar(255, 255, 255)));
+        }
+    }
+
+    // Create a minimap for the base sequence
+    buildSequenceMinimap(baseSequenceParkingSpot, baseSequenceMinimap);
+
+    // Create minimaps for the dataset
+    for(int i = 0; i < NUMBER_SEQUENCES; i++) {
+        buildSequenceMinimap(datasetParkingSpot[i], datasetMinimap[i]);
+    }
+
+    std::cout << "Created minimaps for the base sequence and dataset sequences.\n";
+
+
+// STEP 6: Calculate performance metrics
+
+    std::cout << "STEP 6:" << std::endl;
+
     std::vector<double> baseSequenceMAP;
     std::vector<double> baseSequenceIoU;
 
@@ -127,20 +159,22 @@ int main() {
 
     std::cout << "Calculated performance metrics.\n";
 
-// STEP 6: Display results
+// STEP 7: Display results
 
-    std::cout << "STEP 6:" << std::endl;
+    std::cout << "STEP 7:" << std::endl;
     
     // Display the visual results
 
     // Display the base sequence
+    addMinimap(baseSequenceMinimap, baseSequence);
     cv::imshow("Base sequence", produceSingleImage(baseSequence, 3));
     cv::waitKey();
 
     // Display the bounding boxes found in the base sequence
     std::vector<cv::Mat> baseSequenceBBoxes;
     printParkingSpot(parkingSpot, baseSequence, baseSequenceBBoxes);
-    
+    addMinimap(baseSequenceMinimap, baseSequenceBBoxes);
+
     cv::imshow("Base Sequence BBoxes", produceSingleImage(baseSequenceBBoxes, 3));
     cv::waitKey();
 
@@ -150,8 +184,18 @@ int main() {
 
     // Display the classified masks for the base sequence
     std::vector<cv::Mat> classifiedBaseSequenceMasksBGR;
+    std::vector<cv::Mat> classifiedBaseSequenceMasksBGRwMask;
+    classifiedBaseSequenceMasksBGRwMask.resize(classifiedBaseSequenceMasksBGR.size());
     convertGreyMaskToBGR(classifiedBaseSequenceMasks, classifiedBaseSequenceMasksBGR);
-    cv::imshow("Base Sequence Classified Masks", produceSingleImage(classifiedBaseSequenceMasksBGR, 3));
+
+    for(int i = 0; i < classifiedBaseSequenceMasksBGR.size(); i++) {
+        classifiedBaseSequenceMasksBGRwMask[i] = cv::Mat::zeros(baseSequence[i].size(), baseSequence[i].type());
+        cv::addWeighted(baseSequence[i], 1, classifiedBaseSequenceMasksBGR[i], 0.4, 0, classifiedBaseSequenceMasksBGRwMask[i]);
+    }
+
+    addMinimap(baseSequenceMinimap, classifiedBaseSequenceMasksBGRwMask);
+
+    cv::imshow("Base Sequence Classified Masks", produceSingleImage(classifiedBaseSequenceMasksBGRwMask, 3));
     cv::waitKey();
 
     // Convert the greyscale masks to BGR
@@ -159,12 +203,14 @@ int main() {
     convertGreyMasksToBGR(classifiedDatasetMasks, classifiedDatasetMasksBGR);
 
      
-    /* std::vector<std::vector<cv::Mat>> classifiedDatasetMasksBGRwMask;
+    std::vector<std::vector<cv::Mat>> classifiedDatasetMasksBGRwMask;
+    classifiedDatasetMasksBGRwMask.resize(classifiedDatasetMasksBGR.size());
     for(int i = 0; i < classifiedDatasetMasksBGR.size(); i++) {
         for(int j = 0; j < classifiedDatasetMasksBGR[i].size(); j++) {
-            cv::addWeighted(datasetMasks[i][j], 1, classifiedDatasetMasksBGR[i][j], 0.4, 0, classifiedDatasetMasksBGRwMask[i][j]);
+            classifiedDatasetMasksBGRwMask[i][j] = cv::Mat::zeros(dataset[i][j].size(), dataset[i][j].type());
+            cv::addWeighted(dataset[i][j], 1, classifiedDatasetMasksBGR[i][j], 0.4, 0, classifiedDatasetMasksBGRwMask[i][j]);
         }
-    } */
+    } 
     // Display the results on the dataset one sequence at a time
     for(int i = 0; i < NUMBER_SEQUENCES; i++) {
         // For the sequence i:
@@ -185,7 +231,7 @@ int main() {
         cv::waitKey();
 
         // Display the classified masks for the dataset
-        cv::imshow("Sequence " + std::to_string(i + 1) + " Classified Masks", produceSingleImage(classifiedDatasetMasksBGR[i], 3));
+        cv::imshow("Sequence " + std::to_string(i + 1) + " Classified Masks", produceSingleImage(classifiedDatasetMasksBGRwMask[i], 3));
         cv::waitKey();
     }
     // Display the performance metrics

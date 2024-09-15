@@ -49,7 +49,6 @@ cv::RotatedRect shift_along_longest_axis(const cv::RotatedRect& rect, float shif
 std::pair<cv::RotatedRect, cv::RotatedRect> split_rotated_rect(const cv::RotatedRect& rect);
 std::pair<cv::RotatedRect, cv::RotatedRect> split_and_shift_rotated_rect(const cv::RotatedRect& rect, cv::Mat image);
 bool is_alone(cv::RotatedRect rect, std::vector<cv::RotatedRect> rects);
-std::vector<cv::Point2f> find_corners(const std::vector<cv::Point2f>& points);
 void align_points(std::vector<cv::Point2f>& points, float threshold);
 
 #endif // PARKINGSPOTDETECTOR_HPP

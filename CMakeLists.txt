@@ -56,6 +56,13 @@ add_library(classification
 )
 target_link_libraries(classification ${OpenCV_LIBS})
 
+add_library(minimap
+    include/minimap.hpp
+    src/minimap.cpp
+)
+target_link_libraries(minimap ${OpenCV_LIBS})
+
+
 # Aggiungi l'eseguibile
 add_executable(EasyParking ${SOURCES})
 
@@ -68,5 +75,6 @@ target_link_libraries(EasyParking
     segmentation
     performanceMeasurement
     classification
+    minimap
     ${OpenCV_LIBS}
 )

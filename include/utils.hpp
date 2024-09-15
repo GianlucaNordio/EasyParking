@@ -198,4 +198,5 @@ void printParkingSpot(const std::vector<ParkingSpot>& parkingSpot, const std::ve
  *          may be required for performance-critical applications.
  */
 void maskRightTopCorner(cv::Mat& img);
+
 #endif // UTILS_HPP
