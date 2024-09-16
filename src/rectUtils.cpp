@@ -279,7 +279,7 @@ bool isAlone(cv::RotatedRect rect, std::vector<cv::RotatedRect> rects) {
  *                    increases the size, while a value less than 1 decreases it.
  * @return A new `cv::RotatedRect` with the scaled size, same center, and same rotation angle as the original.
  */
-cv::RotatedRect scaleRotatedRect(const cv::RotatedRect& rect, float scaleFactor) {
+cv::RotatedRect scaleRotatedRect(const cv::RotatedRect& rect, double scaleFactor) {
     // Scale the size (width and height) of the rotated rect
     cv::Size2f newSize(rect.size.width * scaleFactor, rect.size.height * scaleFactor);
 
