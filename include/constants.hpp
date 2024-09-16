@@ -4,6 +4,12 @@
 #include <opencv2/opencv.hpp>
 
 /**
+ * @brief If true, the algorithm will detect shadows and mark them. 
+ *        It decreases the speed a bit, so if you do not need this feature, set the parameter to false.
+ */
+const bool SHADES_DETECTION = true;
+
+/**
  * @brief Separator used for dividing sections in the console output (type 1).
  */
 const char SEPARATOR_TYPE_1 = '-';
@@ -42,6 +48,11 @@ const std::string SEQUENCE = "sequence";
  * @brief The directory separator character used in paths.
  */
 const std::string SLASH = "/";
+
+/**
+ * @brief Color white used for one channel images.
+ */
+const cv::Scalar WHITE_ONE_CHANNEL = cv::Scalar(255);
 
 /**
  * @brief Color white used for initializing empty images and minimaps.
@@ -99,7 +110,19 @@ const double IOU_THRESHOLD = 0.5;
  * @brief A constant threshold used to determine if car is inside a parking spot.
  *        If more than PERCENTAGE_INSIDE_THRESHOLD*100% of the component is inside the parking spot, it is classified as 'inside'.
  */
-const float PERCENTAGE_INSIDE_THRESHOLD = 0.7;
+const double PERCENTAGE_INSIDE_THRESHOLD = 0.7;
+
+/**
+ * @brief A constante used to transform value into percentage
+ */
+const double PERCENTAGE = 100;
+
+/**
+ * @brief Constant used to tell the model to not update its model of the background.
+ *        This constant is used by the backgroundSubtraction when performing the prediction 
+ *        on an image containing things that are not the background.
+ */
+const int BACKGROUND_NOT_UPDATED = 0;
 
 /**
  * @brief Type of image (3-channel 8-bit color image).
@@ -122,6 +145,16 @@ const int OFFSET_HOMOGRAPHY = -25;
 const int SHIFT = 0;
 
 /**
+ * @brief Rectangular structuring element for morphologyEx.
+ */
+const int MORPH_RECT = cv::MORPH_CROSS;
+
+/**
+ * @brief Size of structuring element for closing.
+ */
+const int MORPH_SIZE = 1;
+
+/**
  * @brief The index of the base sequence.
  */
 const int BASE_SEQUENCE_INDEX = 0;
@@ -135,6 +168,11 @@ const int NUMBER_OF_IMAGES_FOR_ROW = 3;
  * @brief Number of image sequences in the dataset.
  */
 const int NUMBER_SEQUENCES = 5;
+
+/**
+ * @brief 8-connectivity constant for connectedComponentsWithStats.
+ */
+const int CONNECTIVITY_8 = 8;
 
 /**
  * @brief Thickness of the lines used for drawing bounding boxes.
@@ -157,6 +195,27 @@ const double ALIGNED_RECTS_THRESHOLD = 30;
 const int MASK_LINE_VALUE_LOW = 10;
 
 /**
+ * @brief Value for the history length parameter of the background subtractor.
+ */
+const int HISTORY_DEFAULT_VALUE = 500;
+
+/**
+ * @brief Threshold on the squared Mahalanobis distance between the pixel and the model to decide whether a pixel 
+ *        is well described by the background model. This parameter does not affect the background update.
+ */
+const int VAR_THRESHOLD = 50;
+
+/**
+ * @brief High threshold used for the shadow detection.
+ */
+const int SHADOW_HIGH_THRESHOLD = 255;
+
+/**
+ * @brief Low threshold used for the shadow detection.
+ */
+const int SHADOW_LOW_THRESHOLD = 128;
+
+/**
  * @brief Value used for the white area in the mask in template matching.
  */
 const int MASK_LINE_VALUE_HIGH = 245;
@@ -177,6 +236,11 @@ const int MINIMAP_ROWS = 300;
 const int MINIMAP_COLS = 500;
 
 /**
+ * @brief Threshold for the minumum size of the connected component to be kept.
+ */
+const int PIXEL_SIZE_THRESHOLD = 700;  
+
+/**
  * @brief Height of the minimap.
  */
 const int MAP_HEIGHT = 250;
@@ -185,5 +249,30 @@ const int MAP_HEIGHT = 250;
  * @brief Width of the minimap.
  */
 const int MAP_WIDTH = 450;
+
+/**
+ * @brief X coordinate of Point1 used for create a black mask.
+ */
+const int BLACK_MASK_x1 = 850;
+
+/**
+ * @brief Y coordinate of Point1 used for create a black mask.
+ */
+const int BLACK_MASK_y1 = 0;
+
+/**
+ * @brief X coordinate of Point2 used for create a black mask.
+ */
+const int BLACK_MASK_x2 = 1280;
+
+/**
+ * @brief Y coordinate of Point2 used for create a black mask.
+ */
+const int BLACK_MASK_y2 = 230;
+
+/**
+ * @brief Color used for the black mask.
+ */
+const int BLACK_MASK_COLOR = 0;
 
 #endif // CONSTANTS_HPP

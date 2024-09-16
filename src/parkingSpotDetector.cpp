@@ -104,7 +104,7 @@ std::vector<cv::RotatedRect> detectParkingSpotInImage(const cv::Mat& image) {
             int template_height = 4;
             double angle = -avg_pos_angle+angle_offsets[k]; // negative
 
-            std::vector<cv::Mat> rotated_template_and_mask = generateTemplate(template_width, template_height, angle, false);
+            std::vector<cv::Mat> rotated_template_and_mask = generateTemplate(template_width, angle, false);
             cv::Mat rotated_template = rotated_template_and_mask[0];
             cv::Mat rotated_mask = rotated_template_and_mask[1];
             cv::Mat tm_result_unnorm;
@@ -185,7 +185,7 @@ std::vector<cv::RotatedRect> detectParkingSpotInImage(const cv::Mat& image) {
             int template_height = 4;
             double angle = avg_neg_angle+angle_offsets[k]; // negative
 
-            std::vector<cv::Mat> rotated_template_and_mask = generateTemplate(template_width, template_height, angle, true);
+            std::vector<cv::Mat> rotated_template_and_mask = generateTemplate(template_width, angle, true);
             cv::Mat rotated_template = rotated_template_and_mask[0];
             cv::Mat rotated_mask = rotated_template_and_mask[1];
                             

@@ -279,7 +279,7 @@ void convertGreyMasksToBGR(const std::vector<std::vector<cv::Mat>> &greyImages, 
  */
 void convertGreyMaskToBGR(const std::vector<cv::Mat> &greyImage, std::vector<cv::Mat> &BGRImage) {
     for(int i = 0; i < greyImage.size(); i++) {
-        BGRImage.push_back(cv::Mat(greyImage[i].rows,greyImage[i].cols, CV_8UC3, cv::Scalar(0 ,0 ,0)));
+        BGRImage.push_back(cv::Mat(greyImage[i].rows,greyImage[i].cols, IMAGE_TYPE_3_CANALI, BLACK));
         cv::Mat &dst = BGRImage[i];
         const cv::Mat &src = greyImage[i];
         for(int x = 0; x < src.cols; x++) {
@@ -314,7 +314,7 @@ void convertGreyMaskToBGR(const std::vector<cv::Mat> &greyImage, std::vector<cv:
  */
 void printPerformanceMetrics(const std::vector<double>& mAPs, const std::vector<double>& IoUs) {
     std::cout << std::left << std::setw(12) << "Frame" << std::setw(12) << "mAP" << std::setw(12) << "IoU" << std::endl;
-    std::cout << std::string(36, '-') << std::endl;
+    std::cout << std::string(SEPARATION_LINE_LENGTH, '-') << std::endl;
     
     for (int i = 0; i < mAPs.size(); i++) {
         std::cout << std::left << std::setw(12) << i + 1 << std::setw(12) << std::fixed << std::setprecision(4) << mAPs[i]
@@ -342,11 +342,11 @@ void printParkingSpot(const std::vector<std::vector<ParkingSpot>>& parkingSpot, 
             parkingSpot[i][j].rect.points(vertices);
             if(parkingSpot[i][j].occupied) {
                 for (int l = 0; l < 4; l++) {
-                    cv::line(output, vertices[l], vertices[(l + 1) % 4], cv::Scalar(0, 0, 255), 2);
+                    cv::line(output, vertices[l], vertices[(l + 1) % 4], BLUE, LINE_THICKNESS);
                 }
             }else{
                 for (int l = 0; l < 4; l++) {
-                    cv::line(output, vertices[l], vertices[(l + 1) % 4], cv::Scalar(255, 0, 0), 2);
+                    cv::line(output, vertices[l], vertices[(l + 1) % 4], RED, LINE_THICKNESS);
                 }
             }
 
@@ -377,13 +377,8 @@ void maskRightTopCorner(cv::Mat& img) {
     int width = img.cols;
     int height = img.rows;
 
-    const int x1 = 850;
-    const int y1 = 0;
-    const int x2 = width;
-    const int y2 = 230;
-
-    cv::Point pt1(x1, y1);
-    cv::Point pt2(x2, y2);
+    cv::Point pt1(BLACK_MASK_x1, BLACK_MASK_y1);
+    cv::Point pt2(BLACK_MASK_x2, BLACK_MASK_y2);
 
     double m = static_cast<double>(pt2.y - pt1.y) / (pt2.x - pt1.x);
     double q = pt1.y - m * pt1.x;
@@ -393,7 +388,7 @@ void maskRightTopCorner(cv::Mat& img) {
             double lineY = m * x + q;
 
             if (y < lineY) {
-                img.at<uchar>(y, x) = 0;
+                img.at<uchar>(y, x) = BLACK_MASK_COLOR;
             }
         }
     }

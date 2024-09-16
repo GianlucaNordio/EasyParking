@@ -8,6 +8,7 @@
 
 
 #include "utils.hpp"
+#include "constants.hpp"
 
 /**
  * @brief Class that allows to perform segmentation based on background subtraction.
@@ -18,8 +19,6 @@ class Segmentation {
     private:
         // Pointer containing the background subtractor
         cv::Ptr<cv::BackgroundSubtractor> pBackSub;
-        // Parameter allowing the background subtractor to not update the background model
-        const int BACKGROUND_NOT_UPDATED = 0;
 
     public:
 

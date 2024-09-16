@@ -8,10 +8,6 @@
  * @param backgroundImages A vector of cv::Mat objects representing the background images used to initialize the background subtractor.
  */
 Segmentation::Segmentation(const std::vector<cv::Mat> &backgroundImages) {
-    const int HISTORY_DEFAULT_VALUE = 500;
-    const bool SHADES_DETECTION = true; 
-    const int VAR_THRESHOLD = 50;
-
     pBackSub = cv::createBackgroundSubtractorMOG2(HISTORY_DEFAULT_VALUE, VAR_THRESHOLD, SHADES_DETECTION);
     
     cv::Mat mask;
@@ -35,7 +31,6 @@ void Segmentation::segmentSequence(const std::vector<cv::Mat> &images, std::vect
         outputMasks.push_back(cv::Mat());
         segmentImage(images[i], outputMasks[i]);
     }
-
 }
 
 /**
@@ -47,24 +42,19 @@ void Segmentation::segmentSequence(const std::vector<cv::Mat> &images, std::vect
  * @param outputMask A reference to a cv::Mat object where the output binary mask will be stored.
  */
 void Segmentation::segmentImage(const cv::Mat &image, cv::Mat &outputMask) {
-
-    const int PIXEL_SIZE_THRESHOLD = 700;   // Threshold for the minumum size of the connected component to be kept
-    const int CONNECTIVITY_8 = 8;   // 8-connectivity for connectedComponentsWithStats
-    const int MORPH_RECT = cv::MORPH_CROSS;  // Rectangular structuring element for morphologyEx
-    const int MORPH_SIZE = 1;   // Size of structuring element for closing
     
     pBackSub -> apply(image, outputMask, BACKGROUND_NOT_UPDATED);
     
     // Remove the shadow parts and the noise 
     //(tried using the noShade option in the constructor but still finds shades, simply doesn't differentiate them)
-    cv::threshold(outputMask, outputMask, 128, 255, cv::THRESH_BINARY);
+    cv::threshold(outputMask, outputMask, SHADOW_LOW_THRESHOLD, SHADOW_HIGH_THRESHOLD, cv::THRESH_BINARY);
 
     // Compute connected components and their statistics
     cv::Mat stats, centroids, labelImage;
     int numLabels = cv::connectedComponentsWithStats(outputMask, labelImage, stats, centroids, CONNECTIVITY_8, CV_32S);
 
     // Create a mask for large connected components
-    cv::Mat mask = cv::Mat::zeros(labelImage.size(), CV_8UC1);
+    cv::Mat mask = cv::Mat::zeros(labelImage.size(), IMAGE_TYPE_1_CANALE);
 
     // Filter components based on area size threshold
     for (int i = 1; i < numLabels; ++i) {

@@ -146,7 +146,7 @@ void buildMinimap(std::vector<ParkingSpot> parkingSpot, cv::Mat& miniMap) {
 
         // Compute the minimum area rectangle from the transformed vertices
         cv::RotatedRect minRect = cv::minAreaRect(transformedVertices);
-        transformedSpots.push_back(ParkingSpot(spot.id,spot.confidence,spot.occupied,minRect));
+        transformedSpots.push_back(ParkingSpot(spot.id,spot.confidence, spot.occupied, minRect));
         sumAngle += minRect.angle;
 
     }
@@ -160,7 +160,7 @@ void buildMinimap(std::vector<ParkingSpot> parkingSpot, cv::Mat& miniMap) {
     for(const ParkingSpot& transformedSpot: transformedSpots) {
 
         cv::RotatedRect rect = transformedSpot.rect;
-        cv::RotatedRect toPrint(cv::Point2f(rect.center.x+offsetX, rect.center.y+offsetY), SIZE_RECT_MINIMAP,(rect.size.aspectRatio()> 1.4 ? avgAngle : -avgAngle));
+        cv::RotatedRect toPrint(cv::Point2f(rect.center.x + offsetX, rect.center.y + offsetY), SIZE_RECT_MINIMAP,(rect.size.aspectRatio()> 1.4 ? avgAngle : -avgAngle));
         cv::Point2f vertices2f[4];
         toPrint.points(vertices2f);
         cv::Point vertices[4]; // needed since fixConvexPoly only works with cv::Point and not cv::Point2f
@@ -171,7 +171,7 @@ void buildMinimap(std::vector<ParkingSpot> parkingSpot, cv::Mat& miniMap) {
         }
 
         // Now we can fill the rotated rectangle with our specified color
-        cv::fillConvexPoly(miniMap,vertices,4,transformedSpot.occupied ? RED : LIGHT_BLUE);
+        cv::fillConvexPoly(miniMap, vertices, 4, transformedSpot.occupied ? RED : LIGHT_BLUE);
     }
 }
 

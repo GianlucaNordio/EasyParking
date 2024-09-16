@@ -42,20 +42,20 @@ void classifyImage(std::vector<ParkingSpot>& parkingSpot, cv::Mat segmentationMa
     cv::Mat labels, stats, centroids;
     int numComponents = cv::connectedComponentsWithStats(segmentationMask, labels, stats, centroids);
 
-    classifiedMask = cv::Mat::zeros(segmentationMask.size(), CV_8UC1); // Initialize with zeros
+    classifiedMask = cv::Mat::zeros(segmentationMask.size(), IMAGE_TYPE_1_CANALE); // Initialize with zeros
 
     for(int j = 1; j < numComponents; j++){
-        // Set at 2 all the components pixel
-        classifiedMask.setTo(2, labels == j);
+        // Set as outside parking spot all the components that are not the background
+        classifiedMask.setTo(labelId::carOutsideParkingSpot, labels == j);
     }
 
     // Create a mask for each parking spot
     for (auto& spot : parkingSpot) {
-        cv::Mat spotMask = cv::Mat::zeros(segmentationMask.size(), CV_8UC1);
+        cv::Mat spotMask = cv::Mat::zeros(segmentationMask.size(), IMAGE_TYPE_1_CANALE);
         cv::Point2f vertices[4];
         spot.rect.points(vertices);
         std::vector<cv::Point> contour(vertices, vertices + 4);
-        cv::fillConvexPoly(spotMask, contour, cv::Scalar(255));
+        cv::fillConvexPoly(spotMask, contour, WHITE_ONE_CHANNEL);
 
         for (int j = 1; j < numComponents; j++) {
             cv::Mat componentMask = (labels == j);
@@ -64,11 +64,11 @@ void classifyImage(std::vector<ParkingSpot>& parkingSpot, cv::Mat segmentationMa
 
             int componentArea = stats.at<int>(j, cv::CC_STAT_AREA);
             int insidePixels = cv::countNonZero(intersectionMask);
-            float percentageInside = (static_cast<float>(insidePixels) / componentArea) * 100.0f;
+            double percentageInside = (static_cast<double>(insidePixels) / componentArea) * PERCENTAGE;
 
             // Update classifiedMask based on percentage inside
             if (percentageInside > PERCENTAGE_INSIDE_THRESHOLD) {
-                classifiedMask.setTo(1, componentMask);
+                classifiedMask.setTo(labelId::carInsideParkingSpot, componentMask);
                 spot.occupied = true;
             }
         }
