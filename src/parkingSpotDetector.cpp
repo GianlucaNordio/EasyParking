@@ -418,11 +418,7 @@ std::vector<cv::RotatedRect> detectParkingSpotInImage(const cv::Mat& image) {
 
     for (const auto& rect : remove_big_small_pos) {
         if(rect.size.area()>1) { // the if is needed because removing with the iterator produces rects with zero area
-            cv::Point2f vertices[4];
-            rect.points(vertices);
-            for (int i = 0; i < 4; i++) {
-                all_rects.push_back(rect);
-            }
+            all_rects.push_back(rect);
         }
     }
 

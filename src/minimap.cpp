@@ -67,48 +67,30 @@ void buildMinimap(std::vector<ParkingSpot> parkingSpot, cv::Mat& miniMap) {
         for (size_t j = i + 1; j < ms.size(); ++j) {
 
             double m1 = ms[i];
-
             double b1 = bs[i];
-
             double m2 = ms[j];
-
             double b2 = bs[j];
 
-
-
             // If lines have the same sign of slope, then we don't need to take their intersection
-
             if ((m1 < 0) == (m2 < 0)) {
                 continue;
             }
 
-
-
             // Calculate intersection point (x, y). 
-
             // Cannot use the function segments_intersect() because here we look at the extension of the hull lines
 
             double x = (b2 - b1) / (m1 - m2);
-
             double y = m1 * x + b1;
 
-
-
             hull_corners.push_back(cv::Point2f(x, y));
-
         }
-
     }
 
-
     // Sort the corner points
-
     std::vector<cv::Point2f> hull_corners_sorted = find_corners(hull_corners);
 
 
-
     int map_height = 250;
-
     int map_width = 450;
 
     cv::Size map_size(map_width,map_height);

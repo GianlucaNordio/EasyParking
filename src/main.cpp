@@ -13,8 +13,19 @@
 #include "performanceMeasurement.hpp"
 #include "minimap.hpp"
 
-const int NUMBER_SEQUENCES = 5;
+
+const char SEPARATOR_TYPE_1 = '-';
+const char SEPARATOR_TYPE_2 = '=';
+
 const std::string DATASET_PATH = "../dataset";
+
+const double CLASSIFIED_IMAGE_WEIGHT = 0.4;
+const double ORIGINAL_IMAGE_WEIGHT = 0.6;
+
+const int IMAGE_TYPE = CV_8UC3;
+const int SHIFT = 0;
+const int NUMBER_SEQUENCES = 5;
+const int SEPARATION_LINE_LENGTH = 36;
 const int MINIMAP_ROWS = 300;
 const int MINIMAP_COLS = 500;
 
@@ -116,12 +127,12 @@ int main() {
     std::vector<std::vector<cv::Mat>> datasetMinimap;
 
     for(int i = 0; i < baseSequence.size(); i++)
-        baseSequenceMinimap.push_back(cv::Mat(MINIMAP_ROWS, MINIMAP_COLS, CV_8UC3, cv::Scalar(255, 255, 255)));
+        baseSequenceMinimap.push_back(cv::Mat(MINIMAP_ROWS, MINIMAP_COLS, IMAGE_TYPE, cv::Scalar(255, 255, 255)));
         
     for(int i = 0; i < NUMBER_SEQUENCES; i++) {
         datasetMinimap.push_back(std::vector<cv::Mat>());
         for(int j = 0; j < dataset[i].size(); j++) {
-            datasetMinimap[i].push_back(cv::Mat(MINIMAP_ROWS, MINIMAP_COLS, CV_8UC3, cv::Scalar(255, 255, 255)));
+            datasetMinimap[i].push_back(cv::Mat(MINIMAP_ROWS, MINIMAP_COLS, IMAGE_TYPE, cv::Scalar(255, 255, 255)));
         }
     }
 
@@ -192,7 +203,7 @@ int main() {
 
     for(int i = 0; i < classifiedBaseSequenceMasksBGR.size(); i++) {
         classifiedBaseSequenceMasksBGRwMask.push_back(cv::Mat::zeros(baseSequence[i].size(), baseSequence[i].type()));
-        cv::addWeighted(baseSequence[i], 0.6, classifiedBaseSequenceMasksBGR[i], 0.4, 0, classifiedBaseSequenceMasksBGRwMask[i]);
+        cv::addWeighted(baseSequence[i], ORIGINAL_IMAGE_WEIGHT, classifiedBaseSequenceMasksBGR[i], CLASSIFIED_IMAGE_WEIGHT, SHIFT, classifiedBaseSequenceMasksBGRwMask[i]);
     }
 
     addMinimap(baseSequenceMinimap, classifiedBaseSequenceMasksBGRwMask);
@@ -212,7 +223,7 @@ int main() {
         classifiedDatasetMasksBGRwMask.push_back(std::vector<cv::Mat>());
         for(int j = 0; j < classifiedDatasetMasksBGR[i].size(); j++) {
             classifiedDatasetMasksBGRwMask[i].push_back(cv::Mat::zeros(dataset[i][j].size(), dataset[i][j].type()));
-            cv::addWeighted(dataset[i][j], 0.6, classifiedDatasetMasksBGR[i][j], 0.4, 0, classifiedDatasetMasksBGRwMask[i][j]);
+            cv::addWeighted(dataset[i][j], ORIGINAL_IMAGE_WEIGHT, classifiedDatasetMasksBGR[i][j], CLASSIFIED_IMAGE_WEIGHT, SHIFT, classifiedDatasetMasksBGRwMask[i][j]);
         }
     } 
 
@@ -253,10 +264,10 @@ int main() {
     printPerformanceMetrics(baseSequenceMAP, baseSequenceIoU);
     std::cout << "Average MAP: " << std::fixed << std::setprecision(4) << averageBaseSequenceMAP << std::endl;
     std::cout << "Average IoU: " << std::fixed << std::setprecision(4) << averageBaseSequenceIoU << std::endl;
-    std::cout << std::string(36, '-') << std::endl;
+    std::cout << std::string(SEPARATION_LINE_LENGTH, SEPARATOR_TYPE_1) << std::endl;
     std::cout << std::endl;
 
-    std::cout << std::string(36, '=') << std::endl;
+    std::cout << std::string(SEPARATION_LINE_LENGTH, SEPARATOR_TYPE_2) << std::endl;
 
     // Print performance for the dataset
     std::cout << "\nDataset Performance:\n";
@@ -265,7 +276,7 @@ int main() {
         printPerformanceMetrics(datasetMAP[i], datasetIoU[i]);
         std::cout << "Average MAP: " << std::fixed << std::setprecision(4) << averageDatasetMAP[i] << std::endl;
         std::cout << "Average IoU: " << std::fixed << std::setprecision(4) << averageDatasetIoU[i] << std::endl;
-        std::cout << std::string(36, '-') << std::endl;
+        std::cout << std::string(SEPARATION_LINE_LENGTH, SEPARATOR_TYPE_1) << std::endl;
         std::cout << std::endl;
     }
 
