@@ -19,11 +19,14 @@ const char SEPARATOR_TYPE_2 = '=';
 
 const std::string DATASET_PATH = "../dataset";
 
+const cv::Scalar WHITE = cv::Scalar(255, 255, 255);
+
 const double CLASSIFIED_IMAGE_WEIGHT = 0.4;
 const double ORIGINAL_IMAGE_WEIGHT = 0.6;
 
 const int IMAGE_TYPE = CV_8UC3;
 const int SHIFT = 0;
+const int NUMBER_OF_IMAGES_FOR_ROW = 3;
 const int NUMBER_SEQUENCES = 5;
 const int SEPARATION_LINE_LENGTH = 36;
 const int MINIMAP_ROWS = 300;
@@ -127,12 +130,12 @@ int main() {
     std::vector<std::vector<cv::Mat>> datasetMinimap;
 
     for(int i = 0; i < baseSequence.size(); i++)
-        baseSequenceMinimap.push_back(cv::Mat(MINIMAP_ROWS, MINIMAP_COLS, IMAGE_TYPE, cv::Scalar(255, 255, 255)));
+        baseSequenceMinimap.push_back(cv::Mat(MINIMAP_ROWS, MINIMAP_COLS, IMAGE_TYPE, WHITE));
         
     for(int i = 0; i < NUMBER_SEQUENCES; i++) {
         datasetMinimap.push_back(std::vector<cv::Mat>());
         for(int j = 0; j < dataset[i].size(); j++) {
-            datasetMinimap[i].push_back(cv::Mat(MINIMAP_ROWS, MINIMAP_COLS, IMAGE_TYPE, cv::Scalar(255, 255, 255)));
+            datasetMinimap[i].push_back(cv::Mat(MINIMAP_ROWS, MINIMAP_COLS, IMAGE_TYPE, WHITE));
         }
     }
 
@@ -178,7 +181,7 @@ int main() {
 
     // Display the base sequence
     addMinimap(baseSequenceMinimap, baseSequence);
-    cv::imshow("Base sequence", produceSingleImage(baseSequence, 3));
+    cv::imshow("Base sequence", produceSingleImage(baseSequence, NUMBER_OF_IMAGES_FOR_ROW));
     cv::waitKey();
     cv::destroyWindow("Base sequence");
 
@@ -187,12 +190,12 @@ int main() {
     printParkingSpot(parkingSpot, baseSequence, baseSequenceBBoxes);
     addMinimap(baseSequenceMinimap, baseSequenceBBoxes);
 
-    cv::imshow("Base Sequence BBoxes", produceSingleImage(baseSequenceBBoxes, 3));
+    cv::imshow("Base Sequence BBoxes", produceSingleImage(baseSequenceBBoxes, NUMBER_OF_IMAGES_FOR_ROW));
     cv::waitKey();
     cv::destroyWindow("Base Sequence BBoxes");
 
     // Display the segmented masks for the base sequence
-    cv::imshow("Base Sequence Masks", produceSingleImage(baseSequenceMasks, 3));
+    cv::imshow("Base Sequence Masks", produceSingleImage(baseSequenceMasks, NUMBER_OF_IMAGES_FOR_ROW));
     cv::waitKey();
     cv::destroyWindow("Base Sequence Masks");
 
@@ -208,7 +211,7 @@ int main() {
 
     addMinimap(baseSequenceMinimap, classifiedBaseSequenceMasksBGRwMask);
 
-    cv::imshow("Base Sequence Classified Masks", produceSingleImage(classifiedBaseSequenceMasksBGRwMask, 3));
+    cv::imshow("Base Sequence Classified Masks", produceSingleImage(classifiedBaseSequenceMasksBGRwMask, NUMBER_OF_IMAGES_FOR_ROW));
     cv::waitKey();
     cv::destroyWindow("Base Sequence Classified Masks");
 
@@ -235,7 +238,7 @@ int main() {
         // For the sequence i:
 
         // Display the image
-        cv::imshow("Sequence " + std::to_string(i + 1), produceSingleImage(dataset[i], 3));
+        cv::imshow("Sequence " + std::to_string(i + 1), produceSingleImage(dataset[i], NUMBER_OF_IMAGES_FOR_ROW));
         cv::waitKey();
         cv::destroyWindow("Sequence " + std::to_string(i + 1));
 
@@ -243,17 +246,17 @@ int main() {
         std::vector<cv::Mat> sequenceBBoxes;
         printParkingSpot(parkingSpot, dataset[i], sequenceBBoxes);
 
-        cv::imshow("Sequence " + std::to_string(i + 1) + " BBoxes", produceSingleImage(sequenceBBoxes, 3));
+        cv::imshow("Sequence " + std::to_string(i + 1) + " BBoxes", produceSingleImage(sequenceBBoxes, NUMBER_OF_IMAGES_FOR_ROW));
         cv::waitKey();
         cv::destroyWindow("Sequence " + std::to_string(i + 1) + " BBoxes");
 
         // Display the segmented masks for the dataset
-        cv::imshow("Sequence " + std::to_string(i + 1) + " Masks", produceSingleImage(datasetMasks[i], 3));
+        cv::imshow("Sequence " + std::to_string(i + 1) + " Masks", produceSingleImage(datasetMasks[i], NUMBER_OF_IMAGES_FOR_ROW));
         cv::waitKey();
         cv::destroyWindow("Sequence " + std::to_string(i + 1) + " Masks");
 
         // Display the classified masks for the dataset
-        cv::imshow("Sequence " + std::to_string(i + 1) + " Classified Masks", produceSingleImage(classifiedDatasetMasksBGRwMask[i], 3));
+        cv::imshow("Sequence " + std::to_string(i + 1) + " Classified Masks", produceSingleImage(classifiedDatasetMasksBGRwMask[i], NUMBER_OF_IMAGES_FOR_ROW));
         cv::waitKey();
         cv::destroyWindow("Sequence " + std::to_string(i + 1) + " Classified Masks");
     }

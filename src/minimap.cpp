@@ -104,7 +104,7 @@ void buildMinimap(std::vector<ParkingSpot> parkingSpot, cv::Mat& miniMap) {
 
     
 
-    double sum_angle;
+    double sum_angle = 0;
 
     double avg_angle;
 
