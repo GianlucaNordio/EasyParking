@@ -209,25 +209,23 @@ std::vector<std::pair<double, double>> calculatePrecisionRecallCurve(const std::
         precisionRecallPoints.emplace_back(recall, precision);
     }
 
-    /* if(predictions.size() < groundTruths.size()) {
+    double precision = 0.0;
+    double recall = 0.0;
+    if((truePositives + falsePositives) != 0)
+        precision = truePositives / static_cast<double>(truePositives + falsePositives);
+
+    // Add false negatives (GT not detected)
+    if(predictions.size() < groundTruths.size()) {
         // Add false negatives (GT not detected)
         for (size_t i = 0; i < groundTruths.size(); ++i) {
             if (!detected[i]) {
                 falseNegatives++;
-            }
+                recall = truePositives / static_cast<double>(truePositives + falseNegatives);
+
+                precisionRecallPoints.emplace_back(recall, precision);
+            }     
         }
-
-        double finalPrecision = 0.0;
-
-        // Compute final precision and recall
-        if((truePositives + falsePositives) != 0)
-            finalPrecision = truePositives / static_cast<double>(truePositives + falsePositives);
-        
-        double finalRecall = truePositives / static_cast<double>(truePositives + falseNegatives);
-
-        precisionRecallPoints.emplace_back(finalRecall, finalPrecision);
-
-    } */
+    }
 
     return precisionRecallPoints;
 }
