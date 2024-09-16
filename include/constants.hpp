@@ -59,6 +59,16 @@ const cv::Scalar RED = cv::Scalar(0, 0, 255);
 const cv::Scalar BLUE = cv::Scalar(255, 0, 0);
 
 /**
+ * @brief Color light blue used for the unoccupied parking spots in the minimap.
+ */
+const cv::Scalar LIGHT_BLUE = cv::Scalar(130, 96, 21);
+
+/**
+ * @brief Color black used for the borders of the parking spots in the minimap.
+ */
+const cv::Scalar BLACK = cv::Scalar(0, 0, 0);
+
+/**
  * @brief Size of the rectangle used for drawing bounding boxes on the minimap.
  */
 const cv::Size SIZE_RECT_MINIMAP = cv::Size(60,20);
