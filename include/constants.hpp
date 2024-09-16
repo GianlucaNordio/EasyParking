@@ -49,6 +49,21 @@ const std::string SLASH = "/";
 const cv::Scalar WHITE = cv::Scalar(255, 255, 255);
 
 /**
+ * @brief Color red used for drawing bounding boxes.
+ */
+const cv::Scalar RED = cv::Scalar(0, 0, 255);
+
+/**
+ * @brief Color blue used for drawing parking spots.
+ */
+const cv::Scalar BLUE = cv::Scalar(255, 0, 0);
+
+/**
+ * @brief Size of the rectangle used for drawing bounding boxes on the minimap.
+ */
+const cv::Size SIZE_RECT_MINIMAP = cv::Size(60,20);
+
+/**
  * @brief Weight for classified images in the blend between original and classified images.
  */
 const double CLASSIFIED_IMAGE_WEIGHT = 0.4;
@@ -95,9 +110,19 @@ const int NUMBER_OF_IMAGES_FOR_ROW = 3;
 const int NUMBER_SEQUENCES = 5;
 
 /**
+ * @brief Thickness of the lines used for drawing bounding boxes.
+ */
+const int LINE_THICKNESS = 2;
+
+/**
  * @brief Length of the separation line used for console output formatting.
  */
 const int SEPARATION_LINE_LENGTH = 36;
+
+/**
+ * @brief Threshold used for aligning rectangles.
+ */
+const double ALIGNED_RECTS_THRESHOLD = 30;
 
 /**
  * @brief Number of rows for the minimap image.

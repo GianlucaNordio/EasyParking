@@ -1,13 +1,53 @@
 #include "minimap.hpp"
 
+/**
+ * @brief Builds a series of minimaps for a sequence of parking spot data.
+ * 
+ * This function iterates over multiple sets of parking spot data and generates a minimap for each set.
+ * It calls `buildMinimap` for each set of parking spots to draw the corresponding minimap on the provided
+ * images in the `miniMaps` vector.
+ * 
+ * @param parkingSpots A vector of vectors, where each inner vector contains `ParkingSpot` objects representing
+ * the parking spots for a specific image.
+ * @param miniMaps A vector of `cv::Mat` objects where each element will be updated with the minimap corresponding
+ * to the parking spots in the `parkingSpots` vector. Each `cv::Mat` should be pre-allocated with appropriate size
+ * and type.
+ * 
+ * @note The size of the `miniMaps` vector must match the size of the `parkingSpots` vector, as each minimap 
+ * corresponds to one set of parking spots.
+ * 
+ * @throws std::out_of_range If the `miniMaps` vector does not have enough elements to match the number of 
+ * `parkingSpots` vectors.
+ */
 void buildSequenceMinimap(std::vector<std::vector<ParkingSpot>> parkingSpots, std::vector<cv::Mat>& miniMaps) {
     for(int i = 0; i < parkingSpots.size(); i++) {
         buildMinimap(parkingSpots[i], miniMaps[i]);
     }
 }
 
-
-
+/**
+ * @brief Builds a minimap representing parking spots and their occupancy status on a convex hull.
+ * 
+ * This function creates a minimap image based on the parking spot data provided. It first computes
+ * the convex hull of the parking spots' bounding boxes and highlights the four longest edges. The function
+ * then calculates the intersection points of the lines to determine the corners, applies a perspective
+ * transformation, and draws the transformed parking spots on the minimap.
+ * 
+ * Each parking spot is displayed with a color representing its occupancy status (red for occupied, blue 
+ * for free), and the bounding box of the parking spot is drawn at a transformed location in the minimap.
+ * 
+ * @param parkingSpot A vector of `ParkingSpot` objects representing the parking spots to be displayed 
+ * on the minimap. Each `ParkingSpot` contains a `cv::RotatedRect` for its bounding box and an occupancy 
+ * flag.
+ * @param miniMap A reference to a `cv::Mat` object where the minimap will be drawn. This matrix is 
+ * expected to have the appropriate size and type for rendering the minimap.
+ * 
+ * @note The function assumes that all parking spots in the input have valid, non-zero area bounding boxes. 
+ * Parking spots with an area smaller than 1 are ignored. It is also assumed that the `miniMap` has been 
+ * initialized to a blank image of appropriate size.
+ * 
+ * @throws std::invalid_argument If the `parkingSpot` vector is empty.
+ */
 void buildMinimap(std::vector<ParkingSpot> parkingSpot, cv::Mat& miniMap) {
     std::vector<cv::Point2f> allVertices;
     
@@ -83,69 +123,40 @@ void buildMinimap(std::vector<ParkingSpot> parkingSpot, cv::Mat& miniMap) {
     
     std::vector<cv::Point2f> toHomPoints = {cv::Point2f(0,MAP_HEIGHT-1), cv::Point2f(0,-25), cv::Point2f(MAP_WIDTH-1,MAP_HEIGHT-1), cv::Point2f(MAP_WIDTH-1,-25)};
     cv::Mat perspectiveTransform = cv::getPerspectiveTransform(hullCornersSorted, toHomPoints);
-    cv::Mat minimap(mapSize, CV_8UC3, cv::Scalar(255,255,255));
+    cv::Mat minimap(mapSize, IMAGE_TYPE, WHITE);
 
-    
-
-    double sum_angle = 0;
-    double avg_angle;
+    double sumAngle = 0;
+    double avgAngle;
 
     std::vector<cv::RotatedRect> transformedRects;
-
     std::vector<bool> occupancies;
-
 
     for(ParkingSpot spot: parkingSpot) {
 
         // Extract the vertices of the current RotatedRect
-
         cv::RotatedRect rect = spot.rect;
-
         occupancies.push_back(spot.occupied);
-
         cv::Point2f vertices[4];
-
         rect.points(vertices);
 
-
-
         // Prepare vectors to hold the original and transformed vertices
-
-        std::vector<cv::Point2f> to_transform(vertices, vertices + 4);  // Collect vertices into a vector
-
-        std::vector<cv::Point2f> transformed_vertices;
-
-
+        std::vector<cv::Point2f> toTransform(vertices, vertices + 4);
+        std::vector<cv::Point2f> transformedVertices;
 
         // Apply perspective transformation
-
-        cv::perspectiveTransform(to_transform, transformed_vertices, perspectiveTransform);
-
-
+        cv::perspectiveTransform(toTransform, transformedVertices, perspectiveTransform);
 
         // Compute the minimum area rectangle from the transformed vertices
-
-        cv::RotatedRect minrect = cv::minAreaRect(transformed_vertices);
-
-        transformedRects.push_back(minrect);
-
+        cv::RotatedRect minRect = cv::minAreaRect(transformedVertices);
+        transformedRects.push_back(minRect);
         vertices[4];
-
-        minrect.points(vertices);
-
-        sum_angle += minrect.angle;
+        minRect.points(vertices);
+        sumAngle += minRect.angle;
 
     }
-
     
-    avg_angle = sum_angle/parkingSpot.size();
-
-    alignRects(transformedRects, 30);
-
-    
-
-    // Example larger image (e.g., 800x800 white background)
-
+    avgAngle = sumAngle/parkingSpot.size();
+    alignRects(transformedRects, ALIGNED_RECTS_THRESHOLD);
 
     double offsetY = (miniMap.rows-minimap.rows)/2;
     double offsetX  = (miniMap.cols-minimap.cols)/2;
@@ -154,13 +165,13 @@ void buildMinimap(std::vector<ParkingSpot> parkingSpot, cv::Mat& miniMap) {
 
         cv::RotatedRect rect = transformedRects[i];
         bool occupancy = occupancies[i];
-        cv::RotatedRect to_print(cv::Point2f(rect.center.x+offsetX,rect.center.y+offsetY),cv::Size(60,20),(rect.size.aspectRatio()>1.4?avg_angle:-avg_angle));
+        cv::RotatedRect toPrint(cv::Point2f(rect.center.x+offsetX, rect.center.y+offsetY), SIZE_RECT_MINIMAP,(rect.size.aspectRatio()> 1.4 ? avgAngle : -avgAngle));
         cv::Point2f vertices[4];
-        to_print.points(vertices);
+        toPrint.points(vertices);
 
         for (int i = 0; i < 4; i++) {
             // Draw the bounding box red if the parking spot is occupied, blue otherwise
-            cv::line(miniMap, vertices[i], vertices[(i+1) % 4], occupancy ? cv::Scalar(0, 0, 255) : cv::Scalar(255,0,0), 2);
+            cv::line(miniMap, vertices[i], vertices[(i + 1) % 4], occupancy ? RED : BLUE, LINE_THICKNESS);
         }
     }
 }

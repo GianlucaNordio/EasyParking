@@ -8,8 +8,50 @@
 #include "parkingSpotDetector.hpp"
 #include "constants.hpp"
 
+/**
+ * @brief Builds a series of minimaps for a sequence of parking spot data.
+ * 
+ * This function iterates over multiple sets of parking spot data and generates a minimap for each set.
+ * It calls `buildMinimap` for each set of parking spots to draw the corresponding minimap on the provided
+ * images in the `miniMaps` vector.
+ * 
+ * @param parkingSpots A vector of vectors, where each inner vector contains `ParkingSpot` objects representing
+ * the parking spots for a specific frame or time step.
+ * @param miniMaps A vector of `cv::Mat` objects where each element will be updated with the minimap corresponding
+ * to the parking spots in the `parkingSpots` vector. Each `cv::Mat` should be pre-allocated with appropriate size
+ * and type.
+ * 
+ * @note The size of the `miniMaps` vector must match the size of the `parkingSpots` vector, as each minimap 
+ * corresponds to one set of parking spots.
+ * 
+ * @throws std::out_of_range If the `miniMaps` vector does not have enough elements to match the number of 
+ * `parkingSpots` vectors.
+ */
 void buildSequenceMinimap(std::vector<std::vector<ParkingSpot>> parkingSpots, std::vector<cv::Mat>& miniMaps);
 
+/**
+ * @brief Builds a minimap representing parking spots and their occupancy status on a convex hull.
+ * 
+ * This function creates a minimap image based on the parking spot data provided. It first computes
+ * the convex hull of the parking spots' bounding boxes and highlights the four longest edges. The function
+ * then calculates the intersection points of the lines to determine the corners, applies a perspective
+ * transformation, and draws the transformed parking spots on the minimap.
+ * 
+ * Each parking spot is displayed with a color representing its occupancy status (red for occupied, blue 
+ * for free), and the bounding box of the parking spot is drawn at a transformed location in the minimap.
+ * 
+ * @param parkingSpot A vector of `ParkingSpot` objects representing the parking spots to be displayed 
+ * on the minimap. Each `ParkingSpot` contains a `cv::RotatedRect` for its bounding box and an occupancy 
+ * flag.
+ * @param miniMap A reference to a `cv::Mat` object where the minimap will be drawn. This matrix is 
+ * expected to have the appropriate size and type for rendering the minimap.
+ * 
+ * @note The function assumes that all parking spots in the input have valid, non-zero area bounding boxes. 
+ * Parking spots with an area smaller than 1 are ignored. It is also assumed that the `miniMap` has been 
+ * initialized to a blank image of appropriate size.
+ * 
+ * @throws std::invalid_argument If the `parkingSpot` vector is empty.
+ */
 void buildMinimap(std::vector<ParkingSpot> parkingSpot, cv::Mat& miniMap);
 
 /**
