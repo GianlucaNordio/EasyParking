@@ -70,6 +70,31 @@ std::vector<cv::RotatedRect>::const_iterator elementIterator(const std::vector<c
  */
 cv::Vec4f convertRectToLine(const cv::RotatedRect& rect);
 
+/**
+ * @brief Preprocesses an image to enhance parking lines for detection.
+ *
+ * This function applies several image processing techniques to the input image in order to
+ * highlight parking lines. It uses a bilateral filter for noise reduction while preserving
+ * edges, converts the image to grayscale, and computes the gradients along the x and y axes
+ * using the Sobel operator. The gradients are then combined, and adaptive thresholding is
+ * applied to create a binary image. The result is further refined using morphological operations
+ * (dilation and erosion) to enhance the parking lines.
+ *
+ * Steps:
+ * 1. Apply bilateral filtering to reduce noise while preserving edges.
+ * 2. Convert the image to grayscale.
+ * 3. Compute x and y gradients using the Sobel operator.
+ * 4. Combine the gradients to obtain the gradient magnitude.
+ * 5. Apply adaptive thresholding to create a binary image highlighting the lines.
+ * 6. Use morphological operations (dilation and erosion) to further enhance the detected lines.
+ *
+ * @param image The input image (cv::Mat) in which to find parking lines.
+ * 
+ * @return cv::Mat A binary image (cv::Mat) where the parking lines are enhanced for detection.
+ */
 cv::Mat preprocessFindParkingLines(const cv::Mat& image);
+
+
+cv::Mat preprocessFindWhiteLines(const cv::Mat& image);
 
 #endif // PARKINGSPOTUTILS_HPP

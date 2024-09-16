@@ -136,7 +136,28 @@ cv::Vec4f convertRectToLine(const cv::RotatedRect& rect) {
     return cv::Vec4f(midPoint1.x, midPoint1.y, midPoint2.x, midPoint2.y);
 }
 
-
+/**
+ * @brief Preprocesses an image to enhance parking lines for detection.
+ *
+ * This function applies several image processing techniques to the input image in order to
+ * highlight parking lines. It uses a bilateral filter for noise reduction while preserving
+ * edges, converts the image to grayscale, and computes the gradients along the x and y axes
+ * using the Sobel operator. The gradients are then combined, and adaptive thresholding is
+ * applied to create a binary image. The result is further refined using morphological operations
+ * (dilation and erosion) to enhance the parking lines.
+ *
+ * Steps:
+ * 1. Apply bilateral filtering to reduce noise while preserving edges.
+ * 2. Convert the image to grayscale.
+ * 3. Compute x and y gradients using the Sobel operator.
+ * 4. Combine the gradients to obtain the gradient magnitude.
+ * 5. Apply adaptive thresholding to create a binary image highlighting the lines.
+ * 6. Use morphological operations (dilation and erosion) to further enhance the detected lines.
+ *
+ * @param image The input image (cv::Mat) in which to find parking lines.
+ * 
+ * @return cv::Mat A binary image (cv::Mat) where the parking lines are enhanced for detection.
+ */
 cv::Mat preprocessFindParkingLines(const cv::Mat& image) {
     cv::Mat filteredImage;
     cv::bilateralFilter(image, filteredImage, -1, 40, 10);
@@ -159,7 +180,34 @@ cv::Mat preprocessFindParkingLines(const cv::Mat& image) {
     cv::Mat gradientMagnitudeProcessed;
     cv::addWeighted(absGradientX, 0.5, absGradientY, 0.5, 0, gradientMagnitude);
     cv::adaptiveThreshold(gradientMagnitude, gradientMagnitudeProcessed, 255, cv::ADAPTIVE_THRESH_GAUSSIAN_C , cv::THRESH_BINARY, 45, -40);
-    cv::dilate(gradientMagnitudeProcessed, gradientMagnitudeProcessed, structuringElement, cv::Point(-1,-1),1);
-    cv::erode(gradientMagnitudeProcessed, gradientMagnitudeProcessed, structuringElement, cv::Point(-1,-1),1);
+    cv::dilate(gradientMagnitudeProcessed, gradientMagnitudeProcessed, structuringElement, cv::Point(-1,-1), 1);
+    cv::erode(gradientMagnitudeProcessed, gradientMagnitudeProcessed, structuringElement, cv::Point(-1,-1), 1);
+    
     return gradientMagnitudeProcessed;
+}
+
+cv::Mat preprocessFindWhiteLines(const cv::Mat& image) {
+    cv::Mat filteredImage;
+    cv::bilateralFilter(image, filteredImage, -1, 40, 10);
+
+    cv::Mat grayImage;
+    cv::cvtColor(filteredImage, grayImage, cv::COLOR_BGR2GRAY);
+
+    cv::Mat adptImage;
+    cv::adaptiveThreshold(grayImage, adptImage, 255, cv::ADAPTIVE_THRESH_MEAN_C , cv::THRESH_BINARY, 9, -20);
+
+    cv::Mat gradientX, gradientY;
+    cv::Sobel(adptImage, gradientX, CV_8U, 1, 0);
+    cv::Sobel(adptImage, gradientY, CV_8U, 0, 1);
+
+    cv::Mat magnitude = gradientX + gradientY;
+
+    cv::Mat structuringElement = cv::getStructuringElement( 
+                        cv::MORPH_CROSS, cv::Size(3,3)); 
+
+    cv::Mat morphImage;
+    cv::dilate(magnitude, morphImage, structuringElement, cv::Point(-1,-1), 4);
+    cv::erode(morphImage, morphImage, structuringElement, cv::Point(-1,-1), 3);
+
+    return morphImage;
 }

@@ -254,8 +254,8 @@ int main() {
     // Print performance for the base sequence
     std::cout << "Base Sequence Performance:\n";
     printPerformanceMetrics(baseSequenceMAP, baseSequenceIoU);
-    std::cout << "Average MAP: " << std::fixed << std::setprecision(4) << averageBaseSequenceMAP << std::endl;
-    std::cout << "Average IoU: " << std::fixed << std::setprecision(4) << averageBaseSequenceIoU << std::endl;
+    std::cout << "Average mAP: " << std::fixed << std::setprecision(4) << averageBaseSequenceMAP << std::endl;
+    std::cout << "Average mIoU: " << std::fixed << std::setprecision(4) << averageBaseSequenceIoU << std::endl;
     std::cout << std::string(SEPARATION_LINE_LENGTH, SEPARATOR_TYPE_1) << std::endl;
     std::cout << std::endl;
 
@@ -266,8 +266,8 @@ int main() {
     for (int i = 0; i < datasetMAP.size(); i++) {
         std::cout << "Sequence " << i + 1 << ":\n";
         printPerformanceMetrics(datasetMAP[i], datasetIoU[i]);
-        std::cout << "Average MAP: " << std::fixed << std::setprecision(4) << averageDatasetMAP[i] << std::endl;
-        std::cout << "Average IoU: " << std::fixed << std::setprecision(4) << averageDatasetIoU[i] << std::endl;
+        std::cout << "Average mAP: " << std::fixed << std::setprecision(4) << averageDatasetMAP[i] << std::endl;
+        std::cout << "Average mIoU: " << std::fixed << std::setprecision(4) << averageDatasetIoU[i] << std::endl;
         std::cout << std::string(SEPARATION_LINE_LENGTH, SEPARATOR_TYPE_1) << std::endl;
         std::cout << std::endl;
     }
