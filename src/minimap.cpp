@@ -161,13 +161,17 @@ void buildMinimap(std::vector<ParkingSpot> parkingSpot, cv::Mat& miniMap) {
 
         cv::RotatedRect rect = transformedSpot.rect;
         cv::RotatedRect toPrint(cv::Point2f(rect.center.x+offsetX, rect.center.y+offsetY), SIZE_RECT_MINIMAP,(rect.size.aspectRatio()> 1.4 ? avgAngle : -avgAngle));
-        cv::Point2f vertices[4];
-        toPrint.points(vertices);
+        cv::Point2f vertices2f[4];
+        toPrint.points(vertices2f);
 
+        cv::Point vertices[4]; // needed since fixConvexPoly only works with cv::Point and not cv::Point2f
         for (int i = 0; i < 4; i++) {
             // Draw the bounding box red if the parking spot is occupied, blue otherwise
-            cv::line(miniMap, vertices[i], vertices[(i + 1) % 4], transformedSpot.occupied ? RED : BLUE, LINE_THICKNESS);
+            vertices[i] = vertices2f[i];
         }
+
+        // Now we can fill the rotated rectangle with our specified color
+        cv::fillConvexPoly(miniMap,vertices,4,transformedSpot.occupied ? RED : BLUE);
     }
 }
 
