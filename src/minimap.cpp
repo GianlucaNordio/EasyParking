@@ -128,7 +128,7 @@ void buildMinimap(std::vector<ParkingSpot> parkingSpot, cv::Mat& miniMap) {
     double sumAngle = 0;
     double avgAngle;
 
-    std::vector<cv::RotatedRect> transformedRects;
+    std::vector<cv::RotatedRect> transformedSpots;
     std::vector<bool> occupancies;
 
     for(ParkingSpot spot: parkingSpot) {
@@ -148,28 +148,27 @@ void buildMinimap(std::vector<ParkingSpot> parkingSpot, cv::Mat& miniMap) {
 
         // Compute the minimum area rectangle from the transformed vertices
         cv::RotatedRect minRect = cv::minAreaRect(transformedVertices);
-        transformedRects.push_back(minRect);
+        transformedSpots.push_back(ParkingSpot(spot.id,spot.confidence,spot.occupied,minrect));
         sumAngle += minRect.angle;
 
     }
     
     avgAngle = sumAngle/parkingSpot.size();
-    alignRects(transformedRects, ALIGNED_RECTS_THRESHOLD);
+    alignRects(transformedSpots, ALIGNED_RECTS_THRESHOLD);
 
     double offsetY = (miniMap.rows-minimap.rows)/2;
     double offsetX  = (miniMap.cols-minimap.cols)/2;
 
-    for(int i = 0; i<transformedRects.size(); i++) {
+    for(const ParkingSpot& transformedSpot: transformedSpots) {
 
-        cv::RotatedRect rect = transformedRects[i];
-        bool occupancy = occupancies[i];
+        cv::RotatedRect rect = transformedSpot.rect;
         cv::RotatedRect toPrint(cv::Point2f(rect.center.x+offsetX, rect.center.y+offsetY), SIZE_RECT_MINIMAP,(rect.size.aspectRatio()> 1.4 ? avgAngle : -avgAngle));
         cv::Point2f vertices[4];
         toPrint.points(vertices);
 
         for (int i = 0; i < 4; i++) {
             // Draw the bounding box red if the parking spot is occupied, blue otherwise
-            cv::line(miniMap, vertices[i], vertices[(i + 1) % 4], occupancy ? RED : BLUE, LINE_THICKNESS);
+            cv::line(miniMap, vertices[i], vertices[(i + 1) % 4], transformedSpot.occupied ? RED : BLUE, LINE_THICKNESS);
         }
     }
 }
@@ -242,27 +241,27 @@ std::vector<cv::Point2f> findCorners(const std::vector<cv::Point2f>& points) {
  * 
  * @note The function modifies the y-coordinates of the rectangles in the input vector in-place.
  */
-void alignRects(std::vector<cv::RotatedRect>& rects, double threshold) {
+void alignRects(std::vector<ParkingSpot>& spots, double threshold) {
     
     // Sort the rects by their y-coordinate
-    std::sort(rects.begin(), rects.end(), 
-        [](const cv::RotatedRect& a, const cv::RotatedRect& b) {
-            return a.center.y < b.center.y;
+    std::sort(spots.begin(), spots.end(), 
+        [](const ParkingSpot& a, const ParkingSpot& b) {
+            return a.rect.center.y < b.rect.center.y;
         });
 
     // Iterate through each unique y-coordinate and align rects within the threshold
-    for (size_t i = 0; i < rects.size(); ++i) {
-        double base_y = rects[i].center.y;
+    for (size_t i = 0; i < spots.size(); ++i) {
+        double base_y = spots[i].rect.center.y;
 
         // Align all rects within the threshold of the current base_y
-        for (size_t j = i + 1; j < rects.size(); ++j) {
-            if (std::fabs(rects[j].center.y - base_y) <= threshold) {
-                rects[j].center.y = base_y;
+        for (size_t j = i + 1; j < spots.size(); ++j) {
+            if (std::fabs(spots[j].rect.center.y - base_y) <= threshold) {
+                spots[j].rect.center.y = base_y;
             }
         }
 
         // Skip over rects already aligned to the current base_y
-        while (i + 1 < rects.size() && std::fabs(rects[i + 1].center.y - base_y) <= threshold) {
+        while (i + 1 < spots.size() && std::fabs(spots[i + 1].rect.center.y - base_y) <= threshold) {
             ++i;
         }
     }
