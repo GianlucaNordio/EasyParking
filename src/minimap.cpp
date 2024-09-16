@@ -87,7 +87,7 @@ void buildMinimap(std::vector<ParkingSpot> parkingSpot, cv::Mat& miniMap) {
 
     // Highlight the 4 longest lines in red
     for (size_t i = 0; i < std::min(hullLines.size(), size_t(4)); i++) {
-        auto& line = hullLines[i];
+        std::pair<double, cv::Vec4f>& line = hullLines[i];
         double slope = tan(getSegmentAngularCoefficient(line.second)*CV_PI/180);
         double intercept = line.second[1] - slope * line.second[0];
 

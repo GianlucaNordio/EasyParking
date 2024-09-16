@@ -108,7 +108,7 @@ double calculateMeanAveragePrecision(const std::vector<ParkingSpot>& predictions
     std::vector<ParkingSpot> predictionsParkingSpotWithCar;
     std::vector<ParkingSpot> predictionsParkingSpotWithoutCar;
 
-    for (const auto& prediction : predictions) {
+    for (const ParkingSpot& prediction : predictions) {
         if (prediction.occupied)
             predictionsParkingSpotWithCar.push_back(prediction);
         else
@@ -119,7 +119,7 @@ double calculateMeanAveragePrecision(const std::vector<ParkingSpot>& predictions
     std::vector<ParkingSpot> groundTruthsParkingSpotWithCar;
     std::vector<ParkingSpot> groundTruthsParkingSpotWithoutCar;
 
-    for (const auto& groundTruth : groundTruths) {
+    for (const ParkingSpot& groundTruth : groundTruths) {
         if (groundTruth.occupied)
             groundTruthsParkingSpotWithCar.push_back(groundTruth);
         else
@@ -180,7 +180,7 @@ std::vector<std::pair<double, double>> calculatePrecisionRecallCurve(const std::
               });
 
     // Calculate Precision-Recall points for each prediction
-    for (const auto& prediction : sortedPredictions) {
+    for (const ParkingSpot& prediction : sortedPredictions) {
         double maxIoU = 0.0;
         int bestMatchIndex = -1;
 
@@ -309,7 +309,7 @@ double calculateAveragePrecision(const std::vector<std::pair<double, double>>& p
     for (size_t i = 0; i < recallLevels.size(); i++) {
         double recallLevel = recallLevels[i];
         double maxPrecision = 0.0;
-        for (const auto& point : precisionRecallPoints) {
+        for (const std::pair<double,double>& point : precisionRecallPoints) {
             double recall = point.first;
             double precision = point.second;
             if (recall >= recallLevel) {

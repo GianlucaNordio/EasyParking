@@ -266,10 +266,6 @@ std::vector<cv::RotatedRect> detectParkingSpotInImage(const cv::Mat& image) {
     std::vector<cv::RotatedRect> merged_pos_rects = merge_overlapping_rects(list_boxes);
     std::vector<cv::RotatedRect> merged_neg_rects = merge_overlapping_rects(list_boxes2);
 
-    // Output the result
-    for (const auto& rect : list_boxes) {
-
-    }
 
     // std::vector<cv::RotatedRect> merged_pos_rects = merge_overlapping_rects(list_boxes);
     // std::vector<cv::RotatedRect> merged_neg_rects = merge_overlapping_rects(list_boxes2);
