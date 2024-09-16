@@ -28,7 +28,15 @@ void detectParkingSpots(const std::vector<cv::Mat>& images, std::vector<ParkingS
         // Find parking spots for each image separately
         for(cv::RotatedRect parking_spot_image : detectParkingSpotInImage(image)) {
             all_rects.push_back(parking_spot_image);
+            cv::Point2f vertices[4];
+            parking_spot_image.points(vertices);
+             for (int i = 0; i < 4; i++) {
+                   cv::line(image, vertices[i], vertices[(i+1) % 4], cv::Scalar(0, 0, 255), 2);
+               }   
         }
+
+        cv::imshow("image", image);
+        cv::waitKey(0);
     }
 
     std::vector<cv::RotatedRect> elements_to_remove;
@@ -1096,6 +1104,8 @@ cv::RotatedRect build_rotatedrect_from_movement(const cv::Vec4f& segment, const 
         // cv::imshow("projections", image);
         // cv::waitKey(0);
         // bounding_box.center = cv::Point2f(bounding_box.center.x+15,bounding_box.center.y-15);
+        if(bounding_box.size.width > 70) bounding_box.size.width *= 0.9;
+        if(bounding_box.size.height > 70) bounding_box.size.height *= 0.9;
         return bounding_box;
     }
 
@@ -1308,7 +1318,8 @@ cv::Vec4f convert_rect_to_line(const cv::RotatedRect& rect) {
     }
 
     // Return the line segment as a vector of 4 floats (x1, y1, x2, y2)
-    return cv::Vec4f(midpoint1.x, midpoint1.y, midpoint2.x, midpoint2.y);
+    cv::Vec4f segment(midpoint1.x, midpoint1.y, midpoint2.x, midpoint2.y);
+    return segment;
 }
 
 
