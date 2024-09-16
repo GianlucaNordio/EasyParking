@@ -85,7 +85,7 @@ void buildMinimap(std::vector<ParkingSpot> parkingSpot, cv::Mat& miniMap) {
     std::vector<double> slopes;
     std::vector<double> intercepts;
 
-    // Highlight the 4 longest lines in red
+    // Get the equations (slope and intercept) of the four longest lines
     for (size_t i = 0; i < std::min(hullLines.size(), size_t(4)); i++) {
         std::pair<double, cv::Vec4f>& line = hullLines[i];
         double slope = tan(getSegmentAngularCoefficient(line.second)*CV_PI/180);
