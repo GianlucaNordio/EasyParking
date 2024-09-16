@@ -238,3 +238,77 @@ double getSegmentLength(const cv::Vec4f& segment) {
 
     return std::sqrt((x2 - x1) * (x2 - x1) + (y2 - y1) * (y2 - y1));
 }
+
+/**
+ * @brief Trims the endpoints of two line segments if they intersect.
+ * 
+ * This function checks if two line segments intersect. If they do, it trims the segments so that their 
+ * endpoints are adjusted to the intersection point. For `segment1`, the first endpoint is updated to the 
+ * intersection point. For `segment2`, the endpoint closest to the intersection point is trimmed to the 
+ * intersection point, while the other endpoint remains unchanged.
+ * 
+ * @param segment1 A reference to a `cv::Vec4f` representing the first line segment, which will be updated if an intersection occurs.
+ * @param segment2 A reference to a `cv::Vec4f` representing the second line segment, which will be updated if an intersection occurs.
+ */
+
+void trimIfIntersect(cv::Vec4f& segment1, cv::Vec4f& segment2) {
+    cv::Point2f intersection;
+    if(segmentsIntersect(segment1, segment2, intersection)) {
+        segment1[0] = intersection.x;
+        segment1[1] = intersection.y;
+
+        cv::Point2f rightEndpoint(segment2[2], segment2[3]);
+        cv::Point2f leftEndpoint(segment2[0], segment2[1]);
+        double normLeft = cv::norm(intersection-leftEndpoint);
+        double normRight = cv::norm(intersection-rightEndpoint);
+        if(normLeft > normRight) {
+            segment2[2] = intersection.x;
+            segment2[3] = intersection.y;
+        }
+        else {
+            segment2[0] = intersection.x;
+            segment2[1] = intersection.y;
+        }
+    }
+}
+
+/**
+ * @brief Checks if two line segments intersect and calculates the intersection point if they do.
+ * 
+ * This function determines if two line segments, each defined by their endpoints, intersect. It calculates 
+ * the intersection point using vector algebra. The segments are considered to intersect if the computed 
+ * intersection point lies within the bounds of both segments.
+ * 
+ * @param segment1 A `cv::Vec4f` representing the first line segment with coordinates (x1, y1, x2, y2).
+ * @param segment2 A `cv::Vec4f` representing the second line segment with coordinates (x1, y1, x2, y2).
+ * @param intersection A reference to a `cv::Point2f` where the intersection point will be stored if the segments intersect.
+ * @return `true` if the segments intersect within their bounds and `false` if they do not intersect or are parallel.
+ */
+bool segmentsIntersect(const cv::Vec4f& segment1, const cv::Vec4f& segment2, cv::Point2f& intersection) {
+
+    // Extract points from the extended segments
+    cv::Point2f start1(segment1[0], segment1[1]), end1(segment1[2], segment1[3]);
+    cv::Point2f start2(segment2[0], segment2[1]), end2(segment2[2], segment2[3]);
+
+    // Compute direction vectors for both segments
+    cv::Vec2f vector1 = cv::Vec2f(end1 - start1);  // Direction of extended_seg1
+    cv::Vec2f vector2 = cv::Vec2f(end2 - start2);  // Direction of extended_seg2
+
+    double crossProduct = vector1[0] * vector2[1] - vector1[1] * vector2[0];
+    cv::Vec2f vector3 = cv::Vec2f(start2 - start1);
+    
+    // Check if the lines are parallel
+    if (std::fabs(crossProduct) < FLT_EPSILON) {
+        return false;  // Parallel lines
+    }
+
+    double segment1Param = (vector3[0] * vector2[1] - vector3[1] * vector2[0]) / crossProduct;
+    double segment2Param = (vector3[0] * vector1[1] - vector3[1] * vector1[0]) / crossProduct;
+
+    // Check if the intersection happens within the segment bounds
+    if (segment1Param >= 0 && segment1Param <= 1 && segment2Param >= 0 && segment2Param <= 1) {
+        intersection = start1 + cv::Point2f(vector1[0] * segment1Param, vector1[1] * segment1Param);  // Find the intersection point
+        return true;
+    }
+    return false;
+}

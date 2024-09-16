@@ -127,4 +127,33 @@ double getSegmentAngle(const cv::Vec4f& segment);
  */
 double getSegmentLength(const cv::Vec4f& segment);
 
+/**
+ * @brief Trims the endpoints of two line segments if they intersect.
+ * 
+ * This function checks if two line segments intersect. If they do, it trims the segments so that their 
+ * endpoints are adjusted to the intersection point. For `segment1`, the first endpoint is updated to the 
+ * intersection point. For `segment2`, the endpoint closest to the intersection point is trimmed to the 
+ * intersection point, while the other endpoint remains unchanged.
+ * 
+ * @param segment1 A reference to a `cv::Vec4f` representing the first line segment, which will be updated if an intersection occurs.
+ * @param segment2 A reference to a `cv::Vec4f` representing the second line segment, which will be updated if an intersection occurs.
+ */
+
+void trimIfIntersect(cv::Vec4f& segment1, cv::Vec4f& segment2);
+
+/**
+ * @brief Checks if two line segments intersect and calculates the intersection point if they do.
+ * 
+ * This function determines if two line segments, each defined by their endpoints, intersect. It calculates 
+ * the intersection point using vector algebra. The segments are considered to intersect if the computed 
+ * intersection point lies within the bounds of both segments.
+ * 
+ * @param segment1 A `cv::Vec4f` representing the first line segment with coordinates (x1, y1, x2, y2).
+ * @param segment2 A `cv::Vec4f` representing the second line segment with coordinates (x1, y1, x2, y2).
+ * @param intersection A reference to a `cv::Point2f` where the intersection point will be stored if the segments intersect.
+ * @return `true` if the segments intersect within their bounds and `false` if they do not intersect or are parallel.
+ */
+
+bool segmentsIntersect(const cv::Vec4f& segment1, const cv::Vec4f& segment2, cv::Point2f& intersection);
+
 #endif // LINEUTILS_HPP

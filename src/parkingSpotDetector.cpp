@@ -286,7 +286,7 @@ std::vector<cv::RotatedRect> detectParkingSpotInImage(const cv::Mat& image) {
     for(cv::Vec4f& line_neg: filtered_segments_neg) {
         double length = getSegmentLength(line_neg);
         for(cv::Vec4f line_pos: filtered_segments_pos) {
-            trim_if_intersect(line_neg,line_pos);
+            trimIfIntersect(line_neg,line_pos);
             double length_trimmed = getSegmentLength(line_neg);
         }        
         // cv::line(image, cv::Point(line_neg[0], line_neg[1]), cv::Point(line_neg[2], line_neg[3]), 
@@ -525,57 +525,6 @@ cv::Vec4f extend_segment(const cv::Vec4f& seg, float extension_ratio) {
     return cv::Vec4f(extended_p1.x, extended_p1.y, extended_q1.x, extended_q1.y);
 }
 
-void trim_if_intersect(cv::Vec4f& seg1, cv::Vec4f& seg2) {
-    cv::Point2f intersection;
-    if(segments_intersect(seg1, seg2, intersection)) {
-        seg1[0] = intersection.x;
-        seg1[1] = intersection.y;
-
-        cv::Point2f right_endpoint(seg2[2], seg2[3]);
-        cv::Point2f left_endpoint(seg2[0], seg2[1]);
-        double norm_left = cv::norm(intersection-left_endpoint);
-        double norm_right = cv::norm(intersection-right_endpoint);
-        if(norm_left > norm_right) {
-            seg2[2] = intersection.x;
-            seg2[3] = intersection.y;
-        }
-        else {
-            seg2[0] = intersection.x;
-            seg2[1] = intersection.y;
-        }
-    }
-}
-
-// Function to check if two segments intersect (after extending)
-bool segments_intersect(const cv::Vec4f& seg1, const cv::Vec4f& seg2, cv::Point2f& intersection) {
-
-    // Extract points from the extended segments
-    cv::Point2f p1(seg1[0], seg1[1]), q1(seg1[2], seg1[3]);
-    cv::Point2f p2(seg2[0], seg2[1]), q2(seg2[2], seg2[3]);
-
-    // Compute direction vectors for both segments
-    cv::Vec2f r = cv::Vec2f(q1 - p1);  // Direction of extended_seg1
-    cv::Vec2f s = cv::Vec2f(q2 - p2);  // Direction of extended_seg2
-
-    float rxs = r[0] * s[1] - r[1] * s[0];
-    cv::Vec2f qp = cv::Vec2f(p2 - p1);
-    
-    // Check if the lines are parallel
-    if (std::fabs(rxs) < FLT_EPSILON) {
-        return false;  // Parallel lines
-    }
-
-    float t = (qp[0] * s[1] - qp[1] * s[0]) / rxs;
-    float u = (qp[0] * r[1] - qp[1] * r[0]) / rxs;
-
-    // Check if the intersection happens within the segment bounds
-    if (t >= 0 && t <= 1 && u >= 0 && u <= 1) {
-        intersection = p1 + cv::Point2f(r[0] * t, r[1] * t);  // Find the intersection point
-        return true;
-    }
-    return false;
-}
-
 // Function to move along the perpendicular direction from the right-most endpoint
 cv::RotatedRect build_rotatedrect_from_movement(const cv::Vec4f& segment, const std::vector<cv::Vec4f>& segments, cv::Mat image) {
     // Rightmost endpoint of the original segment
@@ -620,7 +569,7 @@ cv::RotatedRect build_rotatedrect_from_movement(const cv::Vec4f& segment, const 
         cv::Point2f intersection;
         cv::Vec4f perp_vect = cv::Vec4f(start.x, start.y, perp_end.x, perp_end.y);
         cv::Vec4f extended_seg1 = extend_segment(other_segment, 0.4f);
-        if (other_segment != segment && segments_intersect(extended_seg1, perp_vect, intersection)) {
+        if (other_segment != segment && segmentsIntersect(extended_seg1, perp_vect, intersection)) {
 
             float dist = cv::norm(start-intersection);
             // last conditions to ensure that close segments of another parking slot line does not interfere
