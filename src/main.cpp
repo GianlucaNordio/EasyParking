@@ -169,6 +169,7 @@ int main() {
     addMinimap(baseSequenceMinimap, baseSequence);
     cv::imshow("Base sequence", produceSingleImage(baseSequence, 3));
     cv::waitKey();
+    cv::destroyWindow("Base sequence");
 
     // Display the bounding boxes found in the base sequence
     std::vector<cv::Mat> baseSequenceBBoxes;
@@ -177,10 +178,12 @@ int main() {
 
     cv::imshow("Base Sequence BBoxes", produceSingleImage(baseSequenceBBoxes, 3));
     cv::waitKey();
+    cv::destroyWindow("Base Sequence BBoxes");
 
     // Display the segmented masks for the base sequence
     cv::imshow("Base Sequence Masks", produceSingleImage(baseSequenceMasks, 3));
     cv::waitKey();
+    cv::destroyWindow("Base Sequence Masks");
 
     // Display the classified masks for the base sequence
     std::vector<cv::Mat> classifiedBaseSequenceMasksBGR;
@@ -189,14 +192,15 @@ int main() {
     convertGreyMaskToBGR(classifiedBaseSequenceMasks, classifiedBaseSequenceMasksBGR);
 
     for(int i = 0; i < classifiedBaseSequenceMasksBGR.size(); i++) {
-        classifiedBaseSequenceMasksBGRwMask[i] = cv::Mat::zeros(baseSequence[i].size(), baseSequence[i].type());
-        cv::addWeighted(baseSequence[i], 1, classifiedBaseSequenceMasksBGR[i], 0.4, 0, classifiedBaseSequenceMasksBGRwMask[i]);
+        classifiedBaseSequenceMasksBGRwMask.push_back(cv::Mat::zeros(baseSequence[i].size(), baseSequence[i].type()));
+        cv::addWeighted(baseSequence[i], 0.6, classifiedBaseSequenceMasksBGR[i], 0.4, 0, classifiedBaseSequenceMasksBGRwMask[i]);
     }
 
     addMinimap(baseSequenceMinimap, classifiedBaseSequenceMasksBGRwMask);
 
     cv::imshow("Base Sequence Classified Masks", produceSingleImage(classifiedBaseSequenceMasksBGRwMask, 3));
     cv::waitKey();
+    cv::destroyWindow("Base Sequence Classified Masks");
 
     // Convert the greyscale masks to BGR
     std::vector<std::vector<cv::Mat>> classifiedDatasetMasksBGR;
@@ -206,11 +210,13 @@ int main() {
     std::vector<std::vector<cv::Mat>> classifiedDatasetMasksBGRwMask;
     classifiedDatasetMasksBGRwMask.resize(classifiedDatasetMasksBGR.size());
     for(int i = 0; i < classifiedDatasetMasksBGR.size(); i++) {
+        classifiedDatasetMasksBGRwMask.push_back(std::vector<cv::Mat>());
         for(int j = 0; j < classifiedDatasetMasksBGR[i].size(); j++) {
-            classifiedDatasetMasksBGRwMask[i][j] = cv::Mat::zeros(dataset[i][j].size(), dataset[i][j].type());
-            cv::addWeighted(dataset[i][j], 1, classifiedDatasetMasksBGR[i][j], 0.4, 0, classifiedDatasetMasksBGRwMask[i][j]);
+            classifiedDatasetMasksBGRwMask[i].push_back(cv::Mat::zeros(dataset[i][j].size(), dataset[i][j].type()));
+            cv::addWeighted(dataset[i][j], 0.6, classifiedDatasetMasksBGR[i][j], 0.4, 0, classifiedDatasetMasksBGRwMask[i][j]);
         }
     } 
+
     // Display the results on the dataset one sequence at a time
     for(int i = 0; i < NUMBER_SEQUENCES; i++) {
         // For the sequence i:
@@ -218,6 +224,7 @@ int main() {
         // Display the image
         cv::imshow("Sequence " + std::to_string(i + 1), produceSingleImage(dataset[i], 3));
         cv::waitKey();
+        cv::destroyWindow("Sequence " + std::to_string(i + 1));
 
         // Display the bounding boxes found in the dataset
         std::vector<cv::Mat> sequenceBBoxes;
@@ -225,14 +232,17 @@ int main() {
 
         cv::imshow("Sequence " + std::to_string(i + 1) + " BBoxes", produceSingleImage(sequenceBBoxes, 3));
         cv::waitKey();
+        cv::destroyWindow("Sequence " + std::to_string(i + 1) + " BBoxes");
 
         // Display the segmented masks for the dataset
         cv::imshow("Sequence " + std::to_string(i + 1) + " Masks", produceSingleImage(datasetMasks[i], 3));
         cv::waitKey();
+        cv::destroyWindow("Sequence " + std::to_string(i + 1) + " Masks");
 
         // Display the classified masks for the dataset
         cv::imshow("Sequence " + std::to_string(i + 1) + " Classified Masks", produceSingleImage(classifiedDatasetMasksBGRwMask[i], 3));
         cv::waitKey();
+        cv::destroyWindow("Sequence " + std::to_string(i + 1) + " Classified Masks");
     }
     // Display the performance metrics
 
