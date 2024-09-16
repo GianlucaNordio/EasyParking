@@ -33,11 +33,6 @@ void parseXML(const std::string& filePath, std::vector<ParkingSpot> &parkingSpot
                 parkingSpot.push_back(currentSpace);
             } else if(token.find("id=") != std::string::npos) {
                 currentSpace.id = std::stoi(token.substr(token.find("\"") + 1, token.find_last_of("\"") - token.find("\"") - 1));
-                // Break if the id is greater or equal to 38 to remove the rightmost parking spots (allowed by the project requirements)
-                if(currentSpace.id >= 38) {
-                    parkingSpot.pop_back();
-                    break;
-                }
             } else if (token.find("occupied=") != std::string::npos) {
                 currentSpace.occupied = std::stoi(token.substr(token.find("occupied=\"") + 10, 1));
             } else if (token.find("center") != std::string::npos) {
@@ -62,4 +57,10 @@ void parseXML(const std::string& filePath, std::vector<ParkingSpot> &parkingSpot
             }
         }        
     }
+
+    // Pop back the last three element as they are the spots on the top right
+    parkingSpot.pop_back();
+    parkingSpot.pop_back();
+    parkingSpot.pop_back();
+                
 }
