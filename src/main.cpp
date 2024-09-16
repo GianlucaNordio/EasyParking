@@ -282,9 +282,11 @@ int main() {
         }
     } 
 
-    for(int i = 0; i < NUMBER_SEQUENCES; i++)
+    for(int i = 0; i < NUMBER_SEQUENCES; i++){
         addMinimap(datasetMinimap[i], classifiedDatasetMasksBGRwMask[i]);
-
+        addMinimap(datasetMinimap[i], dataset[i]);
+    }
+    
     // Display the results on the dataset one sequence at a time
     for(int i = 0; i < NUMBER_SEQUENCES; i++) {
         // For the sequence i:
