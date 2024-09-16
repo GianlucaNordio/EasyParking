@@ -149,8 +149,6 @@ void buildMinimap(std::vector<ParkingSpot> parkingSpot, cv::Mat& miniMap) {
         // Compute the minimum area rectangle from the transformed vertices
         cv::RotatedRect minRect = cv::minAreaRect(transformedVertices);
         transformedRects.push_back(minRect);
-        vertices[4];
-        minRect.points(vertices);
         sumAngle += minRect.angle;
 
     }
