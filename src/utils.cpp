@@ -335,17 +335,17 @@ void printPerformanceMetrics(const std::vector<double>& mAPs, const std::vector<
  * The bounding boxes are drawn in red with a thickness of 2 pixels.
  * The modified images with bounding boxes are then stored in the `baseSequenceBBoxes` vector.
  *
- * @param parkingSpot A vector of `ParkingSpot` objects representing the parking spots to be drawn.
+ * @param parkingSpot A vector of vector of `ParkingSpot` objects representing the parking spots to be drawn.
  * @param baseSequence A vector of `cv::Mat` objects where each `cv::Mat` represents an image in the base sequence.
  * @param baseSequenceBBoxes A vector of `cv::Mat` objects where each `cv::Mat` will store the image with drawn bounding boxes.
  */
-void printParkingSpot(const std::vector<ParkingSpot>& parkingSpot, const std::vector<cv::Mat>& baseSequence, std::vector<cv::Mat>& baseSequenceBBoxes) {
+void printParkingSpot(const std::vector<std::vector<ParkingSpot>>& parkingSpot, const std::vector<cv::Mat>& baseSequence, std::vector<cv::Mat>& baseSequenceBBoxes) {
     for(int i = 0; i < baseSequence.size(); i++) {
         cv::Mat output = baseSequence[i].clone();
-        for(int j = 0; j < parkingSpot.size(); j++) {
+        for(int j = 0; j < parkingSpot[i].size(); j++) {
             cv::Point2f vertices[4];
-            parkingSpot[j].rect.points(vertices);
-            if(parkingSpot[j].occupied) {
+            parkingSpot[i][j].rect.points(vertices);
+            if(parkingSpot[i][j].occupied) {
                 for (int l = 0; l < 4; l++) {
                     cv::line(output, vertices[l], vertices[(l + 1) % 4], cv::Scalar(0, 0, 255), 2);
                 }

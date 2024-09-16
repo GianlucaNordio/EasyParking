@@ -174,11 +174,11 @@ void printPerformanceMetrics(const std::vector<double>& mAPs, const std::vector<
  * The bounding boxes are drawn in red with a thickness of 2 pixels.
  * The modified images with bounding boxes are then stored in the `baseSequenceBBoxes` vector.
  *
- * @param parkingSpot A vector of `ParkingSpot` objects representing the parking spots to be drawn.
+ * @param parkingSpot A vector of vetor of `ParkingSpot` objects representing the parking spots to be drawn.
  * @param baseSequence A vector of `cv::Mat` objects where each `cv::Mat` represents an image in the base sequence.
  * @param baseSequenceBBoxes A vector of `cv::Mat` objects where each `cv::Mat` will store the image with drawn bounding boxes.
  */
-void printParkingSpot(const std::vector<ParkingSpot>& parkingSpot, const std::vector<cv::Mat>& baseSequence, std::vector<cv::Mat>& baseSequenceBBoxes);
+void printParkingSpot(const std::vector<std::vector<ParkingSpot>>& parkingSpot, const std::vector<cv::Mat>& baseSequence, std::vector<cv::Mat>& baseSequenceBBoxes);
 
 /**
  * @brief Masks the region above a specified line in the image by setting pixel values to 0.

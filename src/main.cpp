@@ -239,7 +239,7 @@ int main() {
 
     // Display the bounding boxes found in the base sequence
     std::vector<cv::Mat> baseSequenceBBoxes;
-    printParkingSpot(parkingSpot, baseSequence, baseSequenceBBoxes);
+    printParkingSpot(baseSequenceParkingSpot, baseSequence, baseSequenceBBoxes);
     addMinimap(baseSequenceMinimap, baseSequenceBBoxes);
 
     cv::imshow("Base Sequence BBoxes", produceSingleImage(baseSequenceBBoxes, NUMBER_OF_IMAGES_FOR_ROW));
@@ -296,7 +296,7 @@ int main() {
 
         // Display the bounding boxes found in the dataset
         std::vector<cv::Mat> sequenceBBoxes;
-        printParkingSpot(parkingSpot, dataset[i], sequenceBBoxes);
+        printParkingSpot(datasetParkingSpot[i], dataset[i], sequenceBBoxes);
 
         cv::imshow("Sequence " + std::to_string(i + 1) + " BBoxes", produceSingleImage(sequenceBBoxes, NUMBER_OF_IMAGES_FOR_ROW));
         cv::waitKey();
