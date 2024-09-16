@@ -70,7 +70,7 @@ void Segmentation::segmentImage(const cv::Mat &image, cv::Mat &outputMask) {
         cv::Point(MORPH_SIZE, MORPH_SIZE));
 
     cv::Mat closedMask;
-    cv::morphologyEx(mask, closedMask, cv::MORPH_OPEN, element);
+    cv::morphologyEx(mask, closedMask, cv::MORPH_CLOSE, element);
 
     // Mask the top right corner of the image as specified in the project assumptions
     maskRightTopCorner(closedMask);
