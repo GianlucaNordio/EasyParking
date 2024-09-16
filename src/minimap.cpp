@@ -121,14 +121,14 @@ void buildMinimap(std::vector<ParkingSpot> parkingSpot, cv::Mat& miniMap) {
     std::vector<cv::Point2f> hullCornersSorted = findCorners(hullCorners);
     cv::Size mapSize(MAP_WIDTH, MAP_HEIGHT);
     
-    std::vector<cv::Point2f> toHomPoints = {cv::Point2f(0,MAP_HEIGHT-1), cv::Point2f(0,-25), cv::Point2f(MAP_WIDTH-1,MAP_HEIGHT-1), cv::Point2f(MAP_WIDTH-1,-25)};
+    std::vector<cv::Point2f> toHomPoints = {cv::Point2f(0, MAP_HEIGHT-1), cv::Point2f(0, OFFSET_HOMOGRAPHY), cv::Point2f(MAP_WIDTH-1, MAP_HEIGHT-1), cv::Point2f(MAP_WIDTH-1, OFFSET_HOMOGRAPHY)};
     cv::Mat perspectiveTransform = cv::getPerspectiveTransform(hullCornersSorted, toHomPoints);
     cv::Mat minimap(mapSize, IMAGE_TYPE_3_CANALI, WHITE);
 
     double sumAngle = 0;
     double avgAngle;
 
-    std::vector<cv::RotatedRect> transformedSpots;
+    std::vector<ParkingSpot> transformedSpots;
 
     for(ParkingSpot spot: parkingSpot) {
 
@@ -146,7 +146,7 @@ void buildMinimap(std::vector<ParkingSpot> parkingSpot, cv::Mat& miniMap) {
 
         // Compute the minimum area rectangle from the transformed vertices
         cv::RotatedRect minRect = cv::minAreaRect(transformedVertices);
-        transformedSpots.push_back(ParkingSpot(spot.id,spot.confidence,spot.occupied,minrect));
+        transformedSpots.push_back(ParkingSpot(spot.id,spot.confidence,spot.occupied,minRect));
         sumAngle += minRect.angle;
 
     }

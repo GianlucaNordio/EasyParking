@@ -19,7 +19,8 @@
  * 
  * @param DATASET_PATH The base path to the dataset containing the ground truth and mask images.
  * @param NUMBER_SEQUENCES The number of sequences in the dataset.
- * @param parkingSpot A vector of `ParkingSpot` objects representing the detected parking spots for evaluation.
+ * @param baseSequenceParkingSpot A vector of vector of `ParkingSpot` objects representing the detected parking spots in the base sequence used for evaluation.
+ * @param datasetParkingSpot A vector of vector of vector of `ParkingSpot` objects representing the detected parking spots in the dataset used for evaluation.
  * @param baseSequence A vector of `cv::Mat` representing the images in the base sequence.
  * @param dataset A vector of vectors of `cv::Mat` where each inner vector represents the images for a sequence in the dataset.
  * @param classifiedDatasetMasks A vector of vectors of `cv::Mat` where each inner vector contains the results of classification task for a sequence in the dataset.
@@ -33,8 +34,8 @@
  * @param averageDatasetMAP A vector of doubles where each element represents the average Mean Average Precision for a sequence in the dataset.
  * @param averageDatasetIoU A vector of doubles where each element represents the average Mean Intersection over Union for a sequence in the dataset.
  */
-void performanceMeasurement(const std::string DATASET_PATH, const int NUMBER_SEQUENCES, const std::vector<ParkingSpot>& parkingSpot, const std::vector<cv::Mat>& baseSequence, 
-        const std::vector<std::vector<cv::Mat>>& dataset, const std::vector<std::vector<cv::Mat>>& classifiedDatasetMasks, const std::vector<cv::Mat>& classifiedBaseSequenceMasks,
+void performanceMeasurement(const std::string DATASET_PATH, const int NUMBER_SEQUENCES, const std::vector<std::vector<ParkingSpot>>& baseSequenceParkingSpot, const std::vector<std::vector<std::vector<ParkingSpot>>>& datasetParkingSpot,
+        const std::vector<cv::Mat>& baseSequence, const std::vector<std::vector<cv::Mat>>& dataset, const std::vector<std::vector<cv::Mat>>& classifiedDatasetMasks, const std::vector<cv::Mat>& classifiedBaseSequenceMasks,
         std::vector<double>& baseSequenceMAP, std::vector<double>& baseSequenceIoU, double& averageBaseSequenceMAP, double& averageBaseSequenceIoU, std::vector<std::vector<double>>& datasetMAP,
         std::vector<std::vector<double>>& datasetIoU, std::vector<double>& averageDatasetMAP, std::vector<double>& averageDatasetIoU);
 

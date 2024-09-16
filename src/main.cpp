@@ -154,7 +154,7 @@ int main() {
     std::vector<double> averageDatasetIoU;
     
 
-    performanceMeasurement(DATASET_PATH, NUMBER_SEQUENCES, parkingSpot, baseSequence, dataset, classifiedDatasetMasks, 
+    performanceMeasurement(DATASET_PATH, NUMBER_SEQUENCES, baseSequenceParkingSpot, datasetParkingSpot, baseSequence, dataset, classifiedDatasetMasks, 
         classifiedBaseSequenceMasks, baseSequenceMAP, baseSequenceIoU, averageBaseSequenceMAP, averageBaseSequenceIoU, 
         datasetMAP, datasetIoU, averageDatasetMAP, averageDatasetIoU);
 

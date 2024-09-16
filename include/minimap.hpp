@@ -90,7 +90,7 @@ std::vector<cv::Point2f> findCorners(const std::vector<cv::Point2f>& points);
  * 
  * @note The function modifies the y-coordinates of the rectangles in the input vector in-place.
  */
-void alignRects(std::vector<cv::RotatedRect>& rects, double threshold);
+void alignRects(std::vector<ParkingSpot>& rects, double threshold);
 
 /**
  * @brief Adds a minimap to a sequence of images by overlaying it in a defined region.

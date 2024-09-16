@@ -112,6 +112,11 @@ const int IMAGE_TYPE_3_CANALI = CV_8UC3;
 const int IMAGE_TYPE_1_CANALE = CV_8U;
 
 /**
+ * @brief Offset used for homography transformation.
+ */
+const int OFFSET_HOMOGRAPHY = -25;
+
+/**
  * @brief Shift used for adjusting the color when combining images.
  */
 const int SHIFT = 0;
