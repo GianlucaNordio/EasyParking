@@ -342,11 +342,11 @@ void printParkingSpot(const std::vector<std::vector<ParkingSpot>>& parkingSpot, 
             parkingSpot[i][j].rect.points(vertices);
             if(parkingSpot[i][j].occupied) {
                 for (int l = 0; l < 4; l++) {
-                    cv::line(output, vertices[l], vertices[(l + 1) % 4], BLUE, LINE_THICKNESS);
+                    cv::line(output, vertices[l], vertices[(l + 1) % 4], RED, LINE_THICKNESS);
                 }
             }else{
                 for (int l = 0; l < 4; l++) {
-                    cv::line(output, vertices[l], vertices[(l + 1) % 4], RED, LINE_THICKNESS);
+                    cv::line(output, vertices[l], vertices[(l + 1) % 4], BLUE, LINE_THICKNESS);
                 }
             }
 

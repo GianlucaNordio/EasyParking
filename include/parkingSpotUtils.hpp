@@ -53,4 +53,21 @@ double computeIntersectionAreaNormalized(const cv::RotatedRect& rect1, const cv:
  */
 std::vector<cv::RotatedRect>::const_iterator elementIterator(const std::vector<cv::RotatedRect>& rects, const cv::RotatedRect& elem);
 
+/**
+ * @brief Converts a cv::RotatedRect into a line segment represented by its two midpoints.
+ *
+ * This function takes a rotated rectangle (cv::RotatedRect) and calculates the midpoints
+ * of the two longest opposite edges. It then returns a line segment that connects these
+ * midpoints as a vector of four floating point values (x1, y1, x2, y2), where (x1, y1)
+ * is the midpoint of one edge and (x2, y2) is the midpoint of the opposite edge.
+ *
+ * The function identifies the two longest opposite edges of the rectangle and calculates
+ * their midpoints, which are used to define the line segment.
+ *
+ * @param rect The rotated rectangle (cv::RotatedRect) to convert into a line.
+ * 
+ * @return cv::Vec4f A vector of four floats representing the line segment: (x1, y1, x2, y2).
+ */
+cv::Vec4f convertRectToLine(const cv::RotatedRect& rect);
+
 #endif // PARKINGSPOTUTILS_HPP

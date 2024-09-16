@@ -89,3 +89,49 @@ std::vector<cv::RotatedRect>::const_iterator elementIterator(const std::vector<c
     }
     return rects.cend(); 
 }
+
+/**
+ * @brief Converts a cv::RotatedRect into a line segment represented by its two midpoints.
+ *
+ * This function takes a rotated rectangle (cv::RotatedRect) and calculates the midpoints
+ * of the two longest opposite edges. It then returns a line segment that connects these
+ * midpoints as a vector of four floating point values (x1, y1, x2, y2), where (x1, y1)
+ * is the midpoint of one edge and (x2, y2) is the midpoint of the opposite edge.
+ *
+ * The function identifies the two longest opposite edges of the rectangle and calculates
+ * their midpoints, which are used to define the line segment.
+ *
+ * @param rect The rotated rectangle (cv::RotatedRect) to convert into a line.
+ * 
+ * @return cv::Vec4f A vector of four floats representing the line segment: (x1, y1, x2, y2).
+ */
+cv::Vec4f convertRectToLine(const cv::RotatedRect& rect) {
+    cv::Point2f points[4];
+    rect.points(points);
+
+    // Calculate the length of the edges
+    double length1 = cv::norm(points[0] - points[1]);
+    double length2 = cv::norm(points[1] - points[2]);
+    double length3 = cv::norm(points[2] - points[3]);
+    double length4 = cv::norm(points[3] - points[0]);
+
+    // The longest two opposite edges define the line
+    double maxLength1 = std::max(length1, length3);
+    double maxLength2 = std::max(length2, length4);
+
+    // Midpoints of the longest edges
+    cv::Point2f midPoint1, midPoint2;
+
+    if (maxLength1 < maxLength2) {
+        // Use points 0->1 and 2->3 (longest edge pair)
+        midPoint1 = (points[0] + points[1]) * 0.5f;
+        midPoint2 = (points[2] + points[3]) * 0.5f;
+    } else {
+        // Use points 1->2 and 3->0 (other longest edge pair)
+        midPoint1 = (points[1] + points[2]) * 0.5f;
+        midPoint2 = (points[3] + points[0]) * 0.5f;
+    }
+
+    // Return the line segment as a vector of 4 floats (x1, y1, x2, y2)
+    return cv::Vec4f(midPoint1.x, midPoint1.y, midPoint2.x, midPoint2.y);
+}

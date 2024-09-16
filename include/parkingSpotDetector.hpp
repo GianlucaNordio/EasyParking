@@ -27,8 +27,6 @@ double getSegmentAngularCoefficient(const cv::Vec4f& segment);
 
 float get_segment_length(const cv::Vec4f& segment);
 
-cv::Vec4f convert_rect_to_line(const cv::RotatedRect& rect);
-
 cv::Point2f compute_perpendicular_direction(const cv::Vec4f& segment);
 
 cv::Point2f compute_midpoint(const cv::Vec4f& segment);

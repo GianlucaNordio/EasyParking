@@ -249,9 +249,7 @@ double calculateIoU(const ParkingSpot& parkingSpot1, const ParkingSpot& parkingS
 
     double areaRect1 = parkingSpot1.rect.size.area();
     double areaRect2 = parkingSpot2.rect.size.area();
-
-    std::cout << "Intersection Area: " << intersectionArea << " Area Rect 1: " << areaRect1 << " Area Rect 2: " << areaRect2 << std::endl;
-
+    
     double iou = intersectionArea / (areaRect1 + areaRect2 - intersectionArea);
 
     return iou;

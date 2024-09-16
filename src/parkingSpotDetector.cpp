@@ -84,14 +84,8 @@ std::vector<cv::RotatedRect> detectParkingSpotInImage(const cv::Mat& image) {
     double avg_pos_width = compute_avg(pos_lengths);
     double avg_neg_width = compute_avg(neg_lengths);
 
-    // Display the result
-    //cv::imshow("Detected Line Segments", intermediate_results);
-    //cv::waitKey(0);
-
     preprocessed = preprocess_find_parking_lines(image);
-    // cv::imshow("TM Input", preprocessed);
-    //cv::waitKey(0);
-
+ 
     // offsets from avg values
     std::vector<int> angle_offsets = {-6,-5,-4,-3,-2,-1,0,1,2,3,4,5,6};
     std::vector<float> length_scales = {1.25};
@@ -265,21 +259,18 @@ std::vector<cv::RotatedRect> detectParkingSpotInImage(const cv::Mat& image) {
     std::vector<cv::RotatedRect> merged_pos_rects = merge_overlapping_rects(list_boxes);
     std::vector<cv::RotatedRect> merged_neg_rects = merge_overlapping_rects(list_boxes2);
 
-
-    // std::vector<cv::RotatedRect> merged_pos_rects = merge_overlapping_rects(list_boxes);
-    // std::vector<cv::RotatedRect> merged_neg_rects = merge_overlapping_rects(list_boxes2);
     std::vector<cv::Vec4f> segments_pos;
     std::vector<cv::Vec4f> segments_neg;
 
     // Loop through all bounding boxes
     for (const cv::RotatedRect& rect : merged_pos_rects) {
-        cv::Vec4f line_segment = convert_rect_to_line(rect);
+        cv::Vec4f line_segment = convertRectToLine(rect);
         segments_pos.push_back(line_segment);
     }
 
     // Loop through all bounding boxes
     for (const cv::RotatedRect& rect : merged_neg_rects) {
-        cv::Vec4f line_segment = convert_rect_to_line(rect);
+        cv::Vec4f line_segment = convertRectToLine(rect);
         segments_neg.push_back(line_segment);
     }
 
@@ -305,8 +296,6 @@ std::vector<cv::RotatedRect> detectParkingSpotInImage(const cv::Mat& image) {
   // Thresholds
     float angle_threshold = CV_PI / 180.0f * 3;  // 10 degrees
     float length_threshold = 3;  // 30 pixels
-    // cv::imshow("ppp", image);
-    // cv::waitKey(0);
 
 
     // Process the segments
@@ -972,36 +961,4 @@ cv::Mat preprocess_find_parking_lines(const cv::Mat& src) {
     cv::dilate(grad_magn_proc,grad_magn_proc,element,cv::Point(-1,-1),1);
     cv::erode(grad_magn_proc,grad_magn_proc,element,cv::Point(-1,-1),1);
     return grad_magn_proc;
-}
-
-// Function to convert a narrow RotatedRect into a line segment
-cv::Vec4f convert_rect_to_line(const cv::RotatedRect& rect) {
-    cv::Point2f points[4];
-    rect.points(points);  // Get the four corner points of the RotatedRect
-
-    // Calculate the length of the edges
-    float length1 = cv::norm(points[0] - points[1]);
-    float length2 = cv::norm(points[1] - points[2]);
-    float length3 = cv::norm(points[2] - points[3]);
-    float length4 = cv::norm(points[3] - points[0]);
-
-    // The longest two opposite edges define the line
-    float max_length1 = std::max(length1, length3);
-    float max_length2 = std::max(length2, length4);
-
-    // Midpoints of the longest edges
-    cv::Point2f midpoint1, midpoint2;
-
-    if (max_length1 < max_length2) {
-        // Use points 0->1 and 2->3 (longest edge pair)
-        midpoint1 = (points[0] + points[1]) * 0.5f;
-        midpoint2 = (points[2] + points[3]) * 0.5f;
-    } else {
-        // Use points 1->2 and 3->0 (other longest edge pair)
-        midpoint1 = (points[1] + points[2]) * 0.5f;
-        midpoint2 = (points[3] + points[0]) * 0.5f;
-    }
-
-    // Return the line segment as a vector of 4 floats (x1, y1, x2, y2)
-    return cv::Vec4f(midpoint1.x, midpoint1.y, midpoint2.x, midpoint2.y);
 }
