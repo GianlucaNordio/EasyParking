@@ -1,9 +1,4 @@
-#include <iostream>
-#include <fstream>
-#include <opencv2/highgui.hpp>
-#include <opencv2/imgproc.hpp> 
-
-#include "parkingSpot.hpp"
+#include "parser.hpp"
 
 /**
  * Parses an XML file to extract information about parking spots and stores them in the provided vector.

@@ -2,39 +2,14 @@
 #define UTILS_HPP
 
 #include <opencv2/highgui.hpp>
+#include <opencv2/imgproc.hpp> 
+#include <iostream>
+#include <filesystem>
+#include <stdexcept>
 
 #include "parkingSpot.hpp"
 #include "parser.hpp"
-
-/**
- * The name of the directory containing segmentation masks.
- */
-const std::string MASKS_FOLDER = "masks";
-
-/**
- * The name of the directory containing bounding box annotations for ground truth.
- */
-const std::string BOUNDING_BOX_FOLDER = "bounding_boxes";
-
-/**
- * The name of the directory containing the parking images.
- */
-const std::string FRAMES_FOLDER = "frames";
-
-/**
- * The prefix used for sequence directories.
- */
-const std::string SEQUENCE = "sequence";
-
-/**
- * The directory separator character used in paths.
- */
-const std::string SLASH = "/";
-
-/**
- * The index of the base sequence.
- */
-const int BASE_SEQUENCE_INDEX = 0;
+#include "constants.hpp"
 
 /**
  * Creates a single image by concatenating a sequence of input images in a grid format.

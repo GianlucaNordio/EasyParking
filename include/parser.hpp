@@ -1,7 +1,10 @@
 #ifndef PARSER_HPP
 #define PARSER_HPP
 
-#include <opencv2/opencv.hpp>
+#include <iostream>
+#include <fstream>
+
+#include "parkingSpot.hpp"
 
 /**
  * Parses an XML file to extract information about parking spots and stores them in the provided vector.

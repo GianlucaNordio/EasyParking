@@ -7,8 +7,7 @@
 #include "parkingSpot.hpp"
 #include "classification.hpp"
 #include "utils.hpp"
-
-const float IOU_THRESHOLD = 0.5;
+#include "constants.hpp"
 
 /**
  * Computes performance metrics for a set of parking spot detection results.

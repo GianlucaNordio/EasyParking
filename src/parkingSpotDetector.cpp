@@ -1,26 +1,7 @@
 #include "parkingSpotDetector.hpp"
 
-/*
-TODO: 
-Per ogni linea di segments_pos andare avanti (o indietro) finchè non si tocca una linea di segment_neg
-Se poi le cose si overlappano, si tolgono le intersezioni o si uniscono
-check if, by extending them up to a certain thold, they intersect
-for other lines: if there is another segment in between, split bounding box
-
-if red ones are contained in green ones, then delete red one
-else do something with intersection with green ones maybe
-
-
-blues need to extend more like already done before
-if a green overlaps with a red, it means that it should be more to the left, or where most of itself is
-filter reds by area
-filter reds if they are surrounded by greens
-*/
-
-// Function to detect parking spots in the images
 void detectParkingSpots(const std::vector<cv::Mat>& images, std::vector<ParkingSpot>& parkingSpots) {
     
-    // std::vector<cv::RotatedRect> parkingSpotsPerImage;
     std::vector<cv::RotatedRect> all_rects;
     cv::Mat final_result = images[0].clone();
 
@@ -32,7 +13,7 @@ void detectParkingSpots(const std::vector<cv::Mat>& images, std::vector<ParkingS
     }
 
     std::vector<cv::RotatedRect> elements_to_remove;
-    nms(all_rects, elements_to_remove, 0.3, true);
+    nonMaximumSuppression(all_rects, elements_to_remove, 0.3, true);
 
     // Remove the elements determined by NMS filtering
     for (cv::RotatedRect element : elements_to_remove) {
@@ -78,7 +59,7 @@ std::vector<cv::RotatedRect> detectParkingSpotInImage(const cv::Mat& image) {
 
     for (const cv::Vec4f& segment : filtered_segments) {
         // Calculate the angle with respect to the x-axis
-        double angle = get_segment_angular_coefficient(segment);
+        double angle = getSegmentAngularCoefficient(segment);
 
         // Calculate the length of the segment (line width)
         double length = get_segment_length(segment);
@@ -339,9 +320,9 @@ std::vector<cv::RotatedRect> detectParkingSpotInImage(const cv::Mat& image) {
 
     // Apply NMS filtering
     std::vector<cv::RotatedRect> elementsToRemove;
-    nms(rotated_rects, elementsToRemove,0.3,false);
+    nonMaximumSuppression(rotated_rects, elementsToRemove,0.3,false);
     std::vector<cv::RotatedRect> elementsToRemove2;
-    nms(rotated_rects2, elementsToRemove2, 0.15,false);
+    nonMaximumSuppression(rotated_rects2, elementsToRemove2, 0.15,false);
 
     // Remove the elements determined by NMS filtering
     for (cv::RotatedRect element : elementsToRemove) {
@@ -406,7 +387,7 @@ std::vector<cv::RotatedRect> detectParkingSpotInImage(const cv::Mat& image) {
 
     // re-do nms after overlaps are resolved
     std::vector<cv::RotatedRect> elementsToRemove3;
-    nms(remove_big_small_pos, elementsToRemove3, 0.5,false);
+    nonMaximumSuppression(remove_big_small_pos, elementsToRemove3, 0.5,false);
 
     // Remove the elements determined by NMS filtering
     for (cv::RotatedRect element : elementsToRemove3) {
@@ -602,11 +583,11 @@ double compute_avg(std::vector<double>& data) {
     return std::reduce(data.begin(), data.end()) / count;
 }
 
-float get_segment_angular_coefficient(const cv::Vec4f& segment) {
-    float x1 = segment[0];
-    float y1 = segment[1];
-    float x2 = segment[2];
-    float y2 = segment[3];
+double getSegmentAngularCoefficient(const cv::Vec4f& segment) {
+    double x1 = segment[0];
+    double y1 = segment[1];
+    double x2 = segment[2];
+    double y2 = segment[3];
 
     return std::atan((y2 - y1) / (x2 - x1))*180/CV_PI;
 }
@@ -745,7 +726,7 @@ cv::RotatedRect build_rotatedrect_from_movement(const cv::Vec4f& segment, const 
     // Normalize the direction vector
     direction /= length;
 
-    double slope = tan(get_segment_angular_coefficient(segment)*CV_PI/180);
+    double slope = tan(getSegmentAngularCoefficient(segment)*CV_PI/180);
     double intercept =  segment[1] - slope * segment[0];
 
     cv::Point2f start;
@@ -769,9 +750,6 @@ cv::RotatedRect build_rotatedrect_from_movement(const cv::Vec4f& segment, const 
     float min_distance = std::numeric_limits<float>::max();
     bool found_intersection = false;
     cv::Vec4f closest_segment;
-    // cv::circle(image,start,5,cv::Scalar(0,0,255));
-    // cv::line(image, start, perp_end, cv::Scalar(0, 0, 255), 2, cv::LINE_AA); 
-    // cv::line(image, start, perp_end, cv::Scalar(0, 0, 0), 2, cv::LINE_AA); 
 
     // Check intersection of the perpendicular segment with every other segment
     for (const auto& other_segment : segments) {
@@ -788,8 +766,7 @@ cv::RotatedRect build_rotatedrect_from_movement(const cv::Vec4f& segment, const 
                 closest_intersection = intersection;
                 found_intersection = true;
                 closest_segment = other_segment;
-                // cv::imshow("projections", image);
-                // cv::waitKey(0);
+                
             }
         }
     }
@@ -810,20 +787,15 @@ cv::RotatedRect build_rotatedrect_from_movement(const cv::Vec4f& segment, const 
             } 
         else {
             cv::Point2f destination_left((endpoint1.y-intercept)/slope,endpoint1.y);
-            // or choose the other
             cv::Point2f destination_up = destination_left + cv::Point2f(perpendicular_direction[0]*min_distance, perpendicular_direction[1] * min_distance);
-            //bounding_box = cv::RotatedRect(right_endpoint,left_endpoint,left_endpoint + cv::Point2f(perpendicular_direction[0] *min_distance, perpendicular_direction[1] *min_distance));
             bounding_box = cv::RotatedRect(right_endpoint,destination_left,destination_up);
         }
-        //if(bounding_box.size.aspectRatio() > 1.5|| bounding_box.size.aspectRatio() < 1/1.5) {
-        //    return shrink_rotated_rect(bounding_box, 0.8);
-        //}
+        
         cv::Point2f vertices[4];
         bounding_box.points(vertices);
-        for (int i = 0; i < 4; i++) {
-            // cv::line(image, vertices[i], vertices[(i+1) % 4], cv::Scalar(0, 0, 255), 2);
-        }
-     
+
+        bounding_box.center = cv::Point2f(bounding_box.center.x+15,bounding_box.center.y-15);
+
         return bounding_box;
     }
 
@@ -1139,11 +1111,28 @@ std::vector<cv::RotatedRect>::const_iterator elementIterator(const std::vector<c
     return vec.cend(); // Restituiamo end() se l'elemento non è stato trovato
 }
 
-void nms(std::vector<cv::RotatedRect> &vec, std::vector<cv::RotatedRect> &elementsToRemove, double threshold, bool keep_smallest) {
-    for (const auto& rect1 : vec) {
-        for (const auto& rect2 : vec) {
+/**
+ * @brief Performs Non-Maximum Suppression (NMS) on a set of rotated rectangles based on their overlap and size.
+ * 
+ * This function processes a list of rotated rectangles and removes redundant overlapping rectangles 
+ * based on a specified intersection area threshold. The decision on which rectangle to remove is 
+ * made based on their area size, and can be configured to keep either the smallest or largest rectangle.
+ *
+ * @param rects A vector of cv::RotatedRect objects representing the bounding boxes to process.
+ * @param elementsToRemove A vector of cv::RotatedRect objects that will store the rectangles marked for removal.
+ * @param threshold A double representing the normalized intersection area threshold above which two rectangles 
+ * are considered overlapping.
+ * @param keepSmallest A boolean flag that indicates whether to keep the smallest rectangle (true) 
+ * or the largest rectangle (false) when two rectangles overlap.
+ *
+ * @note The function assumes that the rects vector contains unique rectangles. 
+ * Rectangles whose centers are exactly the same will not be compared.
+ */
+void nonMaximumSuppression(std::vector<cv::RotatedRect> &rects, std::vector<cv::RotatedRect> &elementsToRemove, double threshold, bool keepSmallest) {
+    for (const cv::RotatedRect& rect1 : rects) {
+        for (const cv::RotatedRect& rect2 : rects) {
             if (!(rect1.center.x == rect2.center.x && rect1.center.y == rect2.center.y) && (computeIntersectionAreaNormalized(rect1, rect2) > threshold)) {
-                if (keep_smallest ? rect1.size.area() < rect2.size.area() : rect1.size.area() > rect2.size.area()){
+                if (keepSmallest ? rect1.size.area() < rect2.size.area() : rect1.size.area() > rect2.size.area()){
                     elementsToRemove.push_back(rect2);
                 } else {
                     elementsToRemove.push_back(rect1);

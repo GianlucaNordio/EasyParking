@@ -1,9 +1,5 @@
-#include <iostream>
-#include <opencv2/highgui.hpp>
-#include <opencv2/imgproc.hpp>
-
 #include "classification.hpp"
-#include "parkingSpot.hpp"
+
 
 /**
  * Classifies a sequence of images by processing segmentation masks and stores the classified results in the output vector.

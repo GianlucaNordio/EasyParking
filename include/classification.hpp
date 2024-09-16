@@ -1,9 +1,13 @@
 #ifndef CLASSIFICATION_HPP
 #define CLASSIFICATION_HPP
 
+#include <iostream>
 #include <opencv2/opencv.hpp>
+#include <opencv2/highgui.hpp>
+#include <opencv2/imgproc.hpp>
 
 #include "parkingSpot.hpp"
+#include "constants.hpp"
 
 /**
  * Enum representing different labels for components in an image.
@@ -20,12 +24,6 @@ enum labelId
     /** Label for a car that is fully or mostly outside a parking spot. */
     carOutsideParkingSpot
 };
-
-/**
- * A constant threshold used to determine if car is inside a parking spot.
- * If more than 50% of the component is inside the parking spot, it is classified as 'inside'.
- */
-const float PERCENTAGE_INSIDE_THRESHOLD = 0.5;
 
 /**
  * Classifies a sequence of parking spots by processing segmentation masks and 

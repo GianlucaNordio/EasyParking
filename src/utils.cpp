@@ -1,10 +1,5 @@
-#include <opencv2/highgui.hpp>
-#include <opencv2/imgproc.hpp> 
-#include <iostream>
-#include <filesystem>
-#include <stdexcept>
-
 #include "utils.hpp"
+
 /**
  * Creates a single image by concatenating a sequence of input images in a grid format.
  * The number of images per row is specified by the `imagesPerLine` parameter.

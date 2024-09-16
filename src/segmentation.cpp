@@ -1,9 +1,5 @@
 #include "segmentation.hpp"
 
-#include <iostream>
-#include <opencv2/highgui.hpp>
-#include <opencv2/imgproc.hpp>
-
 /**
  * Constructor for the Segmentation class.
  * Initializes a background subtractor (MOG2) with a specified history length, variance threshold, and shade detection setting.

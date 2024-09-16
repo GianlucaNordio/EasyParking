@@ -1,7 +1,11 @@
 #ifndef SEGMENTATION_HPP
 #define SEGMENTATION_HPP
 
+#include <iostream>
 #include <opencv2/opencv.hpp>
+#include <opencv2/highgui.hpp>
+#include <opencv2/imgproc.hpp>
+
 
 #include "utils.hpp"
 

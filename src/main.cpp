@@ -12,72 +12,7 @@
 #include "classification.hpp"
 #include "performanceMeasurement.hpp"
 #include "minimap.hpp"
-
-
-/**
- * @brief Separator used for dividing sections in the console output (type 1).
- */
-const char SEPARATOR_TYPE_1 = '-';
-
-/**
- * @brief Separator used for dividing sections in the console output (type 2).
- */
-const char SEPARATOR_TYPE_2 = '=';
-
-/**
- * @brief Path to the dataset containing the parking lot images and sequences.
- */
-const std::string DATASET_PATH = "../dataset";
-
-/**
- * @brief Color white used for initializing empty images and minimaps.
- */
-const cv::Scalar WHITE = cv::Scalar(255, 255, 255);
-
-/**
- * @brief Weight for classified images in the blend between original and classified images.
- */
-const double CLASSIFIED_IMAGE_WEIGHT = 0.4;
-
-/**
- * @brief Weight for original images in the blend between original and classified images.
- */
-const double ORIGINAL_IMAGE_WEIGHT = 0.6;
-
-/**
- * @brief Type of image (3-channel 8-bit color image).
- */
-const int IMAGE_TYPE = CV_8UC3;
-
-/**
- * @brief Shift used for adjusting the color when combining images.
- */
-const int SHIFT = 0;
-
-/**
- * @brief Number of images to display per row when visualizing results.
- */
-const int NUMBER_OF_IMAGES_FOR_ROW = 3;
-
-/**
- * @brief Number of image sequences in the dataset.
- */
-const int NUMBER_SEQUENCES = 5;
-
-/**
- * @brief Length of the separation line used for console output formatting.
- */
-const int SEPARATION_LINE_LENGTH = 36;
-
-/**
- * @brief Number of rows for the minimap image.
- */
-const int MINIMAP_ROWS = 300;
-
-/**
- * @brief Number of columns for the minimap image.
- */
-const int MINIMAP_COLS = 500;
+#include "constants.hpp"
 
 /**
  * @brief Main function to process parking spot detection, segmentation, classification, and performance evaluation on a base sequence 
