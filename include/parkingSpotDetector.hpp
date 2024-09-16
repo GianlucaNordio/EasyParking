@@ -20,10 +20,6 @@ std::vector<cv::RotatedRect> detectParkingSpotInImage(const cv::Mat& image);
 
 double compute_avg(std::vector<double>& data);
 
-double getSegmentAngularCoefficient(const cv::Vec4f& segment);
-
-float get_segment_length(const cv::Vec4f& segment);
-
 std::vector<cv::Vec4f> merge_parallel_segments(std::vector<cv::Vec4f>& segments, float angle_threshold, float distance_threshold, cv::Mat image);
 cv::Vec4f merge_segments(const cv::Vec4f& seg1, const cv::Vec4f& seg2);
 

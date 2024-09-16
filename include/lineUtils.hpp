@@ -99,7 +99,32 @@ cv::Point2f computeMidpoint(const cv::Vec4f& segment);
  * @param segments A vector of line segments, where each segment is represented as cv::Vec4f (x1, y1, x2, y2).
  * @param imageSize The size of the image (width and height), used to determine the top-right corner.
  * @return A vector of filtered segments that are not near the top-right corner of the image.
+
  */
 std::vector<cv::Vec4f> filterSegmentsNearTopRight(const std::vector<cv::Vec4f>& segments, const cv::Size& imageSize);
+
+/**
+ * @brief Calculates the angular coefficient (angle) of a line segment in degrees.
+ * 
+ * This function computes the angle of a line segment defined by two endpoints, expressed in degrees. 
+ * The angle is calculated using the arctangent of the ratio of the vertical difference to the horizontal 
+ * difference between the endpoints. The result is converted from radians to degrees.
+ * 
+ * @param segment A `cv::Vec4f` representing the line segment, with coordinates (x1, y1) and (x2, y2).
+ * @return The angle of the line segment in degrees, relative to the x-axis.
+ */
+double getSegmentAngle(const cv::Vec4f& segment);
+
+/**
+ * @brief Calculates the length of a line segment.
+ * 
+ * This function computes the length of a line segment defined by two endpoints. The length is 
+ * determined using the Euclidean distance formula, which calculates the distance between the two 
+ * endpoints of the segment.
+ * 
+ * @param segment A `cv::Vec4f` representing the line segment, with coordinates (x1, y1) and (x2, y2).
+ * @return The length of the line segment.
+ */
+double getSegmentLength(const cv::Vec4f& segment);
 
 #endif // LINEUTILS_HPP

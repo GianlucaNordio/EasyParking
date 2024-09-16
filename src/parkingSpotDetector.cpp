@@ -44,7 +44,7 @@ std::vector<cv::RotatedRect> detectParkingSpotInImage(const cv::Mat& image) {
 
 	//Reject short lines
     for(int i = 0; i<line_segm.size(); i++) {                                                                                                                         //150
-        if(get_segment_length(line_segm[i]) > 35) {
+        if(getSegmentLength(line_segm[i]) > 35) {
             segments.push_back(line_segm[i]);
         }
     }
@@ -58,10 +58,10 @@ std::vector<cv::RotatedRect> detectParkingSpotInImage(const cv::Mat& image) {
 
     for (const cv::Vec4f& segment : filtered_segments) {
         // Calculate the angle with respect to the x-axis
-        double angle = getSegmentAngularCoefficient(segment);
+        double angle = getSegmentAngle(segment);
 
         // Calculate the length of the segment (line width)
-        double length = get_segment_length(segment);
+        double length = getSegmentLength(segment);
 
         // Categorize and store the angle and length
         if (angle > 0) {
@@ -284,10 +284,10 @@ std::vector<cv::RotatedRect> detectParkingSpotInImage(const cv::Mat& image) {
 
     std::vector<cv::Vec4f> trimmed_segments_neg;
     for(cv::Vec4f& line_neg: filtered_segments_neg) {
-        double length = get_segment_length(line_neg);
+        double length = getSegmentLength(line_neg);
         for(cv::Vec4f line_pos: filtered_segments_pos) {
             trim_if_intersect(line_neg,line_pos);
-            double length_trimmed = get_segment_length(line_neg);
+            double length_trimmed = getSegmentLength(line_neg);
         }        
         // cv::line(image, cv::Point(line_neg[0], line_neg[1]), cv::Point(line_neg[2], line_neg[3]), 
         // cv::Scalar(255, 0, 0), 2, cv::LINE_AA); 
@@ -480,24 +480,6 @@ double compute_avg(std::vector<double>& data) {
     return std::reduce(data.begin(), data.end()) / count;
 }
 
-double getSegmentAngularCoefficient(const cv::Vec4f& segment) {
-    double x1 = segment[0];
-    double y1 = segment[1];
-    double x2 = segment[2];
-    double y2 = segment[3];
-
-    return std::atan((y2 - y1) / (x2 - x1))*180/CV_PI;
-}
-
-float get_segment_length(const cv::Vec4f& segment) {
-    float x1 = segment[0];
-    float y1 = segment[1];
-    float x2 = segment[2];
-    float y2 = segment[3];
-
-    return std::sqrt((x2 - x1) * (x2 - x1) + (y2 - y1) * (y2 - y1));
-}
-
 // Function to shrink a rotated rect
 cv::RotatedRect shrink_rotated_rect(const cv::RotatedRect& rect, float shorten_percentage) {
     // Get the current size of the rectangle
@@ -527,7 +509,7 @@ cv::Vec4f extend_segment(const cv::Vec4f& seg, float extension_ratio) {
 
     // Compute direction vector of the segment
     cv::Vec2f direction = cv::Vec2f(q1 - p1);
-    float length = get_segment_length(seg);
+    float length = getSegmentLength(seg);
     
     // Normalize the direction vector to unit length
     cv::Vec2f direction_normalized = direction / length;
@@ -604,11 +586,11 @@ cv::RotatedRect build_rotatedrect_from_movement(const cv::Vec4f& segment, const 
     // Compute the direction vector of the original segment
     cv::Vec2f direction = cv::Vec2f(right_endpoint - left_endpoint);
     float length = std::sqrt(direction[0] * direction[0] + direction[1] * direction[1]);
-    length = get_segment_length(segment);
+    length = getSegmentLength(segment);
     // Normalize the direction vector
     direction /= length;
 
-    double slope = tan(getSegmentAngularCoefficient(segment)*CV_PI/180);
+    double slope = tan(getSegmentAngle(segment)*CV_PI/180);
     double intercept =  segment[1] - slope * segment[0];
 
     cv::Point2f start;
@@ -658,7 +640,7 @@ cv::RotatedRect build_rotatedrect_from_movement(const cv::Vec4f& segment, const 
         cv::Point2f endpoint1(closest_segment[0], closest_segment[1]);
         cv::Point2f endpoint2(closest_segment[2], closest_segment[3]);
 
-        double length_other = get_segment_length(closest_segment);
+        double length_other = getSegmentLength(closest_segment);
         cv::Point2f destination_right(endpoint2.x, endpoint2.x*slope+intercept);
 
         cv::Point2f destination_bottom = destination_right + cv::Point2f(perpendicular_direction[0] * min_distance, perpendicular_direction[1] * min_distance);

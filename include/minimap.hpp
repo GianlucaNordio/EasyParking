@@ -5,7 +5,7 @@
 #include <vector>
 
 #include "parkingSpot.hpp"
-#include "parkingSpotDetector.hpp"
+#include "lineUtils.hpp"
 #include "constants.hpp"
 
 /**

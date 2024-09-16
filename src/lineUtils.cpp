@@ -200,3 +200,41 @@ std::vector<cv::Vec4f> filterSegmentsNearTopRight(const std::vector<cv::Vec4f>& 
 
     return filteredSegments;
 }
+
+/**
+ * @brief Calculates the angular coefficient (angle) of a line segment in degrees.
+ * 
+ * This function computes the angle of a line segment defined by two endpoints, expressed in degrees. 
+ * The angle is calculated using the arctangent of the ratio of the vertical difference to the horizontal 
+ * difference between the endpoints. The result is converted from radians to degrees.
+ * 
+ * @param segment A `cv::Vec4f` representing the line segment, with coordinates (x1, y1) and (x2, y2).
+ * @return The angle of the line segment in degrees, relative to the x-axis.
+ */
+double getSegmentAngle(const cv::Vec4f& segment) {
+    double x1 = segment[0];
+    double y1 = segment[1];
+    double x2 = segment[2];
+    double y2 = segment[3];
+
+    return std::atan((y2 - y1) / (x2 - x1))*180/CV_PI;
+}
+
+/**
+ * @brief Calculates the length of a line segment.
+ * 
+ * This function computes the length of a line segment defined by two endpoints. The length is 
+ * determined using the Euclidean distance formula, which calculates the distance between the two 
+ * endpoints of the segment.
+ * 
+ * @param segment A `cv::Vec4f` representing the line segment, with coordinates (x1, y1) and (x2, y2).
+ * @return The length of the line segment.
+ */
+double getSegmentLength(const cv::Vec4f& segment) {
+    double x1 = segment[0];
+    double y1 = segment[1];
+    double x2 = segment[2];
+    double y2 = segment[3];
+
+    return std::sqrt((x2 - x1) * (x2 - x1) + (y2 - y1) * (y2 - y1));
+}
