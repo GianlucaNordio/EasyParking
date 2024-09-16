@@ -278,9 +278,9 @@ std::vector<cv::RotatedRect> detectParkingSpotInImage(const cv::Mat& image) {
     std::vector<cv::Vec4f> no_top_right_pos = filter_segments_near_top_right(segments_pos,cv::Size(image.cols,image.rows));
 
     distance_threshold = avg_pos_width*0.4;
-    std::vector<cv::Vec4f> filtered_segments_neg = filter_close_segments(no_top_right_neg, distance_threshold);
+    std::vector<cv::Vec4f> filtered_segments_neg = filterCloseSegments(no_top_right_neg, distance_threshold);
     distance_threshold = avg_pos_width*0.4;
-    std::vector<cv::Vec4f> filtered_segments_pos = filter_close_segments(no_top_right_pos, distance_threshold);
+    std::vector<cv::Vec4f> filtered_segments_pos = filterCloseSegments(no_top_right_pos, distance_threshold);
 
     std::vector<cv::Vec4f> trimmed_segments_neg;
     for(cv::Vec4f& line_neg: filtered_segments_neg) {
@@ -701,7 +701,7 @@ cv::RotatedRect build_rotatedrect_from_movement(const cv::Vec4f& segment, const 
     // Rightmost endpoint of the original segment
     cv::Point2f right_endpoint(segment[2], segment[3]);
     cv::Point2f left_endpoint(segment[0], segment[1]);
-    cv::Point2f midpoint = compute_midpoint(segment);
+    cv::Point2f midpoint = computeMidpoint(segment);
 
     // Compute the direction vector of the original segment
     cv::Vec2f direction = cv::Vec2f(right_endpoint - left_endpoint);
@@ -744,7 +744,6 @@ cv::RotatedRect build_rotatedrect_from_movement(const cv::Vec4f& segment, const 
 
             float dist = cv::norm(start-intersection);
             // last conditions to ensure that close segments of another parking slot line does not interfere
-            // 
             if (dist > 22.5 && dist < min_distance) { // last conditions to ensure that close segments of another parking slot line does not interfere) { 
                 min_distance = dist;
                 closest_intersection = intersection;
@@ -849,7 +848,7 @@ std::vector<cv::Vec4f> filter_segments_near_top_right(const std::vector<cv::Vec4
     for (const auto& segment : segments) {
         cv::Point2f p1(segment[0],segment[1]);
         cv::Point2f p2(segment[2],segment[3]);
-        cv::Point2f midpoint = compute_midpoint(segment);
+        cv::Point2f midpoint = computeMidpoint(segment);
         double result1 = cv::pointPolygonTest(hull, p1, false);  // False = no distance calculation needed
         double result2 = cv::pointPolygonTest(hull, p2, false);  // False = no distance calculation needed
         double result3 = cv::pointPolygonTest(hull,midpoint,false);
@@ -862,45 +861,9 @@ std::vector<cv::Vec4f> filter_segments_near_top_right(const std::vector<cv::Vec4
     return filtered_segments;
 }
 
-// Helper function to compute the midpoint of a line segment
-cv::Point2f compute_midpoint(const cv::Vec4f& segment) {
-    return cv::Point2f((segment[0] + segment[2]) / 2.0f, (segment[1] + segment[3]) / 2.0f);
-}
-
 // Helper function to compute the perpendicular direction of a segment
 cv::Point2f compute_perpendicular_direction(const cv::Vec4f& segment) {
     float dx = segment[2] - segment[0];
     float dy = segment[3] - segment[1];
     return cv::Point2f(-dy, dx);
-}
-
-// Function to calculate the distance between the midpoints of two segments
-float compute_distance_between_segments(const cv::Vec4f& seg1, const cv::Vec4f& seg2) {
-    cv::Point2f mid1 = compute_midpoint(seg1);
-    cv::Point2f mid2 = compute_midpoint(seg2);
-    return cv::norm(mid1 - mid2);  // Euclidean distance between midpoints
-}
-
-// Function to filter segments based on a distance threshold
-std::vector<cv::Vec4f> filter_close_segments(const std::vector<cv::Vec4f>& segments, float distance_threshold) {
-    std::vector<cv::Vec4f> filtered_segments;
-    std::vector<bool> discarded(segments.size(), false);  // To mark discarded segments
-
-    for (size_t i = 0; i < segments.size(); ++i) {
-        if (discarded[i]) continue;  // Skip already discarded segments
-
-        const cv::Vec4f& current_segment = segments[i];
-        filtered_segments.push_back(current_segment);  // Add current segment to result
-
-        // Compare with remaining segments and discard close ones
-        for (size_t j = i + 1; j < segments.size(); ++j) {
-            if (!discarded[j]) {
-                float distance = compute_distance_between_segments(current_segment, segments[j]);
-                if (distance < distance_threshold) {
-                    discarded[j] = true;  // Mark this segment as discarded
-                }
-            }
-        }
-    }
-    return filtered_segments;
 }
