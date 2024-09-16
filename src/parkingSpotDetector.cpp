@@ -18,7 +18,7 @@ filter reds if they are surrounded by greens
 */
 
 // Function to detect parking spots in the images
-void detectParkingSpots(const std::vector<cv::Mat>& images, std::vector<ParkingSpot>& parkingSpots) {
+void detectParkingSpots(const std::vector<cv::Mat>& images, std::vector<ParkingSpot>& parkingSpots, std::vector<ParkingSpot>& parsed) {
     
     // std::vector<cv::RotatedRect> parkingSpotsPerImage;
     std::vector<cv::RotatedRect> all_rects;
@@ -53,6 +53,15 @@ void detectParkingSpots(const std::vector<cv::Mat>& images, std::vector<ParkingS
                 cv::line(final_result, vertices[i], vertices[(i+1) % 4], cv::Scalar(0, 255, 0), 2);
             }
         }
+    }
+
+    for (ParkingSpot& prsd : parsed) {
+            cv::Point2f vertices[4];
+            prsd.rect.points(vertices);
+            for (int i = 0; i < 4; i++) {
+                all_vertices.push_back(vertices[i]);
+                cv::line(final_result, vertices[i], vertices[(i+1) % 4], cv::Scalar(0, 0, 255), 2);
+            }   
     }
 
     cv::imshow("Final detection", final_result);
@@ -1056,7 +1065,8 @@ cv::RotatedRect build_rotatedrect_from_movement(const cv::Vec4f& segment, const 
             // cv::line(image, vertices[i], vertices[(i+1) % 4], cv::Scalar(0, 0, 255), 2);
         }
         // cv::imshow("projections", image);
-        // cv::waitKey(0);        
+        // cv::waitKey(0);
+        bounding_box.center = cv::Point2f(bounding_box.center.x+15,bounding_box.center.y-15);
         return bounding_box;
     }
 

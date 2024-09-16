@@ -9,8 +9,7 @@
 #include <numeric>
 #include <math.h>
 
-void detectParkingSpots(const std::vector<cv::Mat>& images, std::vector<ParkingSpot>& parkingSpots);
-
+void detectParkingSpots(const std::vector<cv::Mat>& images, std::vector<ParkingSpot>& parkingSpots, std::vector<ParkingSpot>& parsed);
 std::vector<cv::RotatedRect> detectParkingSpotInImage(const cv::Mat& image);
 
 cv::Mat preprocess_find_white_lines(const cv::Mat& src);

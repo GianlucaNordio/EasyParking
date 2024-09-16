@@ -2,6 +2,7 @@
 #define UTILS_HPP
 
 #include <opencv2/highgui.hpp>
+#include "parkingSpot.hpp"
 
 /**
  * @brief Produce a single image starting from a vector containing one or more images
@@ -51,6 +52,6 @@ void loadSequencesSegMasks(const std::string& datasetPath, int numSequences, std
  * @param dstImages vector of BGR images produced by perorming the mapping on the input masks
  */
 void convertGreyMaskToBGR(const std::vector<std::vector<cv::Mat>> &srcImages, std::vector<std::vector<cv::Mat>> &dstImages);
-
+std::vector<ParkingSpot> parseXML(const std::string& filename);
 
 #endif // UTILS_HPP

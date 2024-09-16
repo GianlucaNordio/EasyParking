@@ -27,9 +27,10 @@ int main() {
     cv::waitKey();
 
     // Call the function to detect parking spots
-    
+
+    std::vector<ParkingSpot> parsed = parseXML("../dataset/sequence0/bounding_boxes/2013-02-24_10_05_04.xml");
     std::vector<ParkingSpot> parkingSpot;
-    detectParkingSpots(images, parkingSpot); 
+    detectParkingSpots(images, parkingSpot, parsed); 
     
 
 
