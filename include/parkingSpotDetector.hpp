@@ -27,13 +27,6 @@ float get_segment_length(const cv::Vec4f& segment);
 std::vector<cv::Vec4f> merge_parallel_segments(std::vector<cv::Vec4f>& segments, float angle_threshold, float distance_threshold, cv::Mat image);
 cv::Vec4f merge_segments(const cv::Vec4f& seg1, const cv::Vec4f& seg2);
 
-std::vector<cv::RotatedRect> merge_overlapping_rects(std::vector<cv::RotatedRect>& rects);
-
-// Helper function to check if two rotated rectangles are aligned (same angle within a tolerance)
-bool are_rects_aligned(const cv::RotatedRect& rect1, const cv::RotatedRect& rect2, float angle_tolerance);
-
-cv::Point2f get_rightmost_endpoint(const cv::Vec4f& segment);
-
 bool segments_intersect(const cv::Vec4f& seg1, const cv::Vec4f& seg2, cv::Point2f& intersection);
 
 cv::RotatedRect build_rotatedrect_from_movement(const cv::Vec4f& segment, const std::vector<cv::Vec4f>& segments, cv::Mat image);

@@ -205,6 +205,11 @@ const int SEPARATION_LINE_LENGTH = 36;
 const double ALIGNED_RECTS_THRESHOLD = 30;
 
 /**
+ * @brief The maximum allowable difference in rotation angles for the rectangles to be considered aligned.
+ */
+const double ANGLE_TOLERANCE = 16;
+
+/**
  * @brief Value used for the black area in the mask in template matching.
  */
 const int MASK_LINE_VALUE_LOW = 10;

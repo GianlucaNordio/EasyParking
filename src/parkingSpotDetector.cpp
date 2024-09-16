@@ -256,8 +256,8 @@ std::vector<cv::RotatedRect> detectParkingSpotInImage(const cv::Mat& image) {
         }
     }
 
-    std::vector<cv::RotatedRect> merged_pos_rects = merge_overlapping_rects(list_boxes);
-    std::vector<cv::RotatedRect> merged_neg_rects = merge_overlapping_rects(list_boxes2);
+    std::vector<cv::RotatedRect> merged_pos_rects = mergeOverlappingRects(list_boxes);
+    std::vector<cv::RotatedRect> merged_neg_rects = mergeOverlappingRects(list_boxes2);
 
     std::vector<cv::Vec4f> segments_pos;
     std::vector<cv::Vec4f> segments_neg;
@@ -498,12 +498,6 @@ float get_segment_length(const cv::Vec4f& segment) {
     return std::sqrt((x2 - x1) * (x2 - x1) + (y2 - y1) * (y2 - y1));
 }
 
-// Helper function to check if two rotated rectangles are aligned (same angle within a tolerance)
-bool are_rects_aligned(const cv::RotatedRect& rect1, const cv::RotatedRect& rect2, float angle_tolerance) {
-    return std::abs(rect1.angle - rect2.angle) <= angle_tolerance;
-}
-
-
 // Function to shrink a rotated rect
 cv::RotatedRect shrink_rotated_rect(const cv::RotatedRect& rect, float shorten_percentage) {
     // Get the current size of the rectangle
@@ -525,15 +519,6 @@ cv::RotatedRect shrink_rotated_rect(const cv::RotatedRect& rect, float shorten_p
 
     // Return a new rotated rect with the updated size
     return cv::RotatedRect(rect.center, size, rect.angle);
-}
-
-// Function to get the right-most endpoint of a segment
-cv::Point2f get_rightmost_endpoint(const cv::Vec4f& segment) {
-    cv::Point2f p1(segment[0], segment[1]);  // First endpoint (x1, y1)
-    cv::Point2f p2(segment[2], segment[3]);  // Second endpoint (x2, y2)
-
-    // Compare the x-coordinates to find the right-most point
-    return (p1.x > p2.x) ? p1 : p2;
 }
 
 // Function to extend a segment by a certain percentage of its length
@@ -711,37 +696,4 @@ std::vector<cv::RotatedRect> process_segments(const std::vector<cv::Vec4f>& segm
     }
 
     return rotated_rects;
-}
-
-// Function to merge overlapping and aligned rotated rectangles
-std::vector<cv::RotatedRect> merge_overlapping_rects(std::vector<cv::RotatedRect>& rects) {
-    std::vector<cv::RotatedRect> merged_rects;
-    std::vector<bool> merged(rects.size(), false);  // Track which rects have been merged
-
-    for (size_t i = 0; i < rects.size(); ++i) {
-        if (merged[i]) continue;  // Skip already merged rects
-
-        // Start a new group of merged rects
-        std::vector<cv::Point2f> group_points;
-        cv::Point2f points[4];
-        rects[i].points(points);
-        group_points.insert(group_points.end(), points, points + 4);
-        merged[i] = true;
-
-        // Check for overlap and alignment with other rects
-        for (size_t j = i + 1; j < rects.size(); ++j) {
-            if (!merged[j] && areRectsOverlapping(rects[i], rects[j]) && are_rects_aligned(rects[i], rects[j],16)) {
-                // Merge the overlapping and aligned rect
-                rects[j].points(points);
-                group_points.insert(group_points.end(), points, points + 4);
-                merged[j] = true;
-            }
-        }
-
-        // Create a single bounding box from the merged group points
-        cv::RotatedRect merged_rect = cv::minAreaRect(group_points);
-        merged_rects.push_back(merged_rect);
-    }
-
-    return merged_rects;
 }

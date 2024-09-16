@@ -173,4 +173,38 @@ cv::RotatedRect scaleRotatedRect(const cv::RotatedRect& rect, double scaleFactor
  */
 bool areRectsOverlapping(const cv::RotatedRect& rect1, const cv::RotatedRect& rect2);
 
+/**
+ * @brief Merges overlapping and aligned rotated rectangles into a single rectangle.
+ * 
+ * This function takes a vector of `cv::RotatedRect` objects and merges those that overlap and are aligned 
+ * within a specified angular tolerance. The merging process groups overlapping and aligned rectangles, 
+ * then creates a single bounding box that encompasses all the grouped rectangles. The resulting merged 
+ * rectangles are returned in a new vector.
+ * 
+ * The function uses the following steps:
+ * - Iterates through the list of rectangles to find groups of overlapping and aligned rectangles.
+ * - For each group, collects the points of all rectangles in the group.
+ * - Computes a new bounding `cv::RotatedRect` for the group of points using `cv::minAreaRect`.
+ * 
+ * @param rects A vector of `cv::RotatedRect` objects to be merged.
+ * @return A vector of merged `cv::RotatedRect` objects, where each represents the bounding box of a group of overlapping 
+ *         and aligned rectangles.
+ */
+std::vector<cv::RotatedRect> mergeOverlappingRects(std::vector<cv::RotatedRect>& rects);
+
+/**
+ * @brief Checks if two rotated rectangles are aligned within a specified angular tolerance.
+ * 
+ * This function determines if two `cv::RotatedRect` objects have similar orientations by comparing 
+ * their rotation angles. The rectangles are considered aligned if the absolute difference between their 
+ * angles is less than or equal to a specified `angleTolerance`.
+ * 
+ * @param rect1 The first rotated rectangle.
+ * @param rect2 The second rotated rectangle.
+ * @param angleTolerance The maximum allowable difference in rotation angles for the rectangles to be considered aligned.
+ * @return `true` if the absolute difference between the angles of the two rectangles is less than or equal to `angleTolerance`,
+ *         `false` otherwise.
+ */
+bool areRectsAligned(const cv::RotatedRect& rect1, const cv::RotatedRect& rect2, double angleTolerance);
+
 #endif // RECTUTILS.HPP
