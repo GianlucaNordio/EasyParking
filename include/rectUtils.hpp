@@ -124,7 +124,7 @@ void resolve_overlaps(std::vector<cv::RotatedRect>& vector1, std::vector<cv::Rot
  * @param invertDirection A boolean flag indicating whether to shift in the opposite direction of the axis.
  * @return A new `cv::RotatedRect` with the shifted center, keeping the original size and rotation angle.
  */
-cv::RotatedRect shiftAlongLongestAxis(const cv::RotatedRect& rect, float shift_amount, bool invert_direction);
+cv::RotatedRect shiftAlongLongestAxis(const cv::RotatedRect& rect, double shift_amount, bool invert_direction);
 
 /**
  * @brief Checks if a rotated rectangle is isolated, i.e., it does not overlap with any other rectangles in a given list.
