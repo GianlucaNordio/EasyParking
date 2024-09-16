@@ -129,13 +129,11 @@ void buildMinimap(std::vector<ParkingSpot> parkingSpot, cv::Mat& miniMap) {
     double avgAngle;
 
     std::vector<cv::RotatedRect> transformedSpots;
-    std::vector<bool> occupancies;
 
     for(ParkingSpot spot: parkingSpot) {
 
         // Extract the vertices of the current RotatedRect
         cv::RotatedRect rect = spot.rect;
-        occupancies.push_back(spot.occupied);
         cv::Point2f vertices[4];
         rect.points(vertices);
 
