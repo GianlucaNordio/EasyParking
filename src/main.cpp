@@ -14,37 +14,89 @@
 #include "minimap.hpp"
 
 
+/**
+ * @brief Separator used for dividing sections in the console output (type 1).
+ */
 const char SEPARATOR_TYPE_1 = '-';
+
+/**
+ * @brief Separator used for dividing sections in the console output (type 2).
+ */
 const char SEPARATOR_TYPE_2 = '=';
 
+/**
+ * @brief Path to the dataset containing the parking lot images and sequences.
+ */
 const std::string DATASET_PATH = "../dataset";
 
+/**
+ * @brief Color white used for initializing empty images and minimaps.
+ */
 const cv::Scalar WHITE = cv::Scalar(255, 255, 255);
 
+/**
+ * @brief Weight for classified images in the blend between original and classified images.
+ */
 const double CLASSIFIED_IMAGE_WEIGHT = 0.4;
+
+/**
+ * @brief Weight for original images in the blend between original and classified images.
+ */
 const double ORIGINAL_IMAGE_WEIGHT = 0.6;
 
+/**
+ * @brief Type of image (3-channel 8-bit color image).
+ */
 const int IMAGE_TYPE = CV_8UC3;
+
+/**
+ * @brief Shift used for adjusting the color when combining images.
+ */
 const int SHIFT = 0;
+
+/**
+ * @brief Number of images to display per row when visualizing results.
+ */
 const int NUMBER_OF_IMAGES_FOR_ROW = 3;
+
+/**
+ * @brief Number of image sequences in the dataset.
+ */
 const int NUMBER_SEQUENCES = 5;
+
+/**
+ * @brief Length of the separation line used for console output formatting.
+ */
 const int SEPARATION_LINE_LENGTH = 36;
+
+/**
+ * @brief Number of rows for the minimap image.
+ */
 const int MINIMAP_ROWS = 300;
+
+/**
+ * @brief Number of columns for the minimap image.
+ */
 const int MINIMAP_COLS = 500;
 
 /**
- * @brief Main function that performs parking spot detection, segmentation, classification, and performance evaluation on a dataset.
+ * @brief Main function to process parking spot detection, segmentation, classification, and performance evaluation on a base sequence 
+ *        and a dataset of image sequences.
  *
  * This function executes the following steps:
+ * 1. Loads the base sequence and dataset from the specified directory.
+ * 2. Detects parking spots in the base sequence and initializes parking spot data for the entire dataset.
+ * 3. Performs segmentation on both the base sequence and dataset.
+ * 4. Classifies the segmented images in the base sequence and dataset.
+ * 5. Creates minimaps representing parking spots for both the base sequence and dataset sequences.
+ * 6. Calculates performance metrics such as Mean Average Precision (MAP) and Intersection over Union (IoU) for both base sequence 
+ *    and dataset, and computes average metrics.
+ * 7. Displays the visual results including images, bounding boxes, masks, and performance metrics for both base sequence 
+ *    and dataset sequences.
  * 
- * 1. Loads a dataset of parking lot images and sequences.
- * 2. Detects parking spots in the base sequence.
- * 3. Performs segmentation on both the base sequence and dataset sequences.
- * 4. Classifies the segmented parking spots in both the base sequence and dataset sequences.
- * 5. Evaluates the performance metrics (Mean Average Precision and Mean Intersection over Union) for both the base sequence and the dataset.
- * 6. Displays the results, including images, bounding boxes, segmented masks, classified masks, and performance metrics.
- * 
- * @return int Returns 0 upon successful execution.
+ * The function follows this detailed workflow to ensure the evaluation of the parking spot detection and classification pipeline.
+ *
+ * @return int - Returns 0 upon successful execution.
  */
 int main() {  
 

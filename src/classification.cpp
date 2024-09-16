@@ -12,7 +12,7 @@
  * @param segmentationMasks      A vector of cv::Mat representing the segmentation masks for each image.
  * @param classifiedMasks        A reference to a vector of cv::Mat where the classified results will be stored.
  */
-void classifySequence(std::vector<std::vector<ParkingSpot>> parkingSpot, std::vector<cv::Mat> segmentationMasks, std::vector<cv::Mat>& classifiedMasks) {
+void classifySequence(std::vector<std::vector<ParkingSpot>>& parkingSpot, std::vector<cv::Mat> segmentationMasks, std::vector<cv::Mat>& classifiedMasks) {
     for (int i = 0; i < segmentationMasks.size(); i++) {
         cv::Mat classifiedMask;
         classifyImage(parkingSpot[i], segmentationMasks[i], classifiedMask);
@@ -42,7 +42,7 @@ void classifySequence(std::vector<std::vector<ParkingSpot>> parkingSpot, std::ve
  *       is considered occupied based on the percentage of the component's area 
  *       covered by the parking spot.
  */
-void classifyImage(std::vector<ParkingSpot> parkingSpot, cv::Mat segmentationMask, cv::Mat& classifiedMask) {
+void classifyImage(std::vector<ParkingSpot>& parkingSpot, cv::Mat segmentationMask, cv::Mat& classifiedMask) {
     cv::Mat labels, stats, centroids;
     int numComponents = cv::connectedComponentsWithStats(segmentationMask, labels, stats, centroids);
 

@@ -35,7 +35,7 @@ const float PERCENTAGE_INSIDE_THRESHOLD = 0.5;
  * @param segmentationMasks      A vector of cv::Mat representing the segmentation masks for each image.
  * @param classifiedMasks        A reference to a vector of cv::Mat where the classified results will be stored.
  */
-void classifySequence(std::vector<std::vector<ParkingSpot>> parkingSpot, std::vector<cv::Mat> segmentationMasks, std::vector<cv::Mat>& classifiedMasks);
+void classifySequence(std::vector<std::vector<ParkingSpot>>& parkingSpot, std::vector<cv::Mat> segmentationMasks, std::vector<cv::Mat>& classifiedMasks);
 
 /**
  * @brief Classifies parking spots in an image based on segmentation mask.
@@ -59,6 +59,6 @@ void classifySequence(std::vector<std::vector<ParkingSpot>> parkingSpot, std::ve
  *       is considered occupied based on the percentage of the component's area 
  *       covered by the parking spot.
  */
-void classifyImage(std::vector<ParkingSpot> parkingSpot, cv::Mat segmentationMask, cv::Mat& classifiedMask);
+void classifyImage(std::vector<ParkingSpot>& parkingSpot, cv::Mat segmentationMask, cv::Mat& classifiedMask);
 
 #endif // CLASSIFICATION_HPP
