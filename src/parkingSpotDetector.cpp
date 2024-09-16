@@ -2,36 +2,35 @@
 
 void detectParkingSpots(const std::vector<cv::Mat>& images, std::vector<ParkingSpot>& parkingSpots) {
     
-    std::vector<cv::RotatedRect> all_rects;
-    cv::Mat final_result = images[0].clone();
-
-    for(const auto& image : images) {
+    std::vector<cv::RotatedRect> allRectsFound;
+    for(const cv::Mat& image : images) {
         // Find parking spots for each image separately
-        for(cv::RotatedRect parking_spot_image : detectParkingSpotInImage(image)) {
-            all_rects.push_back(parking_spot_image);
+        for(cv::RotatedRect parkingSpotimage : detectParkingSpotInImage(image)) {
+            allRectsFound.push_back(parkingSpotimage);
         }
     }
 
-    std::vector<cv::RotatedRect> elements_to_remove;
-    nonMaximumSuppression(all_rects, elements_to_remove, 0.3, true);
+    std::vector<cv::RotatedRect> elementToRemove;
+    nonMaximumSuppression(allRectsFound, elementToRemove, NON_MAXIMUM_SUPPRESSION_THRESHOLD, true);
 
     // Remove the elements determined by NMS filtering
-    for (cv::RotatedRect element : elements_to_remove) {
-        std::vector<cv::RotatedRect>::const_iterator iterator = elementIterator(all_rects, element);
-        if (iterator != all_rects.cend()) {
-            all_rects.erase(iterator);
+    for (cv::RotatedRect element : elementToRemove) {
+        std::vector<cv::RotatedRect>::const_iterator iterator = elementIterator(allRectsFound, element);
+        if (iterator != allRectsFound.cend()) {
+            allRectsFound.erase(iterator);
         }
     }
 
-    std::vector<cv::Point2f> all_vertices;
-    for (cv::RotatedRect& rect : all_rects) {
+    int count = 0;
+
+    for (cv::RotatedRect& rect : allRectsFound) {
         if(rect.size.area()>1) { // the if is needed because removing with the iterator produces rects with zero area
-            parkingSpots.push_back(ParkingSpot(0, 1 , false, rect));
+            parkingSpots.push_back(ParkingSpot(count, 1 , false, rect));
+            count++;
         }
     }
 }
 
-// This function detects the parking spots in a single image
 std::vector<cv::RotatedRect> detectParkingSpotInImage(const cv::Mat& image) {
     std::vector<ParkingSpot> parkingSpots;
 	std::vector<cv::RotatedRect> spots;
@@ -273,13 +272,13 @@ std::vector<cv::RotatedRect> detectParkingSpotInImage(const cv::Mat& image) {
     std::vector<cv::Vec4f> segments_neg;
 
     // Loop through all bounding boxes
-    for (const auto& rect : merged_pos_rects) {
+    for (const cv::RotatedRect& rect : merged_pos_rects) {
         cv::Vec4f line_segment = convert_rect_to_line(rect);
         segments_pos.push_back(line_segment);
     }
 
     // Loop through all bounding boxes
-    for (const auto& rect : merged_neg_rects) {
+    for (const cv::RotatedRect& rect : merged_neg_rects) {
         cv::Vec4f line_segment = convert_rect_to_line(rect);
         segments_neg.push_back(line_segment);
     }
@@ -352,7 +351,7 @@ std::vector<cv::RotatedRect> detectParkingSpotInImage(const cv::Mat& image) {
     areas.clear();
 
     std::vector<cv::RotatedRect> remove_big_small_pos;
-    std::vector<cv::RotatedRect> all_rects;
+    std::vector<cv::RotatedRect> allRectsFound;
 
     for (const auto& rect : rotated_rects) {
         if(rect.size.area()>median_area/4 && rect.size.area()<median_area*2.25) {
@@ -371,7 +370,7 @@ std::vector<cv::RotatedRect> detectParkingSpotInImage(const cv::Mat& image) {
     for (const auto& rect : filtered_rects) {
         if(rect.size.area()>median_area/4 && rect.size.area()<median_area*2.25) {
             remove_big_small_2.push_back(rect);
-            all_rects.push_back(rect);
+            allRectsFound.push_back(rect);
         }
     }
 
@@ -395,13 +394,13 @@ std::vector<cv::RotatedRect> detectParkingSpotInImage(const cv::Mat& image) {
 
     for (const auto& rect : remove_big_small_pos) {
         if(rect.size.area()>1) { // the if is needed because removing with the iterator produces rects with zero area
-            all_rects.push_back(rect);
+            allRectsFound.push_back(rect);
         }
     }
 
     std::vector<cv::RotatedRect> all_close_rects;
-    for(const cv::RotatedRect& rect:all_rects) {
-        if(!is_alone(rect,all_rects)) {
+    for(const cv::RotatedRect& rect:allRectsFound) {
+        if(!is_alone(rect,allRectsFound)) {
             centers_all.push_back(rect.center);
             all_close_rects.push_back(rect);
             cv::Point2f vertices[4];
@@ -1071,69 +1070,4 @@ std::vector<cv::Mat> generate_template(double width, double height, double angle
     // cv::imshow("template", rotated_template);
 
     return std::vector<cv::Mat>{rotated_template,rotated_mask};
-}
-
-double computeIntersectionAreaNormalized(const cv::RotatedRect& rect1, const cv::RotatedRect& rect2) {
-    // Converti i RotatedRect in vettori di punti (poligoni)
-    std::vector<cv::Point2f> points1, points2;
-    cv::Point2f vertices1[4], vertices2[4];
-
-    double area1 = rect1.size.area();
-    double area2 = rect2.size.area();
-    
-    rect1.points(vertices1);
-    rect2.points(vertices2);
-    
-    for (int i = 0; i < 4; i++) {
-        points1.push_back(vertices1[i]);
-        points2.push_back(vertices2[i]);
-    }
-
-    // Calcola l'intersezione tra i due poligoni
-    std::vector<cv::Point2f> intersection;
-    double intersectionArea = cv::intersectConvexConvex(points1, points2, intersection) / std::min(area1, area2);
-
-    return intersectionArea;
-}
-
-std::vector<cv::RotatedRect>::const_iterator elementIterator(const std::vector<cv::RotatedRect>& vec, const cv::RotatedRect& elem){
-    for (auto it = vec.cbegin(); it != vec.cend(); ++it) {
-        if (it->center.x == elem.center.x &&
-            it->center.y == elem.center.y) 
-        {
-            return it; // Restituiamo l'iteratore all'elemento
-        }
-    }
-    return vec.cend(); // Restituiamo end() se l'elemento non è stato trovato
-}
-
-/**
- * @brief Performs Non-Maximum Suppression (NMS) on a set of rotated rectangles based on their overlap and size.
- * 
- * This function processes a list of rotated rectangles and removes redundant overlapping rectangles 
- * based on a specified intersection area threshold. The decision on which rectangle to remove is 
- * made based on their area size, and can be configured to keep either the smallest or largest rectangle.
- *
- * @param rects A vector of cv::RotatedRect objects representing the bounding boxes to process.
- * @param elementsToRemove A vector of cv::RotatedRect objects that will store the rectangles marked for removal.
- * @param threshold A double representing the normalized intersection area threshold above which two rectangles 
- * are considered overlapping.
- * @param keepSmallest A boolean flag that indicates whether to keep the smallest rectangle (true) 
- * or the largest rectangle (false) when two rectangles overlap.
- *
- * @note The function assumes that the rects vector contains unique rectangles. 
- * Rectangles whose centers are exactly the same will not be compared.
- */
-void nonMaximumSuppression(std::vector<cv::RotatedRect> &rects, std::vector<cv::RotatedRect> &elementsToRemove, double threshold, bool keepSmallest) {
-    for (const cv::RotatedRect& rect1 : rects) {
-        for (const cv::RotatedRect& rect2 : rects) {
-            if (!(rect1.center.x == rect2.center.x && rect1.center.y == rect2.center.y) && (computeIntersectionAreaNormalized(rect1, rect2) > threshold)) {
-                if (keepSmallest ? rect1.size.area() < rect2.size.area() : rect1.size.area() > rect2.size.area()){
-                    elementsToRemove.push_back(rect2);
-                } else {
-                    elementsToRemove.push_back(rect1);
-                }
-            }
-        }
-    }
 }

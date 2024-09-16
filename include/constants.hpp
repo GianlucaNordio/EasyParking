@@ -19,17 +19,17 @@ const char SEPARATOR_TYPE_2 = '=';
 const std::string DATASET_PATH = "../dataset";
 
 /**
- * The name of the directory containing segmentation masks.
+ * @brief The name of the directory containing segmentation masks.
  */
 const std::string MASKS_FOLDER = "masks";
 
 /**
- * The name of the directory containing bounding box annotations for ground truth.
+ * @brief The name of the directory containing bounding box annotations for ground truth.
  */
 const std::string BOUNDING_BOX_FOLDER = "bounding_boxes";
 
 /**
- * The name of the directory containing the parking images.
+ * @brief The name of the directory containing the parking images.
  */
 const std::string FRAMES_FOLDER = "frames";
 
@@ -39,7 +39,7 @@ const std::string FRAMES_FOLDER = "frames";
 const std::string SEQUENCE = "sequence";
 
 /**
- * The directory separator character used in paths.
+ * @brief The directory separator character used in paths.
  */
 const std::string SLASH = "/";
 
@@ -74,13 +74,20 @@ const double CLASSIFIED_IMAGE_WEIGHT = 0.4;
 const double ORIGINAL_IMAGE_WEIGHT = 0.6;
 
 /**
+ * @brief A double value representing the overlap threshold. This value indicates the ratio of intersection area 
+ *        between two rectangles relative to their total area. If the normalized intersection area between two 
+ *        rectangles exceeds this threshold, one of them will be marked for removal.
+ */
+const double NON_MAXIMUM_SUPPRESSION_THRESHOLD = 0.3;
+
+/**
  * @brief Threshold used for Intersection over Union (IoU) calculation.
  */
 const double IOU_THRESHOLD = 0.5;
 
 /**
- * A constant threshold used to determine if car is inside a parking spot.
- * If more than PERCENTAGE_INSIDE_THRESHOLD*100% of the component is inside the parking spot, it is classified as 'inside'.
+ * @brief A constant threshold used to determine if car is inside a parking spot.
+ *        If more than PERCENTAGE_INSIDE_THRESHOLD*100% of the component is inside the parking spot, it is classified as 'inside'.
  */
 const float PERCENTAGE_INSIDE_THRESHOLD = 0.7;
 
@@ -95,7 +102,7 @@ const int IMAGE_TYPE = CV_8UC3;
 const int SHIFT = 0;
 
 /**
- * The index of the base sequence.
+ * @brief The index of the base sequence.
  */
 const int BASE_SEQUENCE_INDEX = 0;
 

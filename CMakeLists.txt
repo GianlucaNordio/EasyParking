@@ -62,6 +62,12 @@ add_library(minimap
 )
 target_link_libraries(minimap ${OpenCV_LIBS})
 
+add_library(parkingSpotUtils
+    include/parkingSpotUtils.hpp
+    src/parkingSpotUtils.cpp
+)
+target_link_libraries(parkingSpotUtils ${OpenCV_LIBS})
+
 # Aggiungi l'eseguibile
 add_executable(EasyParking ${SOURCES})
 
@@ -75,5 +81,6 @@ target_link_libraries(EasyParking
     performanceMeasurement
     classification
     minimap
+    parkingSpotUtils
     ${OpenCV_LIBS}
 )

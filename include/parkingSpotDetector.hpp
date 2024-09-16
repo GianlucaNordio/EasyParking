@@ -9,6 +9,8 @@
 #include <math.h>
 
 #include "parkingSpot.hpp"
+#include "parkingSpotUtils.hpp"
+#include "constants.hpp"
 
 void detectParkingSpots(const std::vector<cv::Mat>& images, std::vector<ParkingSpot>& parkingSpots);
 
@@ -35,12 +37,6 @@ cv::Point2f compute_midpoint(const cv::Vec4f& segment);
 std::vector<cv::Vec4f> filter_close_segments(const std::vector<cv::Vec4f>& segments, float distance_threshold);
 
 std::vector<cv::Vec4f> merge_parallel_segments(std::vector<cv::Vec4f>& segments, float angle_threshold, float distance_threshold, cv::Mat image);
-
-double computeIntersectionAreaNormalized(const cv::RotatedRect& rect1, const cv::RotatedRect& rect2);
-
-void nonMaximumSuppression(std::vector<cv::RotatedRect>& vec, std::vector<cv::RotatedRect>& elementsToRemove, double threshold, bool keep_smallest);
-
-std::vector<cv::RotatedRect>::const_iterator elementIterator(const std::vector<cv::RotatedRect>& vec, const cv::RotatedRect& elem);
 
 cv::Vec4f merge_segments(const cv::Vec4f& seg1, const cv::Vec4f& seg2);
 
