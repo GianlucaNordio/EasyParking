@@ -9,7 +9,8 @@
 #include <math.h>
 
 #include "parkingSpot.hpp"
-#include "parkingSpotUtils.hpp"
+#include "rectUtils.hpp"
+#include "lineUtils.hpp"
 #include "templateMatching.hpp"
 #include "constants.hpp"
 
@@ -23,15 +24,8 @@ double getSegmentAngularCoefficient(const cv::Vec4f& segment);
 
 float get_segment_length(const cv::Vec4f& segment);
 
-cv::Point2f compute_perpendicular_direction(const cv::Vec4f& segment);
-
 std::vector<cv::Vec4f> merge_parallel_segments(std::vector<cv::Vec4f>& segments, float angle_threshold, float distance_threshold, cv::Mat image);
-
 cv::Vec4f merge_segments(const cv::Vec4f& seg1, const cv::Vec4f& seg2);
-
-std::vector<cv::Vec4f> filter_segments_near_top_right(const std::vector<cv::Vec4f>& segments, const cv::Size& image_size);
-
-bool are_rects_overlapping(const cv::RotatedRect& rect1, const cv::RotatedRect& rect2);
 
 std::vector<cv::RotatedRect> merge_overlapping_rects(std::vector<cv::RotatedRect>& rects);
 
@@ -54,19 +48,7 @@ void trim_if_intersect(cv::Vec4f& seg1, cv::Vec4f& seg2);
 
 std::vector<cv::RotatedRect> filter_by_surrounding(const std::vector<cv::RotatedRect>& rects1, const std::vector<cv::RotatedRect>& rects2,cv::Mat image);
 
-cv::RotatedRect scale_rotated_rect(const cv::RotatedRect& rect, float scale_factor);
-
 double compute_median(std::vector<double>& data);
-
-void resolve_overlaps(std::vector<cv::RotatedRect>& vector1, std::vector<cv::RotatedRect>& vector2, float shift_amount);
-
-cv::RotatedRect shift_along_longest_axis(const cv::RotatedRect& rect, float shift_amount, bool invert_direction);
-
-std::pair<cv::RotatedRect, cv::RotatedRect> split_rotated_rect(const cv::RotatedRect& rect);
-
-std::pair<cv::RotatedRect, cv::RotatedRect> split_and_shift_rotated_rect(const cv::RotatedRect& rect, cv::Mat image);
-
-bool is_alone(cv::RotatedRect rect, std::vector<cv::RotatedRect> rects);
 
 void align_points(std::vector<cv::Point2f>& points, float threshold);
 

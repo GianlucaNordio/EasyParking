@@ -49,7 +49,7 @@ std::vector<cv::RotatedRect> detectParkingSpotInImage(const cv::Mat& image) {
         }
     }
     double distance_threshold;
-    std::vector<cv::Vec4f> filtered_segments = filter_segments_near_top_right(segments, cv::Size(image.cols,image.rows));
+    std::vector<cv::Vec4f> filtered_segments = filterSegmentsNearTopRight(segments, cv::Size(image.cols,image.rows));
 
     std::vector<double> pos_angles;
     std::vector<double> neg_angles;
@@ -132,7 +132,7 @@ std::vector<cv::RotatedRect> detectParkingSpotInImage(const cv::Mat& image) {
                 std::vector<size_t> overlapping_indices;
 
                 for (size_t i = 0; i < list_boxes.size(); ++i) {
-                    if (are_rects_overlapping(rotated_rect, list_boxes[i]) && rotated_rect.size.area() == list_boxes[i].size.area()) {
+                    if (areRectsOverlapping(rotated_rect, list_boxes[i]) && rotated_rect.size.area() == list_boxes[i].size.area()) {
                         overlaps = true;
                         overlapping_indices.push_back(i);
                     }
@@ -221,7 +221,7 @@ std::vector<cv::RotatedRect> detectParkingSpotInImage(const cv::Mat& image) {
                 std::vector<size_t> overlapping_indices;
 
                 for (size_t i = 0; i < list_boxes2.size(); ++i) {
-                    if (are_rects_overlapping(rotated_rect, list_boxes2[i]) && rotated_rect.size.area() == list_boxes[i].size.area()) {
+                    if (areRectsOverlapping(rotated_rect, list_boxes2[i]) && rotated_rect.size.area() == list_boxes[i].size.area()) {
                         overlaps = true;
                         overlapping_indices.push_back(i);
                     }
@@ -274,8 +274,8 @@ std::vector<cv::RotatedRect> detectParkingSpotInImage(const cv::Mat& image) {
         segments_neg.push_back(line_segment);
     }
 
-    std::vector<cv::Vec4f> no_top_right_neg = filter_segments_near_top_right(segments_neg,cv::Size(image.cols,image.rows));
-    std::vector<cv::Vec4f> no_top_right_pos = filter_segments_near_top_right(segments_pos,cv::Size(image.cols,image.rows));
+    std::vector<cv::Vec4f> no_top_right_neg = filterSegmentsNearTopRight(segments_neg,cv::Size(image.cols,image.rows));
+    std::vector<cv::Vec4f> no_top_right_pos = filterSegmentsNearTopRight(segments_pos,cv::Size(image.cols,image.rows));
 
     distance_threshold = avg_pos_width*0.4;
     std::vector<cv::Vec4f> filtered_segments_neg = filterCloseSegments(no_top_right_neg, distance_threshold);
@@ -389,7 +389,7 @@ std::vector<cv::RotatedRect> detectParkingSpotInImage(const cv::Mat& image) {
 
     std::vector<cv::RotatedRect> all_close_rects;
     for(const cv::RotatedRect& rect:allRectsFound) {
-        if(!is_alone(rect,allRectsFound)) {
+        if(!isAlone(rect,allRectsFound)) {
             centers_all.push_back(rect.center);
             all_close_rects.push_back(rect);
             cv::Point2f vertices[4];
@@ -425,97 +425,17 @@ void align_points(std::vector<cv::Point2f>& points, float threshold = 5.0f) {
     }
 }
 
-// Function to find the corners (top-left, top-right, bottom-left, bottom-right) from 4 points
-
-bool is_alone(cv::RotatedRect rect, std::vector<cv::RotatedRect> rects) {
-    cv::RotatedRect extended = scale_rotated_rect(rect,1.5);
-    for(const cv::RotatedRect other_rect:rects) {
-        if(other_rect.center != rect.center && are_rects_overlapping(extended,other_rect)) {
-            return false;
-        }
-    }
-
-    return true;
-}
-
-// Function to shift a rotated rect along its longest direction by a given shift amount
-cv::RotatedRect shift_along_longest_axis(const cv::RotatedRect& rect, float shift_amount, bool invert_direction) {
-    // Find the longer dimension of the rectangle
-    cv::Point2f vertices[4];
-    rect.points(vertices);
-
-    // Compute the longest axis direction
-    cv::Point2f axis = (cv::norm(vertices[0] - vertices[1]) > cv::norm(vertices[1] - vertices[2])) ?
-                        (vertices[1] - vertices[0]) : (vertices[2] - vertices[1]);
-
-    // Normalize the axis vector to shift along its direction
-    cv::Point2f normalized_axis = axis / cv::norm(axis);
-
-    // Shift the center of the rotated rect along this axis
-    cv::Point2f new_center = rect.center + shift_amount * (invert_direction ? -normalized_axis: normalized_axis);
-
-    // Return a new rotated rect with the updated center
-    return cv::RotatedRect(new_center, rect.size, rect.angle);
-}
-
-// Function to shift elements in vector2 if they overlap with elements in vector1
-void resolve_overlaps(std::vector<cv::RotatedRect>& vector1, std::vector<cv::RotatedRect>& vector2, float shift_amount) {
-    for (auto& rect1 : vector1) {
-        for (auto& rect2 : vector2) {
-            // Check if the two rectangles overlap
-            while (computeIntersectionAreaNormalized(rect1, rect2)>0.1) {
-                // Shift rect2 along its longest axis until it no longer overlaps
-                //rect1 = shift_along_longest_axis(rect1,shift_amount,true);
-                rect2 = shift_along_longest_axis(rect2, shift_amount,false);
-            }
-        }
-    }
-}
-
-// Function to scale a RotatedRect by a given scale factor
-cv::RotatedRect scale_rotated_rect(const cv::RotatedRect& rect, float scale_factor) {
-    // Scale the size (width and height) of the rotated rect
-    cv::Size2f new_size(rect.size.width * scale_factor, rect.size.height * scale_factor);
-
-    // Create a new rotated rect with the scaled size
-    return cv::RotatedRect(rect.center, new_size, rect.angle);
-}
-
-std::pair<cv::RotatedRect, cv::RotatedRect> split_and_shift_rotated_rect(const cv::RotatedRect& rect) {
-    cv::Point2f vertices[4];
-    rect.points(vertices);
-    float shift_amount = rect.size.width;
-    // Find the midpoint along the longest side (between vertices[0] and vertices[1])
-    cv::Point2f midpoint1 = (vertices[0] + vertices[1]) * 0.5;
-    cv::Point2f midpoint2 = (vertices[2] + vertices[3]) * 0.5;
-
-    // Calculate the shift direction based on the angle of the rectangle
-    float angle_rad = (rect.angle+35) * CV_PI / 180.0;  // Convert angle to radians
-    cv::Point2f shift_vector_x(shift_amount * std::cos(-angle_rad), shift_amount * std::sin(-angle_rad));  // Shift in x-direction
-    cv::Point2f shift_vector_y(-shift_amount * std::sin(-angle_rad), shift_amount * std::cos(-angle_rad)); // Shift in y-direction
-
-    // Shift the midpoints along the x and y axes
-    cv::Point2f shifted_center1 = midpoint1 - shift_vector_x - shift_vector_y;
-    cv::Point2f shifted_center2 = midpoint2 + shift_vector_x + shift_vector_y;
-
-    // Create two new rotated rects, each with half the original width, and shifted
-    cv::RotatedRect rect_part1(shifted_center1, cv::Size2f(rect.size.width, rect.size.height/2), rect.angle+35);
-    cv::RotatedRect rect_part2(shifted_center2, cv::Size2f(rect.size.width , rect.size.height/2), rect.angle+35);
-    
-    return std::make_pair(rect_part1, rect_part2);
-}
-
 // Modified function to filter the first vector based on surrounding conditions
 std::vector<cv::RotatedRect> filter_by_surrounding(const std::vector<cv::RotatedRect>& rects1, const std::vector<cv::RotatedRect>& rects2, cv::Mat image) {
     std::vector<cv::RotatedRect> filtered_rects;
 
     for (const auto& rect1 : rects1) {
         // Split rect1 into two equal parts along its longest direction
-        auto [rect_part1, rect_part2] = split_and_shift_rotated_rect(rect1);
+        auto [rect_part1, rect_part2] = splitAndShiftRotatedRect(rect1);
         
         // Scale both parts
-        rect_part1 = scale_rotated_rect(rect_part1, 1.25);
-        rect_part2 = scale_rotated_rect(rect_part2, 1.25);
+        rect_part1 = scaleRotatedRect(rect_part1, 1.25);
+        rect_part2 = scaleRotatedRect(rect_part2, 1.25);
         
         bool part1_overlap = false, part2_overlap = false;
 
@@ -552,13 +472,6 @@ double compute_median(std::vector<double>& data) {
     } else {
         return data[n / 2];
     }
-}
-
-// Function to check overlap between two rotated rectangles
-bool are_rects_overlapping(const cv::RotatedRect& rect1, const cv::RotatedRect& rect2) {
-    std::vector<cv::Point2f> intersection_points;
-    int intersection_status = cv::rotatedRectangleIntersection(rect1, rect2, intersection_points);
-    return intersection_status == cv::INTERSECT_FULL || intersection_status == cv::INTERSECT_PARTIAL;
 }
 
 double compute_avg(std::vector<double>& data) {
@@ -817,7 +730,7 @@ std::vector<cv::RotatedRect> merge_overlapping_rects(std::vector<cv::RotatedRect
 
         // Check for overlap and alignment with other rects
         for (size_t j = i + 1; j < rects.size(); ++j) {
-            if (!merged[j] && are_rects_overlapping(rects[i], rects[j]) && are_rects_aligned(rects[i], rects[j],16)) {
+            if (!merged[j] && areRectsOverlapping(rects[i], rects[j]) && are_rects_aligned(rects[i], rects[j],16)) {
                 // Merge the overlapping and aligned rect
                 rects[j].points(points);
                 group_points.insert(group_points.end(), points, points + 4);
@@ -831,39 +744,4 @@ std::vector<cv::RotatedRect> merge_overlapping_rects(std::vector<cv::RotatedRect
     }
 
     return merged_rects;
-}
-
-// Function to filter segments that are too close to the top-right corner
-std::vector<cv::Vec4f> filter_segments_near_top_right(const std::vector<cv::Vec4f>& segments, const cv::Size& image_size) {
-    // Define the top-right corner of the image
-    cv::Point2f top_right_corner(image_size.width - 1, 0);
-    cv::Point2f start(850,0);
-    cv::Point2f end(image_size.width-1,300);
-
-    std::vector<cv::Point2f> hull;
-    cv::convexHull(std::vector<cv::Point2f>{top_right_corner,start,end}, hull);
-
-    std::vector<cv::Vec4f> filtered_segments;
-
-    for (const auto& segment : segments) {
-        cv::Point2f p1(segment[0],segment[1]);
-        cv::Point2f p2(segment[2],segment[3]);
-        cv::Point2f midpoint = computeMidpoint(segment);
-        double result1 = cv::pointPolygonTest(hull, p1, false);  // False = no distance calculation needed
-        double result2 = cv::pointPolygonTest(hull, p2, false);  // False = no distance calculation needed
-        double result3 = cv::pointPolygonTest(hull,midpoint,false);
-
-        if(result1<0 && result2<0 && result3 < 0) {
-            filtered_segments.push_back(segment);
-        }
-    }
-
-    return filtered_segments;
-}
-
-// Helper function to compute the perpendicular direction of a segment
-cv::Point2f compute_perpendicular_direction(const cv::Vec4f& segment) {
-    float dx = segment[2] - segment[0];
-    float dy = segment[3] - segment[1];
-    return cv::Point2f(-dy, dx);
 }

@@ -85,6 +85,11 @@ const cv::Scalar BLACK = cv::Scalar(0, 0, 0);
 const cv::Size SIZE_RECT_MINIMAP = cv::Size(60,20);
 
 /**
+ * @brief Threshold used to resolve the overlap of RotatedRect.
+ */
+const double RESOLVE_OVERLAP_THRESHOLD = 0.1;
+
+/**
  * @brief Weight for classified images in the blend between original and classified images.
  */
 const double CLASSIFIED_IMAGE_WEIGHT = 0.4;
@@ -107,10 +112,20 @@ const double NON_MAXIMUM_SUPPRESSION_THRESHOLD = 0.3;
 const double IOU_THRESHOLD = 0.5;
 
 /**
+ * @brief Factor used to scale the RotatedRect.
+ */
+const double SCALE_FACTOR = 1.5;
+
+/**
  * @brief A constant threshold used to determine if car is inside a parking spot.
  *        If more than PERCENTAGE_INSIDE_THRESHOLD*100% of the component is inside the parking spot, it is classified as 'inside'.
  */
 const double PERCENTAGE_INSIDE_THRESHOLD = 0.7;
+
+/**
+ * @brief Offset on the direction along which the parking spot is split, when performing additional filtering.
+ */
+const double SPLIT_DIRECTION_OFFSET = 35;
 
 /**
  * @brief A constante used to transform value into percentage
@@ -274,5 +289,25 @@ const int BLACK_MASK_y2 = 230;
  * @brief Color used for the black mask.
  */
 const int BLACK_MASK_COLOR = 0;
+
+/**
+ * @brief X coordinate of Point1 used to identify top-right corner.
+ */
+const int TOP_RIGHT_CORNER_X1 = 850;
+
+/**
+ * @brief Y coordinate of Point1 used to identify top-right corner.
+ */
+const int TOP_RIGHT_CORNER_Y1 = 0;
+
+/**
+ * @brief Y coordinate of Point2 used to identify top-right corner.
+ */
+const int TOP_RIGHT_CORNER_Y2 = 300;
+
+/**
+ * @brief Y coordinate of top-right corner.
+ */
+const int TOP_RIGHT_CORNER_Y = 0;
 
 #endif // CONSTANTS_HPP

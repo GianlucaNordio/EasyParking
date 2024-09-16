@@ -62,17 +62,23 @@ add_library(minimap
 )
 target_link_libraries(minimap ${OpenCV_LIBS})
 
-add_library(parkingSpotUtils
-    include/parkingSpotUtils.hpp
-    src/parkingSpotUtils.cpp
+add_library(rectUtils
+    include/rectUtils.hpp
+    src/rectUtils.cpp
 )
-target_link_libraries(parkingSpotUtils ${OpenCV_LIBS})
+target_link_libraries(rectUtils ${OpenCV_LIBS})
 
 add_library(templateMatching
     include/templateMatching.hpp
     src/templateMatching.cpp
 )
 target_link_libraries(templateMatching ${OpenCV_LIBS})
+
+add_library(lineUtils
+    include/lineUtils.hpp
+    src/lineUtils.cpp
+)
+target_link_libraries(lineUtils ${OpenCV_LIBS})
 
 # Aggiungi l'eseguibile
 add_executable(EasyParking ${SOURCES})
@@ -87,7 +93,8 @@ target_link_libraries(EasyParking
     performanceMeasurement
     classification
     minimap
-    parkingSpotUtils
+    rectUtils
     templateMatching
+    lineUtils
     ${OpenCV_LIBS}
 )
