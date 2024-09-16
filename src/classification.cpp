@@ -42,7 +42,7 @@ void classifyImage(std::vector<ParkingSpot>& parkingSpot, cv::Mat segmentationMa
     cv::Mat labels, stats, centroids;
     int numComponents = cv::connectedComponentsWithStats(segmentationMask, labels, stats, centroids);
 
-    classifiedMask = cv::Mat::zeros(segmentationMask.size(), IMAGE_TYPE_1_CANALE); // Initialize with zeros
+    classifiedMask = cv::Mat::zeros(segmentationMask.size(), IMAGE_TYPE_1_CHANNEL); // Initialize with zeros
 
     for(int j = 1; j < numComponents; j++){
         // Set as outside parking spot all the components that are not the background
@@ -51,7 +51,7 @@ void classifyImage(std::vector<ParkingSpot>& parkingSpot, cv::Mat segmentationMa
 
     // Create a mask for each parking spot
     for (auto& spot : parkingSpot) {
-        cv::Mat spotMask = cv::Mat::zeros(segmentationMask.size(), IMAGE_TYPE_1_CANALE);
+        cv::Mat spotMask = cv::Mat::zeros(segmentationMask.size(), IMAGE_TYPE_1_CHANNEL);
         cv::Point2f vertices[4];
         spot.rect.points(vertices);
         std::vector<cv::Point> contour(vertices, vertices + 4);

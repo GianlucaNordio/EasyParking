@@ -123,7 +123,7 @@ void buildMinimap(std::vector<ParkingSpot> parkingSpot, cv::Mat& miniMap) {
     
     std::vector<cv::Point2f> toHomPoints = {cv::Point2f(0, MAP_HEIGHT-1), cv::Point2f(0, OFFSET_HOMOGRAPHY), cv::Point2f(MAP_WIDTH-1, MAP_HEIGHT-1), cv::Point2f(MAP_WIDTH-1, OFFSET_HOMOGRAPHY)};
     cv::Mat perspectiveTransform = cv::getPerspectiveTransform(hullCornersSorted, toHomPoints);
-    cv::Mat minimap(mapSize, IMAGE_TYPE_3_CANALI, WHITE);
+    cv::Mat minimap(mapSize, IMAGE_TYPE_3_CHANNELS, WHITE);
 
     double sumAngle = 0;
     double avgAngle;

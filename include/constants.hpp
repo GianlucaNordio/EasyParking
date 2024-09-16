@@ -127,12 +127,12 @@ const int BACKGROUND_NOT_UPDATED = 0;
 /**
  * @brief Type of image (3-channel 8-bit color image).
  */
-const int IMAGE_TYPE_3_CANALI = CV_8UC3;
+const int IMAGE_TYPE_3_CHANNELS = CV_8UC3;
 
 /**
  * @brief Type of image (1-channel 8-bit color image).
  */
-const int IMAGE_TYPE_1_CANALE = CV_8U;
+const int IMAGE_TYPE_1_CHANNEL = CV_8U;
 
 /**
  * @brief Offset used for homography transformation.

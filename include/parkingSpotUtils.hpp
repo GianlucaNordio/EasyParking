@@ -70,4 +70,6 @@ std::vector<cv::RotatedRect>::const_iterator elementIterator(const std::vector<c
  */
 cv::Vec4f convertRectToLine(const cv::RotatedRect& rect);
 
+cv::Mat preprocessFindParkingLines(const cv::Mat& image);
+
 #endif // PARKINGSPOTUTILS_HPP

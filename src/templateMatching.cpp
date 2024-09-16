@@ -46,8 +46,8 @@ std::vector<cv::Mat> generateTemplate(double width, double angle, bool flipped){
     }
 
     // Horizontal template and mask definition
-    cv::Mat horizontalTemplate(templateHeight, templateWidth, IMAGE_TYPE_1_CANALE, cv::Scalar(0));
-    cv::Mat horizontalMask(templateHeight, templateWidth, IMAGE_TYPE_1_CANALE);
+    cv::Mat horizontalTemplate(templateHeight, templateWidth, IMAGE_TYPE_1_CHANNEL, cv::Scalar(0));
+    cv::Mat horizontalMask(templateHeight, templateWidth, IMAGE_TYPE_1_CHANNEL);
 
     // Build the template and mask
     for(int i = 0; i< horizontalTemplate.rows; i++) {

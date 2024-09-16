@@ -19,8 +19,6 @@ std::vector<cv::RotatedRect> detectParkingSpotInImage(const cv::Mat& image);
 
 cv::Mat preprocess_find_white_lines(const cv::Mat& src);
 
-cv::Mat preprocess_find_parking_lines(const cv::Mat& src);
-
 double compute_avg(std::vector<double>& data);
 
 double getSegmentAngularCoefficient(const cv::Vec4f& segment);

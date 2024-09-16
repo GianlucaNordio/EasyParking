@@ -279,7 +279,7 @@ void convertGreyMasksToBGR(const std::vector<std::vector<cv::Mat>> &greyImages, 
  */
 void convertGreyMaskToBGR(const std::vector<cv::Mat> &greyImage, std::vector<cv::Mat> &BGRImage) {
     for(int i = 0; i < greyImage.size(); i++) {
-        BGRImage.push_back(cv::Mat(greyImage[i].rows,greyImage[i].cols, IMAGE_TYPE_3_CANALI, BLACK));
+        BGRImage.push_back(cv::Mat(greyImage[i].rows,greyImage[i].cols, IMAGE_TYPE_3_CHANNELS, BLACK));
         cv::Mat &dst = BGRImage[i];
         const cv::Mat &src = greyImage[i];
         for(int x = 0; x < src.cols; x++) {

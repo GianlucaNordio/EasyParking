@@ -135,3 +135,31 @@ cv::Vec4f convertRectToLine(const cv::RotatedRect& rect) {
     // Return the line segment as a vector of 4 floats (x1, y1, x2, y2)
     return cv::Vec4f(midPoint1.x, midPoint1.y, midPoint2.x, midPoint2.y);
 }
+
+
+cv::Mat preprocessFindParkingLines(const cv::Mat& image) {
+    cv::Mat filteredImage;
+    cv::bilateralFilter(image, filteredImage, -1, 40, 10);
+
+    cv::Mat grayImage;
+    cv::cvtColor(filteredImage, grayImage, cv::COLOR_BGR2GRAY);
+
+    cv::Mat gradientX, gradientY;
+    cv::Sobel(grayImage, gradientX, CV_16S, 1, 0);
+    cv::Sobel(grayImage, gradientY, CV_16S, 0, 1);
+
+    cv::Mat absGradientX;
+    cv::Mat absGradientY;
+    cv::convertScaleAbs(gradientX, absGradientX);
+    cv::convertScaleAbs(gradientY, absGradientY);
+
+    cv::Mat structuringElement = cv::getStructuringElement(cv::MORPH_CROSS, cv::Size(3,3)); 
+
+    cv::Mat gradientMagnitude;
+    cv::Mat gradientMagnitudeProcessed;
+    cv::addWeighted(absGradientX, 0.5, absGradientY, 0.5, 0, gradientMagnitude);
+    cv::adaptiveThreshold(gradientMagnitude, gradientMagnitudeProcessed, 255, cv::ADAPTIVE_THRESH_GAUSSIAN_C , cv::THRESH_BINARY, 45, -40);
+    cv::dilate(gradientMagnitudeProcessed, gradientMagnitudeProcessed, structuringElement, cv::Point(-1,-1),1);
+    cv::erode(gradientMagnitudeProcessed, gradientMagnitudeProcessed, structuringElement, cv::Point(-1,-1),1);
+    return gradientMagnitudeProcessed;
+}

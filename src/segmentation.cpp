@@ -54,7 +54,7 @@ void Segmentation::segmentImage(const cv::Mat &image, cv::Mat &outputMask) {
     int numLabels = cv::connectedComponentsWithStats(outputMask, labelImage, stats, centroids, CONNECTIVITY_8, CV_32S);
 
     // Create a mask for large connected components
-    cv::Mat mask = cv::Mat::zeros(labelImage.size(), IMAGE_TYPE_1_CANALE);
+    cv::Mat mask = cv::Mat::zeros(labelImage.size(), IMAGE_TYPE_1_CHANNEL);
 
     // Filter components based on area size threshold
     for (int i = 1; i < numLabels; ++i) {

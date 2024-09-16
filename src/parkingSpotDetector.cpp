@@ -84,7 +84,7 @@ std::vector<cv::RotatedRect> detectParkingSpotInImage(const cv::Mat& image) {
     double avg_pos_width = compute_avg(pos_lengths);
     double avg_neg_width = compute_avg(neg_lengths);
 
-    preprocessed = preprocess_find_parking_lines(image);
+    preprocessed = preprocessFindParkingLines(image);
  
     // offsets from avg values
     std::vector<int> angle_offsets = {-6,-5,-4,-3,-2,-1,0,1,2,3,4,5,6};
@@ -931,34 +931,4 @@ cv::Mat preprocess_find_white_lines(const cv::Mat& src) {
     cv::erode(adpt,adpt,element,cv::Point(-1,-1),3);
 
     return adpt;
-}
-
-cv::Mat preprocess_find_parking_lines(const cv::Mat& src) {
-    cv::Mat filteredImage;
-    cv::bilateralFilter(src, filteredImage, -1, 40, 10);
-
-    cv::Mat gs;
-    cv::cvtColor(filteredImage, gs, cv::COLOR_BGR2GRAY);
-
-    cv::Mat gx;
-    cv::Sobel(gs, gx, CV_16S, 1,0);
-
-    cv::Mat gy;
-    cv::Sobel(gs, gy, CV_16S, 0,1);
-
-    cv::Mat abs_grad_x;
-    cv::Mat abs_grad_y;
-    cv::convertScaleAbs(gx, abs_grad_x);
-    cv::convertScaleAbs(gy, abs_grad_y);
-
-    cv::Mat element = cv::getStructuringElement( 
-                        cv::MORPH_CROSS, cv::Size(3,3)); 
-
-    cv::Mat grad_magn;
-    cv::Mat grad_magn_proc;
-    cv::addWeighted(abs_grad_x, 0.5, abs_grad_y, 0.5, 0, grad_magn);
-    cv::adaptiveThreshold(grad_magn,grad_magn_proc,255, cv::ADAPTIVE_THRESH_GAUSSIAN_C ,cv::THRESH_BINARY, 45,-40);
-    cv::dilate(grad_magn_proc,grad_magn_proc,element,cv::Point(-1,-1),1);
-    cv::erode(grad_magn_proc,grad_magn_proc,element,cv::Point(-1,-1),1);
-    return grad_magn_proc;
 }
