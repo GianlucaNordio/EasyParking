@@ -188,7 +188,6 @@ int main() {
     // Display the classified masks for the base sequence
     std::vector<cv::Mat> classifiedBaseSequenceMasksBGR;
     std::vector<cv::Mat> classifiedBaseSequenceMasksBGRwMask;
-    classifiedBaseSequenceMasksBGRwMask.resize(classifiedBaseSequenceMasksBGR.size());
     convertGreyMaskToBGR(classifiedBaseSequenceMasks, classifiedBaseSequenceMasksBGR);
 
     for(int i = 0; i < classifiedBaseSequenceMasksBGR.size(); i++) {
@@ -216,6 +215,9 @@ int main() {
             cv::addWeighted(dataset[i][j], 0.6, classifiedDatasetMasksBGR[i][j], 0.4, 0, classifiedDatasetMasksBGRwMask[i][j]);
         }
     } 
+
+    for(int i = 0; i < NUMBER_SEQUENCES; i++)
+        addMinimap(datasetMinimap[i], classifiedDatasetMasksBGRwMask[i]);
 
     // Display the results on the dataset one sequence at a time
     for(int i = 0; i < NUMBER_SEQUENCES; i++) {
