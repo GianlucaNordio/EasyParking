@@ -55,18 +55,19 @@ void detectParkingSpots(const std::vector<cv::Mat>& images, std::vector<ParkingS
         }
     }
 
-    for (ParkingSpot& prsd : parsed) {
-            cv::Point2f vertices[4];
-            prsd.rect.points(vertices);
-            for (int i = 0; i < 4; i++) {
-                all_vertices.push_back(vertices[i]);
-                cv::line(final_result, vertices[i], vertices[(i+1) % 4], cv::Scalar(0, 0, 255), 2);
-            }   
-    }
+    // for (ParkingSpot& prsd : parsed) {
+    //         cv::Point2f vertices[4];
+    //         prsd.rect.points(vertices);
+    //         for (int i = 0; i < 4; i++) {
+    //             all_vertices.push_back(vertices[i]);
+    //             cv::line(final_result, vertices[i], vertices[(i+1) % 4], cv::Scalar(0, 0, 255), 2);
+    //         }   
+    // }
 
     cv::imshow("Final detection", final_result);
+    cv::imwrite("final_result_detection.png", final_result);
 
-    cv::imshow("minimap", build_minimap(parkingSpots));
+    cv::imshow("minimap", build_minimap(parkingSpots,final_result));
 
     return;
 }
@@ -569,7 +570,7 @@ std::vector<cv::Point2f> find_corners(const std::vector<cv::Point2f>& points) {
     return corners;
 }
 
-cv::Mat build_minimap(std::vector<ParkingSpot>& parkingSpots){
+cv::Mat build_minimap(std::vector<ParkingSpot>& parkingSpots, cv::Mat hull_image){
 
     std::vector<cv::Point2f> all_vertices;
     for (ParkingSpot& spot : parkingSpots) {
@@ -593,6 +594,8 @@ cv::Mat build_minimap(std::vector<ParkingSpot>& parkingSpots){
         cv::Point2f p2 = hull[(i + 1) % hull.size()]; // Wrap around to form a closed hull
         double distance = cv::norm(p1-p2);
         hullLines.push_back(std::make_pair(distance, cv::Vec4f(p1.x, p1.y, p2.x, p2.y)));
+        cv::line(hull_image, p1,p2, cv::Scalar(255, 0, 0), 2);
+
     }
 
     // Sort the lines by their length in descending order
@@ -611,6 +614,7 @@ cv::Mat build_minimap(std::vector<ParkingSpot>& parkingSpots){
         double b = line.second[1] - m * line.second[0];
         ms.push_back(m);
         bs.push_back(b);
+        cv::line(hull_image, cv::Point2f(line.second[0], line.second[1]),cv::Point2f(line.second[2], line.second[3]), cv::Scalar(0, 0, 255), 4);
     }
 
     std::vector<cv::Point2f> hull_corners;
@@ -633,9 +637,18 @@ cv::Mat build_minimap(std::vector<ParkingSpot>& parkingSpots){
             double x = (b2 - b1) / (m1 - m2);
             double y = m1 * x + b1;
 
+            // if(x<0) x = 0;
+            // if(x >= hull_image.cols) x = hull_image.cols-1;
+            // if(y <0) y = 0;
+            // if(y >= hull_image.rows) y = hull_image.rows -1;
+// 
+            // cv::circle(hull_image, cv::Point2f(x, y), 5, cv::Scalar(0, 0, 255), -1);
             hull_corners.push_back(cv::Point2f(x, y));
         }
     }
+
+    cv::imshow("hull image", hull_image);
+    cv::imwrite("hull_image.png", hull_image);
 
     // Sort the corner points
     std::vector<cv::Point2f> hull_corners_sorted = find_corners(hull_corners);
@@ -645,6 +658,11 @@ cv::Mat build_minimap(std::vector<ParkingSpot>& parkingSpots){
     cv::Size map_size(map_width,map_height);
     std::vector<cv::Point2f> to_hom_points = {cv::Point2f(0,map_height-1), cv::Point2f(0,-25), cv::Point2f(map_width-1,map_height-1), cv::Point2f(map_width-1,-25)};
     cv::Mat F = cv::getPerspectiveTransform(hull_corners_sorted, to_hom_points);
+
+    cv::Mat result;
+    cv::warpPerspective(hull_image,result,F,map_size);
+    cv::imshow("result homography", result);
+    cv::imwrite("homography_result.png", result);
 
     cv::Mat minimap(map_size, CV_8UC3, cv::Scalar(255,255,255));
     
@@ -669,11 +687,16 @@ cv::Mat build_minimap(std::vector<ParkingSpot>& parkingSpots){
         // Compute the minimum area rectangle from the transformed vertices
         cv::RotatedRect minrect = cv::minAreaRect(transformed_vertices);
         transformed_rects.push_back(minrect);
-        vertices[4];
-        minrect.points(vertices);
+ 
+        
+        cv::Point verticesp[4];
+        cv::Point2f vertices2f[4];
+        minrect.points(vertices2f);
         for (int i = 0; i < 4; i++) {
-            //cv::line(minimap, vertices[i], vertices[(i+1) % 4], cv::Scalar(0, 255, 0), 2);
+            verticesp[i] = vertices2f[i];
+            cv::line(minimap, vertices2f[i], vertices2f[(i+1) % 4], cv::Scalar(0,0,0), 6);
         }
+        cv::fillConvexPoly(minimap,verticesp,4,cv::Scalar(130, 96, 21));        
         sum_angle += minrect.angle;
     }
 
@@ -688,16 +711,22 @@ cv::Mat build_minimap(std::vector<ParkingSpot>& parkingSpots){
     for(int i = 0; i<transformed_rects.size(); i++) {
         cv::RotatedRect rect = transformed_rects[i];
         bool occupancy = occupancies[i];
-        cv::RotatedRect to_print(cv::Point2f(rect.center.x+offset_x,rect.center.y+offset_y),cv::Size(60,20),(rect.size.aspectRatio()>1.4?avg_angle:-avg_angle));
-        cv::Point2f vertices[4];
-        to_print.points(vertices);
+        cv::RotatedRect to_print(cv::Point2f(rect.center.x+offset_x,rect.center.y+offset_y),cv::Size(50,25),(rect.size.aspectRatio()>1.4?avg_angle:-avg_angle));
+        cv::Point2f vertices2f[4];
+        cv::Point vertices[4];
+        to_print.points(vertices2f);
         for (int i = 0; i < 4; i++) {
-            cv::line(large_image, vertices[i], vertices[(i+1) % 4], occupancy ? cv::Scalar(0, 0, 255) : cv::Scalar(255,0,0), 2);
+            vertices[i] = vertices2f[i];
+            cv::line(large_image, vertices2f[i], vertices2f[(i+1) % 4], cv::Scalar(0,0,0), 6);
         }
+        cv::fillConvexPoly(large_image,vertices,4,cv::Scalar(130, 96, 21));
     }
 
     // Display the result
+    cv::imshow("Unprocessed minimap", minimap);
+    cv::imwrite("unprocessed_minimap.png", minimap);
     cv::imshow("Centered Minimap", large_image);
+    cv::imwrite("processed_minimap.png", large_image);
     cv::waitKey(0);
 
     return large_image;
@@ -1066,7 +1095,7 @@ cv::RotatedRect build_rotatedrect_from_movement(const cv::Vec4f& segment, const 
         }
         // cv::imshow("projections", image);
         // cv::waitKey(0);
-        bounding_box.center = cv::Point2f(bounding_box.center.x+15,bounding_box.center.y-15);
+        // bounding_box.center = cv::Point2f(bounding_box.center.x+15,bounding_box.center.y-15);
         return bounding_box;
     }
 
