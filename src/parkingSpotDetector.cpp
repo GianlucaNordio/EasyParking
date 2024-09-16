@@ -104,7 +104,7 @@ std::vector<cv::RotatedRect> detectParkingSpotInImage(const cv::Mat& image) {
             int template_height = 4;
             double angle = -avg_pos_angle+angle_offsets[k]; // negative
 
-            std::vector<cv::Mat> rotated_template_and_mask = generate_template(template_width, template_height, angle, false);
+            std::vector<cv::Mat> rotated_template_and_mask = generateTemplate(template_width, template_height, angle, false);
             cv::Mat rotated_template = rotated_template_and_mask[0];
             cv::Mat rotated_mask = rotated_template_and_mask[1];
             cv::Mat tm_result_unnorm;
@@ -185,7 +185,7 @@ std::vector<cv::RotatedRect> detectParkingSpotInImage(const cv::Mat& image) {
             int template_height = 4;
             double angle = avg_neg_angle+angle_offsets[k]; // negative
 
-            std::vector<cv::Mat> rotated_template_and_mask = generate_template(template_width, template_height, angle, true);
+            std::vector<cv::Mat> rotated_template_and_mask = generateTemplate(template_width, template_height, angle, true);
             cv::Mat rotated_template = rotated_template_and_mask[0];
             cv::Mat rotated_mask = rotated_template_and_mask[1];
                             
@@ -1004,70 +1004,4 @@ cv::Vec4f convert_rect_to_line(const cv::RotatedRect& rect) {
 
     // Return the line segment as a vector of 4 floats (x1, y1, x2, y2)
     return cv::Vec4f(midpoint1.x, midpoint1.y, midpoint2.x, midpoint2.y);
-}
-
-
-std::vector<cv::Mat> generate_template(double width, double height, double angle, bool flipped){
-    // angle is negative
-    // Template size
-    int template_height;
-    int template_width;
-    cv::Point rotation_center;
-    double rotation_angle;
-    float rotated_width;
-    float rotated_height;
-
-    height = 6;
-    height = height + 4;
-    width +=4;
-
-    // Rotate the template
-    if(!flipped) {
-        template_height = height;
-        template_width = width;
-        rotation_angle = angle; // negative rotation_angle for not flipped (angle is negative)
-        rotated_width = template_width*cos(-rotation_angle*CV_PI/180)+template_height; // needs positive angle
-        rotated_height = template_width*sin(-rotation_angle*CV_PI/180)+template_height; // needs positive angle
-    }
-
-    if(flipped) {
-        template_height = width;
-        template_width = height;
-        rotation_angle = -90-angle; // negative rotation_angle for flipped (angle is negative)
-        rotated_width = template_height*cos(-angle*CV_PI/180)+template_width; // needs positive angle
-        rotated_height = template_height;   // giusto così sennò si mangia un pezzo di riga e se matcha con la riga mangiata viene generato 
-                                            // un rotatedrect lunghissimo
-    }
-
-    // Horizontal template and mask definition
-    cv::Mat horizontal_template(template_height,template_width,CV_8U,cv::Scalar(0));
-    cv::Mat horizontal_mask(template_height,template_width,CV_8U);
-
-    // Build the template and mask
-    for(int i = 0; i< horizontal_template.rows; i++) {
-        for(int j = 0; j<horizontal_template.cols; j++) {
-            if((!flipped ? i>2 && i < height-2 : j>2&&j<height-2) && (!flipped ? j>2 && j < width-2 : j>2&&j<width-2)) {
-            horizontal_template.at<uchar>(i,j) = 255;
-            horizontal_mask.at<uchar>(i,j) = 245;
-            }
-            else {
-                horizontal_mask.at<uchar>(i,j) = 10;
-            }
-        }
-    }
-
-    rotation_center.y = template_height-1;
-    rotation_center.x = 0;
-
-    cv::Mat R = cv::getRotationMatrix2D(rotation_center, rotation_angle,1);
-    cv::Mat rotated_template;
-    cv::Mat rotated_mask;
-    
-    cv::warpAffine(horizontal_template,rotated_template,R,cv::Size(rotated_width,rotated_height));
-    cv::warpAffine(horizontal_mask,rotated_mask,R,cv::Size(rotated_width,rotated_height));
-
-    // cv::imshow("original template", horizontal_template);
-    // cv::imshow("template", rotated_template);
-
-    return std::vector<cv::Mat>{rotated_template,rotated_mask};
 }

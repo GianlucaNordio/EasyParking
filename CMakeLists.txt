@@ -68,6 +68,12 @@ add_library(parkingSpotUtils
 )
 target_link_libraries(parkingSpotUtils ${OpenCV_LIBS})
 
+add_library(templateMatching
+    include/templateMatching.hpp
+    src/templateMatching.cpp
+)
+target_link_libraries(templateMatching ${OpenCV_LIBS})
+
 # Aggiungi l'eseguibile
 add_executable(EasyParking ${SOURCES})
 
@@ -82,5 +88,6 @@ target_link_libraries(EasyParking
     classification
     minimap
     parkingSpotUtils
+    templateMatching
     ${OpenCV_LIBS}
 )

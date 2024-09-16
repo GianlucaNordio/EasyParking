@@ -117,12 +117,12 @@ int main() {
     std::vector<std::vector<cv::Mat>> datasetMinimap;
 
     for(int i = 0; i < baseSequence.size(); i++)
-        baseSequenceMinimap.push_back(cv::Mat(MINIMAP_ROWS, MINIMAP_COLS, IMAGE_TYPE, WHITE));
+        baseSequenceMinimap.push_back(cv::Mat(MINIMAP_ROWS, MINIMAP_COLS, IMAGE_TYPE_3_CANALI, WHITE));
         
     for(int i = 0; i < NUMBER_SEQUENCES; i++) {
         datasetMinimap.push_back(std::vector<cv::Mat>());
         for(int j = 0; j < dataset[i].size(); j++) {
-            datasetMinimap[i].push_back(cv::Mat(MINIMAP_ROWS, MINIMAP_COLS, IMAGE_TYPE, WHITE));
+            datasetMinimap[i].push_back(cv::Mat(MINIMAP_ROWS, MINIMAP_COLS, IMAGE_TYPE_3_CANALI, WHITE));
         }
     }
 

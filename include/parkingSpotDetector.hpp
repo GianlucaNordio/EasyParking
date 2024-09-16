@@ -10,6 +10,7 @@
 
 #include "parkingSpot.hpp"
 #include "parkingSpotUtils.hpp"
+#include "templateMatching.hpp"
 #include "constants.hpp"
 
 void detectParkingSpots(const std::vector<cv::Mat>& images, std::vector<ParkingSpot>& parkingSpots);
@@ -25,8 +26,6 @@ double compute_avg(std::vector<double>& data);
 double getSegmentAngularCoefficient(const cv::Vec4f& segment);
 
 float get_segment_length(const cv::Vec4f& segment);
-
-std::vector<cv::Mat> generate_template(double width, double height, double angle, bool flipped);
 
 cv::Vec4f convert_rect_to_line(const cv::RotatedRect& rect);
 

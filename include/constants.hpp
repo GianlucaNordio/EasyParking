@@ -94,7 +94,12 @@ const float PERCENTAGE_INSIDE_THRESHOLD = 0.7;
 /**
  * @brief Type of image (3-channel 8-bit color image).
  */
-const int IMAGE_TYPE = CV_8UC3;
+const int IMAGE_TYPE_3_CANALI = CV_8UC3;
+
+/**
+ * @brief Type of image (1-channel 8-bit color image).
+ */
+const int IMAGE_TYPE_1_CANALE = CV_8U;
 
 /**
  * @brief Shift used for adjusting the color when combining images.
@@ -130,6 +135,21 @@ const int SEPARATION_LINE_LENGTH = 36;
  * @brief Threshold used for aligning rectangles.
  */
 const double ALIGNED_RECTS_THRESHOLD = 30;
+
+/**
+ * @brief Value used for the black area in the mask in template matching.
+ */
+const int MASK_LINE_VALUE_LOW = 10;
+
+/**
+ * @brief Value used for the white area in the mask in template matching.
+ */
+const int MASK_LINE_VALUE_HIGH = 245;
+
+/**
+ * @brief Value used for the template in template matching.
+ */
+const int TEMPLATE_LINE_VALUE = 255;
 
 /**
  * @brief Number of rows for the minimap image.
