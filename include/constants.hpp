@@ -133,9 +133,47 @@ const double PERCENTAGE_INSIDE_THRESHOLD = 0.7;
 const double SPLIT_DIRECTION_OFFSET = 35;
 
 /**
- * @brief A constante used to transform value into percentage
+ * @brief A constante used to transform value into percentage.
  */
 const double PERCENTAGE = 100;
+
+/**
+ * @brief Fraction of segment length to travel from the leftmost endpoint to place 
+ *        the starting point of the perpendicular line of a segment with positive slope.
+ */
+const double POSITIVE_SLOPE_SCALE = 0.6;
+
+/**
+ * @brief Extend segments by this factor when another .
+ */
+const double EXTENSION_SCALE = 0.4;
+
+/**
+ * @brief Fraction of segment length to travel from the leftmost endpoint to place 
+ *        the starting point of the perpendicular line of a segment with negative slope.
+ */
+const double NEGATIVE_SLOPE_SCALE = 0.25;
+
+/**
+ * @brief Scale factor used to compute the length for the perpendicular segment.
+ */
+const double SEARCH_LENGTH_SCALE = 2.5;
+
+/**
+ * @brief The minimum allowed distance between two segments to build a rotated rect.
+ */
+const double LOWER_BOUND_DISTANCE = 22.5;
+
+/**
+ * @brief Shift applied to the center of the rectangle to adjust the position of the parking spot.
+ *        This is done only to achieve better result in the evaluation step. (See the report)
+ */
+const double CENTER_SHIFT = 15;
+
+/**
+ * @brief The max length of the perpendicular segment used to search lines of the same slope.
+ */
+const double MAX_SEARCH_LENGTH = 200.0;
 
 /**
  * @brief The minimum area of a rectangle to be considered valid.

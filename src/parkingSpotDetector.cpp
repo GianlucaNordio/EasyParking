@@ -1,12 +1,28 @@
 #include "parkingSpotDetector.hpp"
 
+/**
+ * @brief Detects parking spots from a collection of images and updates the provided list of parking spots.
+ * 
+ * This function processes a series of images to detect potential parking spots. For each image, it:
+ * 1. Finds potential parking spots by calling the `detectParkingSpotInImage` function.
+ * 2. Collects all detected rotated rectangles (representing parking spots) into a vector.
+ * 3. Applies Non-Maximum Suppression (NMS) to filter out overlapping rectangles based on a predefined threshold.
+ * 4. Removes the rectangles identified by NMS from the list of detected rectangles.
+ * 5. Converts the remaining rectangles into `ParkingSpot` objects and adds them to the `parkingSpots` vector.
+ * 
+ * @param images A vector of `cv::Mat` objects representing the images to process.
+ * @param parkingSpots A reference to a vector of `ParkingSpot` objects where the detected parking spots will be stored.
+ */
+
 void detectParkingSpots(const std::vector<cv::Mat>& images, std::vector<ParkingSpot>& parkingSpots) {
-    
+
     std::vector<cv::RotatedRect> allRectsFound;
     for(const cv::Mat& image : images) {
         // Find parking spots for each image separately
-        for(cv::RotatedRect parkingSpotimage : detectParkingSpotInImage(image)) {
-            allRectsFound.push_back(parkingSpotimage);
+        std::vector<ParkingSpot> parkingSpotsImage;
+        detectParkingSpotInImage(image, parkingSpotsImage);
+        for(ParkingSpot spot : parkingSpotsImage) {
+            allRectsFound.push_back(spot.rect);
         }
     }
 
@@ -24,15 +40,12 @@ void detectParkingSpots(const std::vector<cv::Mat>& images, std::vector<ParkingS
     int count = 0;
 
     for (cv::RotatedRect& rect : allRectsFound) {
-        if(rect.size.area()>1) { // the if is needed because removing with the iterator produces rects with zero area
-            parkingSpots.push_back(ParkingSpot(count, 1 , false, rect));
-            count++;
-        }
+        parkingSpots.push_back(ParkingSpot(count, 1 , false, rect));
+        count++;
     }
 }
 
-std::vector<cv::RotatedRect> detectParkingSpotInImage(const cv::Mat& image) {
-    std::vector<ParkingSpot> parkingSpots;
+void detectParkingSpotInImage(const cv::Mat& image, std::vector<ParkingSpot>& parkingSpots) {
 	std::vector<cv::RotatedRect> spots;
     cv::Mat preprocessed = preprocessFindWhiteLines(image);
     cv::Mat intermediate_results = image.clone();
@@ -124,7 +137,7 @@ std::vector<cv::RotatedRect> detectParkingSpotInImage(const cv::Mat& image) {
                 cv::Point center;
                 center.x = pt.x + rotated_template.cols / 2;
                 center.y = pt.y + rotated_template.rows / 2;
-
+                    //*1.25 = boundingbox scale
                 cv::RotatedRect rotated_rect(center, cv::Size(template_width*1.25, template_height*1.25), -angle);
                 
                 // Check overlap with existing rects in list_boxes2
@@ -397,9 +410,22 @@ std::vector<cv::RotatedRect> detectParkingSpotInImage(const cv::Mat& image) {
         }
     }
 
-	return all_close_rects;
+	for (const cv::RotatedRect& rect : all_close_rects) {
+        parkingSpots.push_back(ParkingSpot(0, 1, false, rect));
+    }
 }
 
+/**
+ * @brief Constructs rotated rectangles from a vector of segments.
+ * 
+ * This function processes a vector of segments to build rotated rectangles. For each segment in the input vector:
+ * 1. It calls the `buildRotateRectFromPerpendicular` function to create a rotated rectangle based on the segment.
+ * 2. It checks if the resulting rotated rectangle has a size area greater than a predefined minimum area.
+ * 3. Only rectangles meeting the area criterion are added to the result vector.
+ * 
+ * @param segments A vector of `cv::Vec4f` representing the segments, where each `cv::Vec4f` contains coordinates of a segment (x1, y1, x2, y2).
+ * @return A vector of `cv::RotatedRect` representing the constructed rotated rectangles that meet the size area requirement.
+ */
 std::vector<cv::RotatedRect> buildRotateRectsFromSegments(const std::vector<cv::Vec4f>& segments) {
     std::vector<cv::RotatedRect> rotatedRects;
 
@@ -407,13 +433,29 @@ std::vector<cv::RotatedRect> buildRotateRectsFromSegments(const std::vector<cv::
     for (const cv::Vec4f& segment : segments) {
         // Process each segment and build the rotated rectangle
         cv::RotatedRect rotatedRect = buildRotateRectFromPerpendicular(segment, segments);
-        rotatedRects.push_back(rotatedRect);
+        if(rotatedRect.size.area()> MIN_AREA)
+            rotatedRects.push_back(rotatedRect);
     }
 
     return rotatedRects;
 }
 
-
+/**
+ * @brief Builds a rotated rectangle based on a perpendicular segment and other segments.
+ * 
+ * This function constructs a rotated rectangle from a given segment by extending the segment and finding
+ * intersections with other segments. The process involves:
+ * 1. Calculating the perpendicular direction to the original segment.
+ * 2. Extending the segment to a certain length.
+ * 3. Checking for intersections between the extended perpendicular segment and other segments.
+ * 4. Using the closest intersection to define the rotated rectangle.
+ * 
+ * The function also adjusts the center of the resulting rotated rectangle by a predefined shift.
+ * 
+ * @param segment A `cv::Vec4f` representing the original segment, with coordinates (x1, y1, x2, y2).
+ * @param segments A vector of `cv::Vec4f` representing other segments to check for intersections.
+ * @return A `cv::RotatedRect` representing the constructed rotated rectangle, or an empty `cv::RotatedRect` if no valid intersection is found.
+ */
 cv::RotatedRect buildRotateRectFromPerpendicular(const cv::Vec4f& segment, const std::vector<cv::Vec4f>& segments) {
     // Rightmost endpoint of the original segment
     cv::Point2f rightEndpoint(segment[2], segment[3]);
@@ -432,18 +474,15 @@ cv::RotatedRect buildRotateRectFromPerpendicular(const cv::Vec4f& segment, const
 
     cv::Point2f start;
     if(slope > 0) {
-        start = leftEndpoint + cv::Point2f(direction[0] * length * 0.6, direction[1] * length * 0.6);
+        start = leftEndpoint + cv::Point2f(direction[0] * length * POSITIVE_SLOPE_SCALE, direction[1] * length * POSITIVE_SLOPE_SCALE);
     }
     else {
-        start = leftEndpoint + cv::Point2f(direction[0] * length * 0.25, direction[1] * length * 0.25);
+        start = leftEndpoint + cv::Point2f(direction[0] * length * NEGATIVE_SLOPE_SCALE, direction[1] * length * NEGATIVE_SLOPE_SCALE);
     }
-
-    // 200 = max search lengt, 2.5 = searchlenght scale , 0.6 = positive slope scale, 0.25 = negative slope scale, 0.4 = extension scale
-    // 22.5 = lover bound distance, 15 = center shift for metrics
 
     // Find the perpendicular direction (rotate by 90 degrees)
     cv::Vec2f perpendicularDirection(-direction[1], direction[0]);
-    double searchLength = std::min(2.5 * length, 200.0);
+    double searchLength = std::min(SEARCH_LENGTH_SCALE * length, MAX_SEARCH_LENGTH);
 
     // Create the perpendicular segment from the rightmost endpoint
     cv::Point2f perpendicularFromRightmostEndpoint = start + cv::Point2f(perpendicularDirection[0] * searchLength, perpendicularDirection[1] * searchLength);
@@ -457,13 +496,13 @@ cv::RotatedRect buildRotateRectFromPerpendicular(const cv::Vec4f& segment, const
     // Check intersection of the perpendicular segment with every other segment
     for (const cv::Vec4f& otherSegment : segments) {
         cv::Point2f intersection;
-        cv::Vec4f perp_vect = cv::Vec4f(start.x, start.y, perpendicularFromRightmostEndpoint.x, perpendicularFromRightmostEndpoint.y);
-        cv::Vec4f extended_seg1 = extendSegment(otherSegment, 0.4f);
-        if (otherSegment != segment && segmentsIntersect(extended_seg1, perp_vect, intersection)) {
+        cv::Vec4f perpendicularVector = cv::Vec4f(start.x, start.y, perpendicularFromRightmostEndpoint.x, perpendicularFromRightmostEndpoint.y);
+        cv::Vec4f extendedSegment1 = extendSegment(otherSegment, EXTENSION_SCALE);
+        if (otherSegment != segment && segmentsIntersect(extendedSegment1, perpendicularVector, intersection)) {
 
-            float dist = cv::norm(start-intersection);
+            double dist = cv::norm(start - intersection);
             // last conditions to ensure that close segments of another parking slot line does not interfere
-            if (dist > 22.5 && dist < minDistance) { // last conditions to ensure that close segments of another parking slot line does not interfere) { 
+            if (dist > SEARCH_LENGTH_SCALE && dist < minDistance) { 
                 minDistance = dist;
                 closestIntersection = intersection;
                 foundIntersection = true;
@@ -479,26 +518,25 @@ cv::RotatedRect buildRotateRectFromPerpendicular(const cv::Vec4f& segment, const
         cv::Point2f endpoint1(closestSegment[0], closestSegment[1]);
         cv::Point2f endpoint2(closestSegment[2], closestSegment[3]);
 
-        double length_other = getSegmentLength(closestSegment);
-        cv::Point2f destination_right(endpoint2.x, endpoint2.x*slope+intercept);
+        cv::Point2f destinationRight(endpoint2.x, endpoint2.x * slope + intercept);
 
-        cv::Point2f destination_bottom = destination_right + cv::Point2f(perpendicularDirection[0] * minDistance, perpendicularDirection[1] * minDistance);
-        cv::RotatedRect bounding_box;
+        cv::Point2f destinationBottom = destinationRight + cv::Point2f(perpendicularDirection[0] * minDistance, perpendicularDirection[1] * minDistance);
+        cv::RotatedRect boundingBox;
         if(slope>0) {
-            bounding_box = cv::RotatedRect(leftEndpoint,destination_right,destination_bottom);        
+            boundingBox = cv::RotatedRect(leftEndpoint, destinationRight, destinationBottom);        
             } 
         else {
-            cv::Point2f destination_left((endpoint1.y-intercept)/slope,endpoint1.y);
-            cv::Point2f destination_up = destination_left + cv::Point2f(perpendicularDirection[0]*minDistance, perpendicularDirection[1] * minDistance);
-            bounding_box = cv::RotatedRect(rightEndpoint,destination_left,destination_up);
+            cv::Point2f destinationLeft((endpoint1.y - intercept) / slope, endpoint1.y);
+            cv::Point2f destinationUp = destinationLeft + cv::Point2f(perpendicularDirection[0] * minDistance, perpendicularDirection[1] * minDistance);
+            boundingBox = cv::RotatedRect(rightEndpoint, destinationLeft, destinationUp);
         }
         
         cv::Point2f vertices[4];
-        bounding_box.points(vertices);
+        boundingBox.points(vertices);
 
-        bounding_box.center = cv::Point2f(bounding_box.center.x+15,bounding_box.center.y-15);
+        boundingBox.center = cv::Point2f(boundingBox.center.x + CENTER_SHIFT, boundingBox.center.y - CENTER_SHIFT);
 
-        return bounding_box;
+        return boundingBox;
     }
 
     // If no intersection is found, return a default (empty) rotated rect
