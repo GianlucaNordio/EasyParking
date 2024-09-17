@@ -275,7 +275,7 @@ void detectParkingSpotInImage(const cv::Mat& image, std::vector<ParkingSpot>& pa
 
     distance_threshold = avg_pos_width*0.4;
     std::vector<cv::Vec4f> filtered_segments_neg = filterCloseSegments(no_top_right_neg, distance_threshold);
-    distance_threshold = avg_pos_width*0.4;
+    distance_threshold = avg_neg_width*0.4;
     std::vector<cv::Vec4f> filtered_segments_pos = filterCloseSegments(no_top_right_pos, distance_threshold);
 
     std::vector<cv::Vec4f> trimmed_segments_neg;
