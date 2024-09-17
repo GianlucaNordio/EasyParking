@@ -5,6 +5,7 @@
 #include <opencv2/opencv.hpp>
 #include <vector>
 
+#include "rectUtils.hpp"
 #include "constants.hpp"
 
 /**
@@ -23,5 +24,7 @@
  * @return A vector of two `cv::Mat` objects: the first is the rotated template, and the second is the rotated mask.
  */
 std::vector<cv::Mat> generateTemplate(double width, double angle, bool flipped);
+
+void multiRotationTemplateMatching(const cv::Mat& image, double avgWidth, double avgAngle, double height, double scaleTemplate, double scaleRect, double threshold, std::vector<int> angleOffsets, std::vector<cv::RotatedRect>& rects, bool isAnglePositive);
 
 #endif // TEMPLATEMATCHING_HPP

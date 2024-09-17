@@ -84,173 +84,18 @@ void detectParkingSpotInImage(const cv::Mat& image, std::vector<ParkingSpot>& pa
  
     // offsets from avg values
     std::vector<int> angle_offsets = {-6,-5,-4,-3,-2,-1,0,1,2,3,4,5,6};
-    std::vector<float> length_scales = {1.25};
+    std::vector<double> length_scales = {1.25};
     std::vector<cv::RotatedRect> list_boxes;
-    std::vector<float> rect_scores(list_boxes.size(), -1); // Initialize scores with -1 for non-existing rects
-
-    for(int l = 0; l<length_scales.size(); l++) {
-        for(int k = 0; k<angle_offsets.size(); k++) {
-            int template_width = avg_pos_width*length_scales[l];
-            int template_height = 4;
-            double angle = -avg_pos_angle+angle_offsets[k]; // negative
-
-            std::vector<cv::Mat> rotated_template_and_mask = generateTemplate(template_width, angle, false);
-            cv::Mat rotated_template = rotated_template_and_mask[0];
-            cv::Mat rotated_mask = rotated_template_and_mask[1];
-            cv::Mat tm_result_unnorm;
-            cv::Mat tm_result;
-            cv::matchTemplate(preprocessed,rotated_template,tm_result_unnorm,cv::TM_SQDIFF,rotated_mask);
-            cv::normalize( tm_result_unnorm, tm_result, 0, 1, cv::NORM_MINMAX, -1, cv::Mat() );
-            // Finding local minima
-            cv::Mat eroded;
-            std::vector<cv::Point> minima;
-            cv::Mat kernel = cv::getStructuringElement(cv::MORPH_RECT, cv::Size(rotated_template.cols, rotated_template.rows));
-            cv::erode(tm_result, eroded, kernel);
-            cv::Mat localMinimaMask = (tm_result == eroded) & (tm_result <= 0.2);
-
-            // Find all non-zero points (local minima) in the mask
-            cv::findNonZero(localMinimaMask, minima);
-
-            // Iterate through each local minimum and process them
-            for (const cv::Point& pt : minima) {
-                // Calculate score based on the value in tm_result_unnorm at pt
-                float score = tm_result_unnorm.at<float>(pt);
-
-                // Get center of the bbox to draw the rotated rect
-                cv::Point center;
-                center.x = pt.x + rotated_template.cols / 2;
-                center.y = pt.y + rotated_template.rows / 2;
-                    //*1.25 = boundingbox scale
-                cv::RotatedRect rotated_rect(center, cv::Size(template_width*1.25, template_height*1.25), -angle);
-                
-                // Check overlap with existing rects in list_boxes2
-                bool overlaps = false;
-                std::vector<size_t> overlapping_indices;
-
-                for (size_t i = 0; i < list_boxes.size(); ++i) {
-                    if (areRectsOverlapping(rotated_rect, list_boxes[i]) && rotated_rect.size.area() == list_boxes[i].size.area()) {
-                        overlaps = true;
-                        overlapping_indices.push_back(i);
-                    }
-                }
-
-                // Determine whether to add the current rect
-                if (!overlaps) {
-                    // No overlap, add the rect directly
-                    list_boxes.push_back(rotated_rect);
-                    rect_scores.push_back(score);
-                } 
-                else {
-                    // Handle overlap case: check if the current rect's score is higher (lower is good because we use sqdiff)
-                    bool add_current_rect = true;
-                    for (size_t idx : overlapping_indices) {
-                        if (rotated_rect.size.area() < list_boxes[idx].size.area() || (rotated_rect.size.area() == list_boxes[idx].size.area() && score >= rect_scores[idx])) {
-                            // The current rect has a higher or equal score, so don't add it
-                            add_current_rect = false;
-                            break;
-                        }
-                    }
-
-                    if (add_current_rect) {
-                        // Replace overlapping rects with the current one
-                        for (size_t idx : overlapping_indices) {
-                            list_boxes[idx] = rotated_rect;  // Replace the rect
-                            rect_scores[idx] = score;         // Update the score
-                        }
-                    }
-                }
-            }
-        }
-    }
-  
+    
+    multiRotationTemplateMatching(preprocessed, avg_pos_width, avg_pos_angle, 6, 1.25, 1.25, 0.2, angle_offsets, list_boxes, true);
 
     std::vector<cv::RotatedRect> list_boxes2;
-    std::vector<float> rect_scores2(list_boxes2.size(), -1); // Initialize scores with -1 for non-existing rects
+    std::vector<double> rect_scores2(list_boxes2.size(), -1); // Initialize scores with -1 for non-existing rects
 
     angle_offsets = {-16,-15,-14,-13,-12,-11,-10,-9,-8,-7,-6,-5,-4,-3,-2,-1,0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16};
     length_scales = {1.1};
-    for(int l = 0; l<length_scales.size(); l++) {
-        for(int k = 0; k<angle_offsets.size(); k++) {
-            int template_width = avg_neg_width*length_scales[l];
-            int template_height = 4;
-            double angle = avg_neg_angle+angle_offsets[k]; // negative
-
-            std::vector<cv::Mat> rotated_template_and_mask = generateTemplate(template_width, angle, true);
-            cv::Mat rotated_template = rotated_template_and_mask[0];
-            cv::Mat rotated_mask = rotated_template_and_mask[1];
-                            
-            cv::Mat tm_result_unnorm;
-            cv::Mat tm_result;
-            cv::matchTemplate(preprocessed,rotated_template,tm_result_unnorm,cv::TM_SQDIFF,rotated_mask);
-            cv::normalize( tm_result_unnorm, tm_result, 0, 1, cv::NORM_MINMAX, -1, cv::Mat() );
-
-             // Finding local minima
-            cv::Mat eroded;
-            std::vector<cv::Point> minima;
-            cv::Mat kernel = cv::getStructuringElement(cv::MORPH_RECT, cv::Size(rotated_template.cols, rotated_template.rows));
-            cv::erode(tm_result, eroded, kernel);
-            cv::Mat local_minima_mask = (tm_result == eroded) & (tm_result <= 0.2);
-
-            // Find all non-zero points (local minima) in the mask
-            cv::findNonZero(local_minima_mask, minima);
-
-            // Iterate through each local minimum and process them
-            for (const cv::Point& pt : minima) {
-                // Calculate score based on the value in tm_result_unnorm at pt
-                float score = tm_result_unnorm.at<float>(pt);
-
-                // Get center of the bbox to draw the rotated rect
-                cv::Point center;
-                center.x = pt.x + rotated_template.cols / 2;
-                center.y = pt.y + rotated_template.rows / 2;
-
-                // passare come parametro uno scale di questo rotatedrect perchè in quelli orizzontali serve fare*1.25width e height
-                cv::RotatedRect rotated_rect(center, cv::Size(template_width, template_height), angle);
-                cv::Point2f vertices[4];
-                rotated_rect.points(vertices);
-                for (int i = 0; i < 4; i++) {
-                    //cv::line(image, vertices[i], vertices[(i+1) % 4], cv::Scalar(0, 255, 0), 2);
-                }
-
-                // Check overlap with existing rects in list_boxes2
-                bool overlaps = false;
-                std::vector<size_t> overlapping_indices;
-
-                for (size_t i = 0; i < list_boxes2.size(); ++i) {
-                    if (areRectsOverlapping(rotated_rect, list_boxes2[i]) && rotated_rect.size.area() == list_boxes[i].size.area()) {
-                        overlaps = true;
-                        overlapping_indices.push_back(i);
-                    }
-                }
-
-                // Determine whether to add the current rect
-                if (!overlaps) {
-                    // No overlap, add the rect directly
-                    list_boxes2.push_back(rotated_rect);
-                    rect_scores2.push_back(score);
-                } 
-                else {
-                    // Handle overlap case: check if the current rect's score is higher
-                    bool add_current_rect = true;
-                    for (size_t idx : overlapping_indices) {
-                        if (rotated_rect.size.area() < list_boxes2[idx].size.area() || (rotated_rect.size.area() == list_boxes2[idx].size.area() && score >= rect_scores2[idx])) {
-                            // The current rect has a lower or equal score, so don't add it
-                            add_current_rect = false;
-                            break;
-                        }
-                    }
-
-                    if (add_current_rect) {
-                        // Replace overlapping rects with the current one
-                        for (size_t idx : overlapping_indices) {
-                            list_boxes2[idx] = rotated_rect;  // Replace the rect
-                            rect_scores2[idx] = score;         // Update the score
-                        }
-                    }
-                }
-            }
-        }
-    }
+    
+    multiRotationTemplateMatching(preprocessed, avg_neg_width, avg_neg_angle, 6, 1.1, 1, 0.2, angle_offsets, list_boxes2, false);
 
     std::vector<cv::RotatedRect> merged_pos_rects = mergeOverlappingRects(list_boxes);
     std::vector<cv::RotatedRect> merged_neg_rects = mergeOverlappingRects(list_boxes2);
@@ -285,8 +130,6 @@ void detectParkingSpotInImage(const cv::Mat& image, std::vector<ParkingSpot>& pa
             trimIfIntersect(line_neg,line_pos);
             double length_trimmed = getSegmentLength(line_neg);
         }        
-        // cv::line(image, cv::Point(line_neg[0], line_neg[1]), cv::Point(line_neg[2], line_neg[3]), 
-        // cv::Scalar(255, 0, 0), 2, cv::LINE_AA); 
     }
 
   // Thresholds
