@@ -1380,8 +1380,18 @@ std::vector<cv::Mat> generate_template(double width, double height, double angle
     cv::warpAffine(horizontal_template,rotated_template,R,cv::Size(rotated_width,rotated_height));
     cv::warpAffine(horizontal_mask,rotated_mask,R,cv::Size(rotated_width,rotated_height));
 
-    // cv::imshow("original template", horizontal_template);
-    // cv::imshow("template", rotated_template);
+    cv::imshow("original template", horizontal_template);
+    cv::imshow("template", rotated_template);
+    if(!flipped && abs(angle) > 9.7 && abs(angle) < 10 ) {
+        cv::imwrite("tm_final_original.png", horizontal_template);
+        cv::imwrite("tm_final_rotated.png", rotated_template);
+        cv::imwrite("tm_final_mask.png", horizontal_mask);
+    }
+    if(flipped) {
+        cv::imwrite("tm_final_flipped.png", horizontal_template);
+        cv::imwrite("tm_final_flip_rot.png", rotated_template);
+        cv::imwrite("tm_final_flip_mask.png", rotated_mask);
+    }
 
     return std::vector<cv::Mat>{rotated_template,rotated_mask};
 }
