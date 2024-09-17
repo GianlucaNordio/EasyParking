@@ -320,10 +320,6 @@ void detectParkingSpotInImage(const cv::Mat& image, std::vector<ParkingSpot>& pa
         }
     }
 
-    // Output the result
-    std::vector<cv::Point2f> centers_all;
-
-    // Output the result
     std::vector filtered_rects = filterBySurrounding(rotated_rects2, rotated_rects, image);
     std::vector<double> areas;
     double median_area;
@@ -386,7 +382,6 @@ void detectParkingSpotInImage(const cv::Mat& image, std::vector<ParkingSpot>& pa
     std::vector<cv::RotatedRect> all_close_rects;
     for(const cv::RotatedRect& rect:allRectsFound) {
         if(!isAlone(rect,allRectsFound)) {
-            centers_all.push_back(rect.center);
             all_close_rects.push_back(rect);
             cv::Point2f vertices[4];
             rect.points(vertices);
@@ -500,11 +495,10 @@ cv::RotatedRect buildRotateRectFromPerpendicular(const cv::Vec4f& segment, const
         cv::Point2f endpoint1(closestSegment[0], closestSegment[1]);
         cv::Point2f endpoint2(closestSegment[2], closestSegment[3]);
 
-        cv::Point2f destinationRight(endpoint2.x, endpoint2.x * slope + intercept);
-
-        cv::Point2f destinationBottom = destinationRight + cv::Point2f(perpendicularDirection[0] * minDistance, perpendicularDirection[1] * minDistance);
         cv::RotatedRect boundingBox;
         if(slope>0) {
+            cv::Point2f destinationRight(endpoint2.x, endpoint2.x * slope + intercept);
+            cv::Point2f destinationBottom = destinationRight + cv::Point2f(perpendicularDirection[0] * minDistance, perpendicularDirection[1] * minDistance);
             boundingBox = cv::RotatedRect(leftEndpoint, destinationRight, destinationBottom);        
             } 
         else {
