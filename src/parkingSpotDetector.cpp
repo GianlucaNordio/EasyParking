@@ -1,26 +1,14 @@
 #include "parkingSpotDetector.hpp"
 
-/**
- * @brief Detects parking spots from a collection of images and updates the provided list of parking spots.
- * 
- * This function processes a series of images to detect potential parking spots. For each image, it:
- * 1. Finds potential parking spots by calling the `detectParkingSpotInImage` function.
- * 2. Collects all detected rotated rectangles (representing parking spots) into a vector.
- * 3. Applies Non-Maximum Suppression (NMS) to filter out overlapping rectangles based on a predefined threshold.
- * 4. Removes the rectangles identified by NMS from the list of detected rectangles.
- * 5. Converts the remaining rectangles into `ParkingSpot` objects and adds them to the `parkingSpots` vector.
- * 
- * @param images A vector of `cv::Mat` objects representing the images to process.
- * @param parkingSpots A reference to a vector of `ParkingSpot` objects where the detected parking spots will be stored.
- */
 
-void detectParkingSpots(const std::vector<cv::Mat>& images, std::vector<ParkingSpot>& parkingSpots) {
+void detectParkingSpots(const std::vector<cv::Mat>& images, std::vector<ParkingSpot>& bestParkingSpots, std::vector<::std::vector<ParkingSpot>>& baseSequenceParkingSpots) {
 
     std::vector<cv::RotatedRect> allRectsFound;
     for(const cv::Mat& image : images) {
         // Find parking spots for each image separately
         std::vector<ParkingSpot> parkingSpotsImage;
         detectParkingSpotInImage(image, parkingSpotsImage);
+        baseSequenceParkingSpots.push_back(parkingSpotsImage);
         for(ParkingSpot spot : parkingSpotsImage) {
             allRectsFound.push_back(spot.rect);
         }
@@ -40,7 +28,7 @@ void detectParkingSpots(const std::vector<cv::Mat>& images, std::vector<ParkingS
     int count = 0;
 
     for (cv::RotatedRect& rect : allRectsFound) {
-        parkingSpots.push_back(ParkingSpot(count, 1 , false, rect));
+        bestParkingSpots.push_back(ParkingSpot(count, 1 , false, rect));
         count++;
     }
 }
@@ -81,14 +69,9 @@ void detectParkingSpotInImage(const cv::Mat& image, std::vector<ParkingSpot>& pa
             pos_angles.push_back(angle);
             pos_lengths.push_back(length);
 
-            //cv::line(intermediate_results, cv::Point(segment[0], segment[1]), cv::Point(segment[2], segment[3]), 
-            //     cv::Scalar(0, 255, 0), 2, cv::LINE_AA); 
         } else if (angle < 0) {
             neg_angles.push_back(angle);
             neg_lengths.push_back(length);
-
-            //cv::line(intermediate_results, cv::Point(segment[0], segment[1]), cv::Point(segment[2], segment[3]), 
-            //cv::Scalar(255, 0, 0), 2, cv::LINE_AA); 
         }
     }
 

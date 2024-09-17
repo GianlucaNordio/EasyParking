@@ -10,20 +10,7 @@
 #include "templateMatching.hpp"
 #include "constants.hpp"
 
-/**
- * @brief Detects parking spots from a collection of images and updates the provided list of parking spots.
- * 
- * This function processes a series of images to detect potential parking spots. For each image, it:
- * 1. Finds potential parking spots by calling the `detectParkingSpotInImage` function.
- * 2. Collects all detected rotated rectangles (representing parking spots) into a vector.
- * 3. Applies Non-Maximum Suppression (NMS) to filter out overlapping rectangles based on a predefined threshold.
- * 4. Removes the rectangles identified by NMS from the list of detected rectangles.
- * 5. Converts the remaining rectangles into `ParkingSpot` objects and adds them to the `parkingSpots` vector.
- * 
- * @param images A vector of `cv::Mat` objects representing the images to process.
- * @param parkingSpots A reference to a vector of `ParkingSpot` objects where the detected parking spots will be stored.
- */
-void detectParkingSpots(const std::vector<cv::Mat>& images, std::vector<ParkingSpot>& parkingSpots);
+void detectParkingSpots(const std::vector<cv::Mat>& images, std::vector<ParkingSpot>& bestParkingSpots, std::vector<std::vector<ParkingSpot>>& baseSequenceParkingSpots);
 
 void detectParkingSpotInImage(const cv::Mat& image, std::vector<ParkingSpot>& parkingSpots);
 

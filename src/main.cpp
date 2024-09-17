@@ -51,15 +51,11 @@ int main() {
     std::cout << "STEP 2:" << std::endl;
 
     std::vector<ParkingSpot> parkingSpot;
-    detectParkingSpots(baseSequence, parkingSpot); 
-
-    // Create a copy of the parkingSpot vector for each immage in the dataset
     std::vector<std::vector<ParkingSpot>> baseSequenceParkingSpot;
-    for(int i = 0; i < baseSequence.size(); i++) {
-        baseSequenceParkingSpot.push_back(parkingSpot);
-    }
-
     std::vector<std::vector<std::vector<ParkingSpot>>> datasetParkingSpot;
+    
+    detectParkingSpots(baseSequence, parkingSpot, baseSequenceParkingSpot); 
+
     for(int i = 0; i < NUMBER_SEQUENCES; i++) {
         std::vector<std::vector<ParkingSpot>> sequenceParkingSpot;
         for(int j = 0; j < dataset[i].size(); j++) {
