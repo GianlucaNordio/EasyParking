@@ -502,12 +502,11 @@ cv::RotatedRect buildRotateRectFromPerpendicular(const cv::Vec4f& segment, const
 
             double dist = cv::norm(start - intersection);
             // last conditions to ensure that close segments of another parking slot line does not interfere
-            if (dist > SEARCH_LENGTH_SCALE && dist < minDistance) { 
+            if (dist > LOWER_BOUND_DISTANCE && dist < minDistance) { 
                 minDistance = dist;
                 closestIntersection = intersection;
                 foundIntersection = true;
-                closestSegment = otherSegment;
-                
+                closestSegment = otherSegment;           
             }
         }
     }
