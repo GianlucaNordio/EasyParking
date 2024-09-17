@@ -193,7 +193,7 @@ std::vector<cv::RotatedRect> detectParkingSpotInImage(const cv::Mat& image) {
                 std::vector<size_t> overlapping_indices;
 
                 for (size_t i = 0; i < list_boxes.size(); ++i) {
-                    if (are_rects_overlapping(rotated_rect, list_boxes[i]) && rotated_rect.size.area() == list_boxes[i].size.area()) {
+                    if (computeIntersectionArea(rotated_rect, list_boxes[i])>0) {
                         overlaps = true;
                         overlapping_indices.push_back(i);
                     }
@@ -219,8 +219,21 @@ std::vector<cv::RotatedRect> detectParkingSpotInImage(const cv::Mat& image) {
                     if (add_current_rect) {
                         // Replace overlapping rects with the current one
                         for (size_t idx : overlapping_indices) {
+                            cv::Point2f vertices_cur[4];
+                            rotated_rect.points(vertices_cur);
                             list_boxes[idx] = rotated_rect;  // Replace the rect
                             rect_scores[idx] = score;         // Update the score
+                            cv::Point2f vertices_overlap[4];
+                            list_boxes[idx].points(vertices_overlap);
+
+                            // for(int o = 0; o<4; o++) {
+                            //     cv::line(image, vertices_cur[o], vertices_cur[(o+1) % 4], cv::Scalar(0, 255, 0), 5);
+                            // }
+                            // for(int o = 0; o<4; o++) {
+                            //     cv::line(image, vertices_overlap[o], vertices_overlap[(o+1) % 4], cv::Scalar(255, 0, 0), 2);
+                            // }
+                            // cv::imshow("what",image);
+                            // cv::waitKey(0);
                         }
                     }
                 }
@@ -291,9 +304,10 @@ std::vector<cv::RotatedRect> detectParkingSpotInImage(const cv::Mat& image) {
                 std::vector<size_t> overlapping_indices;
 
                 for (size_t i = 0; i < list_boxes2.size(); ++i) {
-                    if (are_rects_overlapping(rotated_rect, list_boxes2[i]) && rotated_rect.size.area() == list_boxes[i].size.area()) {
+                    if (computeIntersectionArea(rotated_rect, list_boxes2[i])>1) {
                         overlaps = true;
                         overlapping_indices.push_back(i);
+                        std::cout<<"ciao"<<std::endl;
                     }
                 }
 
@@ -330,9 +344,30 @@ std::vector<cv::RotatedRect> detectParkingSpotInImage(const cv::Mat& image) {
     std::vector<cv::RotatedRect> merged_neg_rects = merge_overlapping_rects(list_boxes2);
 
     // Output the result
-    for (const auto& rect : list_boxes) {
+    for (const auto& rect : list_boxes2) {
+        cv::Point2f vertices[4];
+        rect.points(vertices);
 
+        for(int o = 0; o<4; o++) {
+            cv::line(image, vertices[o], vertices[(o+1) % 4], cv::Scalar(0, 255, 0), 2);
+        }
     }
+
+    cv::imshow("image", image);
+    cv::waitKey(0);
+
+// Output the result
+    for (const auto& rect : merged_neg_rects) {
+        cv::Point2f vertices[4];
+        rect.points(vertices);
+
+        for(int o = 0; o<4; o++) {
+            cv::line(image, vertices[o], vertices[(o+1) % 4], cv::Scalar(255, 0, 0), 2);
+        }
+    }
+
+    cv::imshow("image", image);
+    cv::waitKey(0);
 
     // std::vector<cv::RotatedRect> merged_pos_rects = merge_overlapping_rects(list_boxes);
     // std::vector<cv::RotatedRect> merged_neg_rects = merge_overlapping_rects(list_boxes2);
@@ -1053,7 +1088,7 @@ cv::RotatedRect build_rotatedrect_from_movement(const cv::Vec4f& segment, const 
     for (const auto& other_segment : segments) {
         cv::Point2f intersection;
         cv::Vec4f perp_vect = cv::Vec4f(start.x, start.y, perp_end.x, perp_end.y);
-        cv::Vec4f extended_seg1 = extend_segment(other_segment, 0.4f);
+        cv::Vec4f extended_seg1 = extend_segment(other_segment, 0.5f);
         if (other_segment != segment && segments_intersect(extended_seg1, perp_vect, intersection)) {
 
             float dist = cv::norm(start-intersection);
@@ -1102,8 +1137,8 @@ cv::RotatedRect build_rotatedrect_from_movement(const cv::Vec4f& segment, const 
         // cv::imshow("projections", image);
         // cv::waitKey(0);
         // bounding_box.center = cv::Point2f(bounding_box.center.x+15,bounding_box.center.y-15);
-        if(bounding_box.size.width > 70) bounding_box.size.width *= 0.9;
-        if(bounding_box.size.height > 70) bounding_box.size.height *= 0.9;
+        // if(bounding_box.size.width > 70) bounding_box.size.width *= 0.9;
+        // if(bounding_box.size.height > 70) bounding_box.size.height *= 0.9;
         return bounding_box;
     }
 
@@ -1142,7 +1177,7 @@ std::vector<cv::RotatedRect> merge_overlapping_rects(std::vector<cv::RotatedRect
 
         // Check for overlap and alignment with other rects
         for (size_t j = i + 1; j < rects.size(); ++j) {
-            if (!merged[j] && are_rects_overlapping(rects[i], rects[j]) && are_rects_aligned(rects[i], rects[j],16)) {
+            if (!merged[j] && are_rects_overlapping(rects[i], rects[j]) && are_rects_aligned(rects[i], rects[j],32)) {
                 // Merge the overlapping and aligned rect
                 rects[j].points(points);
                 group_points.insert(group_points.end(), points, points + 4);
