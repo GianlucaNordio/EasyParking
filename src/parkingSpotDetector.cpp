@@ -356,15 +356,13 @@ std::vector<cv::RotatedRect> detectParkingSpotInImage(const cv::Mat& image) {
 
     distance_threshold = avg_pos_width*0.4;
     std::vector<cv::Vec4f> filtered_segments_neg = filter_close_segments(no_top_right_neg, distance_threshold);
-    distance_threshold = avg_pos_width*0.4;
+    distance_threshold = avg_neg_width*0.4;
     std::vector<cv::Vec4f> filtered_segments_pos = filter_close_segments(no_top_right_pos, distance_threshold);
 
     std::vector<cv::Vec4f> trimmed_segments_neg;
     for(cv::Vec4f& line_neg: filtered_segments_neg) {
-        double length = get_segment_length(line_neg);
         for(cv::Vec4f line_pos: filtered_segments_pos) {
             trim_if_intersect(line_neg,line_pos);
-            double length_trimmed = get_segment_length(line_neg);
         }        
         // cv::line(image, cv::Point(line_neg[0], line_neg[1]), cv::Point(line_neg[2], line_neg[3]), 
         // cv::Scalar(255, 0, 0), 2, cv::LINE_AA); 
