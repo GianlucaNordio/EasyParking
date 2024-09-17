@@ -186,6 +186,11 @@ const double MIN_AREA = 1;
 const double TEMPLATE_HEIGHT = 10;
 
 /**
+ * @brief Distance facotor used to find midpoint.
+ */
+const double MIDPOINT_DISTANCE_FACTOR = 0.4;
+
+/**
  * @brief Constant used to tell the model to not update its model of the background.
  *        This constant is used by the backgroundSubtraction when performing the prediction 
  *        on an image containing things that are not the background.
@@ -246,7 +251,6 @@ const int CONNECTIVITY_8 = 8;
  * @brief Thickness of the lines used for drawing bounding boxes.
  */
 const int LINE_THICKNESS = 2;
-
 
 /**
  * @brief Minimum length of a segment to be considered in the parkingSpot research.

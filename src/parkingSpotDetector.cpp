@@ -48,7 +48,7 @@ void detectParkingSpotInImage(const cv::Mat& image, std::vector<ParkingSpot>& pa
             segments.push_back(lineSegment[i]);
         }
     }
-    double distanceThreshold;
+
     std::vector<cv::Vec4f> filteredSegments = filterSegmentsNearTopRight(segments, cv::Size(image.cols, image.rows));
 
     std::vector<double> positiveAngles;
@@ -94,74 +94,75 @@ void detectParkingSpotInImage(const cv::Mat& image, std::vector<ParkingSpot>& pa
     std::vector<cv::RotatedRect> mergedPositiveRects = mergeOverlappingRects(positiveRects);
     std::vector<cv::RotatedRect> mergedNegativeRects = mergeOverlappingRects(negativeRects);
 
-    std::vector<cv::Vec4f> segments_pos;
-    std::vector<cv::Vec4f> segments_neg;
+    std::vector<cv::Vec4f> segmentsPositive;
+    std::vector<cv::Vec4f> segmentsNegative;
 
     // Loop through all bounding boxes
     for (const cv::RotatedRect& rect : mergedPositiveRects) {
-        cv::Vec4f line_segment = convertRectToLine(rect);
-        segments_pos.push_back(line_segment);
+        cv::Vec4f lineSegment = convertRectToLine(rect);
+        segmentsPositive.push_back(lineSegment);
     }
 
     // Loop through all bounding boxes
     for (const cv::RotatedRect& rect : mergedNegativeRects) {
-        cv::Vec4f line_segment = convertRectToLine(rect);
-        segments_neg.push_back(line_segment);
+        cv::Vec4f lineSegment = convertRectToLine(rect);
+        segmentsNegative.push_back(lineSegment);
     }
 
-    std::vector<cv::Vec4f> no_top_right_neg = filterSegmentsNearTopRight(segments_neg,cv::Size(image.cols,image.rows));
-    std::vector<cv::Vec4f> no_top_right_pos = filterSegmentsNearTopRight(segments_pos,cv::Size(image.cols,image.rows));
+    std::vector<cv::Vec4f> noTopRightNegative = filterSegmentsNearTopRight(segmentsNegative, cv::Size(image.cols, image.rows));
+    std::vector<cv::Vec4f> noTopRightPositive = filterSegmentsNearTopRight(segmentsPositive, cv::Size(image.cols, image.rows));
 
-    distanceThreshold = avgPositiveWidth*0.4;
-    std::vector<cv::Vec4f> filtered_segments_neg = filterCloseSegments(no_top_right_neg, distanceThreshold);
-    distanceThreshold = avgNegativeWidth*0.4;
-    std::vector<cv::Vec4f> filtered_segments_pos = filterCloseSegments(no_top_right_pos, distanceThreshold);
+    double positiveDistanceThreshold;
+    double negativeDistanceThreshold;
 
-    std::vector<cv::Vec4f> trimmed_segments_neg;
-    for(cv::Vec4f& line_neg: filtered_segments_neg) {
-        double length = getSegmentLength(line_neg);
-        for(cv::Vec4f line_pos: filtered_segments_pos) {
-            trimIfIntersect(line_neg,line_pos);
-            double length_trimmed = getSegmentLength(line_neg);
-        }        
+    positiveDistanceThreshold = avgPositiveWidth * MIDPOINT_DISTANCE_FACTOR;
+    negativeDistanceThreshold = avgNegativeWidth * MIDPOINT_DISTANCE_FACTOR;
+
+    std::vector<cv::Vec4f> filteredSegmentNegative = filterCloseSegments(noTopRightNegative, negativeDistanceThreshold);
+    std::vector<cv::Vec4f> filteredSegmentPositive = filterCloseSegments(noTopRightPositive, positiveDistanceThreshold);
+
+    for(cv::Vec4f& negativeLine: filteredSegmentNegative) {
+        for(cv::Vec4f positiveLine: filteredSegmentPositive) {
+            trimIfIntersect(negativeLine, positiveLine);
+        } 
     }
 
-  // Thresholds
+    // Thresholds
     float angle_threshold = CV_PI / 180.0f * 3;  // 10 degrees
     float length_threshold = 3;  // 30 pixels
 
 
     // Process the segments
-    std::vector<cv::RotatedRect> rotated_rects = buildRotateRectsFromSegments(filtered_segments_pos);
-    std::vector<cv::RotatedRect> rotated_rects2 = buildRotateRectsFromSegments(filtered_segments_neg);
+    std::vector<cv::RotatedRect> positiveRotatedRects = buildRotateRectsFromSegments(filteredSegmentPositive);
+    std::vector<cv::RotatedRect> negativeRotatedRects = buildRotateRectsFromSegments(filteredSegmentNegative);
 
     // Apply NMS filtering
-    std::vector<cv::RotatedRect> elementsToRemove;
-    nonMaximumSuppression(rotated_rects, elementsToRemove,0.3,false);
-    std::vector<cv::RotatedRect> elementsToRemove2;
-    nonMaximumSuppression(rotated_rects2, elementsToRemove2, 0.15,false);
+    std::vector<cv::RotatedRect> positiveElementsToRemove;
+    std::vector<cv::RotatedRect> negativeElementsToRemove;
+    nonMaximumSuppression(positiveRotatedRects, positiveElementsToRemove, 0.3, false); 
+    nonMaximumSuppression(negativeRotatedRects, negativeElementsToRemove, 0.15, false);
 
     // Remove the elements determined by NMS filtering
-    for (cv::RotatedRect element : elementsToRemove) {
-        std::vector<cv::RotatedRect>::const_iterator iterator = elementIterator(rotated_rects, element);
-        if (iterator != rotated_rects.cend()) {
-            rotated_rects.erase(iterator);
+    for (cv::RotatedRect element : positiveElementsToRemove) {
+        std::vector<cv::RotatedRect>::const_iterator iterator = elementIterator(positiveRotatedRects, element);
+        if (iterator != positiveRotatedRects.cend()) {
+            positiveRotatedRects.erase(iterator);
         }
     }
 
     // Remove the elements determined by NMS filtering
-    for (cv::RotatedRect element : elementsToRemove2) {
-        std::vector<cv::RotatedRect>::const_iterator iterator = elementIterator(rotated_rects2, element);
-        if (iterator != rotated_rects2.cend()) {
-            rotated_rects2.erase(iterator);
+    for (cv::RotatedRect element : negativeElementsToRemove) {
+        std::vector<cv::RotatedRect>::const_iterator iterator = elementIterator(negativeRotatedRects, element);
+        if (iterator != negativeRotatedRects.cend()) {
+            negativeRotatedRects.erase(iterator);
         }
     }
 
-    std::vector filtered_rects = filterBySurrounding(rotated_rects2, rotated_rects, image);
+    std::vector filtered_rects = filterBySurrounding(negativeRotatedRects, positiveRotatedRects, image);
     std::vector<double> areas;
     double median_area;
 
-    for (const auto& rect : rotated_rects) {
+    for (const auto& rect : positiveRotatedRects) {
         if(rect.size.area()<1) continue;
         areas.push_back(rect.size.area());
     }
@@ -171,7 +172,7 @@ void detectParkingSpotInImage(const cv::Mat& image, std::vector<ParkingSpot>& pa
     std::vector<cv::RotatedRect> remove_big_small_pos;
     std::vector<cv::RotatedRect> allRectsFound;
 
-    for (const auto& rect : rotated_rects) {
+    for (const auto& rect : positiveRotatedRects) {
         if(rect.size.area()>median_area/4 && rect.size.area()<median_area*2.25) {
             remove_big_small_pos.push_back(rect);
         }
