@@ -105,7 +105,7 @@ std::pair<cv::RotatedRect, cv::RotatedRect> splitAndShiftRotatedRect(const cv::R
  * @param vector2 A vector of `cv::RotatedRect` objects representing the second set of rectangles to be shifted if overlaps occur.
  * @param shiftAmount The distance by which overlapping rectangles in `vector2` are shifted along their longest axis.
  */
-void resolve_overlaps(std::vector<cv::RotatedRect>& vector1, std::vector<cv::RotatedRect>& vector2, double shiftAmount);
+void resolveOverlaps(std::vector<cv::RotatedRect>& vector1, std::vector<cv::RotatedRect>& vector2, double shiftAmount);
 
 /**
  * @brief Shifts a rotated rectangle along its longest axis by a specified amount.

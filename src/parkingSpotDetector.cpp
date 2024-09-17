@@ -133,8 +133,8 @@ void detectParkingSpotInImage(const cv::Mat& image, std::vector<ParkingSpot>& pa
 
 
     // Process the segments
-    std::vector<cv::RotatedRect> positiveRotatedRects = buildRotateRectsFromSegments(filteredSegmentPositive);
-    std::vector<cv::RotatedRect> negativeRotatedRects = buildRotateRectsFromSegments(filteredSegmentNegative);
+    std::vector<cv::RotatedRect> positiveRotatedRects = buildRotatedRectsFromSegments(filteredSegmentPositive);
+    std::vector<cv::RotatedRect> negativeRotatedRects = buildRotatedRectsFromSegments(filteredSegmentNegative);
 
     // Apply NMS filtering
     std::vector<cv::RotatedRect> positiveElementsToRemove;
@@ -195,39 +195,39 @@ void detectParkingSpotInImage(const cv::Mat& image, std::vector<ParkingSpot>& pa
     }
 
     // Set the amount to shift when resolving overlaps
-    float shift_amount = 5.0;
+    double shiftAmount = 5.0;
 
     // Resolve overlaps between vector1 and vector2
-    resolve_overlaps(removeBigAndSmallNegative, removeBigAndSmallPositive, shift_amount);
+    resolveOverlaps(removeBigAndSmallNegative, removeBigAndSmallPositive, shiftAmount);
 
     // re-do nms after overlaps are resolved
-    std::vector<cv::RotatedRect> elementsToRemove3;
-    nonMaximumSuppression(removeBigAndSmallPositive, elementsToRemove3, 0.5,false);
+    std::vector<cv::RotatedRect> elementsToRemoveFinal;
+    nonMaximumSuppression(removeBigAndSmallPositive, elementsToRemoveFinal, 0.5, false);
 
     // Remove the elements determined by NMS filtering
-    for (cv::RotatedRect element : elementsToRemove3) {
+    for (cv::RotatedRect element : elementsToRemoveFinal) {
         std::vector<cv::RotatedRect>::const_iterator iterator = elementIterator(removeBigAndSmallPositive, element);
         if (iterator != removeBigAndSmallPositive.cend()) {
             removeBigAndSmallPositive.erase(iterator);
         }
     }
 
-    for (const auto& rect : removeBigAndSmallPositive) {
-        if(rect.size.area()>1) { // the if is needed because removing with the iterator produces rects with zero area
+    for (const cv::RotatedRect& rect : removeBigAndSmallPositive) {
+        if(rect.size.area() > MIN_AREA) { // the if is needed because removing with the iterator produces rects with zero area
             allRectsFound.push_back(rect);
         }
     }
 
-    std::vector<cv::RotatedRect> all_close_rects;
-    for(const cv::RotatedRect& rect:allRectsFound) {
-        if(!isAlone(rect,allRectsFound)) {
-            all_close_rects.push_back(rect);
+    std::vector<cv::RotatedRect> finalRects;
+    for(const cv::RotatedRect& rect : allRectsFound) {
+        if(!isAlone(rect, allRectsFound)) {
+            finalRects.push_back(rect);
             cv::Point2f vertices[4];
             rect.points(vertices);
         }
     }
 
-	for (const cv::RotatedRect& rect : all_close_rects) {
+	for (const cv::RotatedRect& rect : finalRects) {
         parkingSpots.push_back(ParkingSpot(0, 1, false, rect));
     }
 }
@@ -236,20 +236,20 @@ void detectParkingSpotInImage(const cv::Mat& image, std::vector<ParkingSpot>& pa
  * @brief Constructs rotated rectangles from a vector of segments.
  * 
  * This function processes a vector of segments to build rotated rectangles. For each segment in the input vector:
- * 1. It calls the `buildRotateRectFromPerpendicular` function to create a rotated rectangle based on the segment.
+ * 1. It calls the `buildRotatedRectFromPerpendicular` function to create a rotated rectangle based on the segment.
  * 2. It checks if the resulting rotated rectangle has a size area greater than a predefined minimum area.
  * 3. Only rectangles meeting the area criterion are added to the result vector.
  * 
  * @param segments A vector of `cv::Vec4f` representing the segments, where each `cv::Vec4f` contains coordinates of a segment (x1, y1, x2, y2).
  * @return A vector of `cv::RotatedRect` representing the constructed rotated rectangles that meet the size area requirement.
  */
-std::vector<cv::RotatedRect> buildRotateRectsFromSegments(const std::vector<cv::Vec4f>& segments) {
+std::vector<cv::RotatedRect> buildRotatedRectsFromSegments(const std::vector<cv::Vec4f>& segments) {
     std::vector<cv::RotatedRect> rotatedRects;
 
     // Iterate over each segment
     for (const cv::Vec4f& segment : segments) {
         // Process each segment and build the rotated rectangle
-        cv::RotatedRect rotatedRect = buildRotateRectFromPerpendicular(segment, segments);
+        cv::RotatedRect rotatedRect = buildRotatedRectFromPerpendicular(segment, segments);
         if(rotatedRect.size.area()> MIN_AREA)
             rotatedRects.push_back(rotatedRect);
     }
@@ -273,7 +273,7 @@ std::vector<cv::RotatedRect> buildRotateRectsFromSegments(const std::vector<cv::
  * @param segments A vector of `cv::Vec4f` representing other segments to check for intersections.
  * @return A `cv::RotatedRect` representing the constructed rotated rectangle, or an empty `cv::RotatedRect` if no valid intersection is found.
  */
-cv::RotatedRect buildRotateRectFromPerpendicular(const cv::Vec4f& segment, const std::vector<cv::Vec4f>& segments) {
+cv::RotatedRect buildRotatedRectFromPerpendicular(const cv::Vec4f& segment, const std::vector<cv::Vec4f>& segments) {
     // Rightmost endpoint of the original segment
     cv::Point2f rightEndpoint(segment[2], segment[3]);
     cv::Point2f leftEndpoint(segment[0], segment[1]);
