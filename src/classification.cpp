@@ -1,5 +1,6 @@
-#include "classification.hpp"
+// Giancluca Nordio
 
+#include "classification.hpp"
 
 /**
  * Classifies a sequence of images by processing segmentation masks and stores the classified results in the output vector.

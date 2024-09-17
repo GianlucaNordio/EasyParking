@@ -1,3 +1,5 @@
+// Davide Molinaroli
+
 #ifndef LINEUTILS_HPP
 #define LINEUTILS_HPP
 

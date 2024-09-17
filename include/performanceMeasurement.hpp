@@ -1,3 +1,5 @@
+// Giovanni Cinel
+
 #ifndef PERFORMANCE_MEASUREMENT_H
 #define PERFORMANCE_MEASUREMENT_H
 

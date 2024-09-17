@@ -1,3 +1,5 @@
+// Davide Molinaroli
+
 #ifndef PARKINGSPOTDETECTOR_HPP
 #define PARKINGSPOTDETECTOR_HPP
 

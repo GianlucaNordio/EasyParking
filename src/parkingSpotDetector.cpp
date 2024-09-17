@@ -1,5 +1,6 @@
-#include "parkingSpotDetector.hpp"
+// Davide Molinaroli
 
+#include "parkingSpotDetector.hpp"
 
 void detectParkingSpots(const std::vector<cv::Mat>& images, std::vector<ParkingSpot>& bestParkingSpots, std::vector<::std::vector<ParkingSpot>>& baseSequenceParkingSpots) {
 

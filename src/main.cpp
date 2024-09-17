@@ -1,3 +1,5 @@
+// Giovanni Cinel
+
 #include <iostream>
 #include <fstream>
 #include <opencv2/highgui.hpp>

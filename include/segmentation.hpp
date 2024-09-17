@@ -1,3 +1,5 @@
+// Gianluca Nordio
+
 #ifndef SEGMENTATION_HPP
 #define SEGMENTATION_HPP
 

@@ -1,3 +1,5 @@
+// Gianluca Nordio
+
 #include "segmentation.hpp"
 
 /**

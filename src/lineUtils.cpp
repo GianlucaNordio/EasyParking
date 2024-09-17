@@ -1,3 +1,5 @@
+// Davide Molinaroli
+
 #include "lineUtils.hpp"
 
 /**

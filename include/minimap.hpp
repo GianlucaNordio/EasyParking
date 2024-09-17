@@ -1,3 +1,5 @@
+// Davide Molinaroli
+
 #ifndef MINIMAP_HPP
 #define MINIMAP_HPP
 

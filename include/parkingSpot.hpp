@@ -1,3 +1,5 @@
+// Giovanni Cinel
+
 #ifndef PARKINGSPOT_HPP
 #define PARKINGSPOT_HPP
 

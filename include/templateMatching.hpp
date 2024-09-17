@@ -1,3 +1,5 @@
+// Giovanni Cinel
+
 #ifndef TEMPLATEMATCHING_HPP
 #define TEMPLATEMATCHING_HPP
 

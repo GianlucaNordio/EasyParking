@@ -1,3 +1,5 @@
+// Davide Molinaroli
+
 #ifndef RECTUTILS_HPP
 #define RECTUTILS_HPP
 

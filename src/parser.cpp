@@ -1,3 +1,5 @@
+// Gianluca Nordio
+
 #include "parser.hpp"
 
 /**
@@ -62,5 +64,4 @@ void parseXML(const std::string& filePath, std::vector<ParkingSpot> &parkingSpot
     parkingSpot.pop_back();
     parkingSpot.pop_back();
     parkingSpot.pop_back();
-                
 }
