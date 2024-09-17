@@ -36,28 +36,27 @@ void detectParkingSpots(const std::vector<cv::Mat>& images, std::vector<ParkingS
 void detectParkingSpotInImage(const cv::Mat& image, std::vector<ParkingSpot>& parkingSpots) {
 	std::vector<cv::RotatedRect> spots;
     cv::Mat preprocessed = preprocessFindWhiteLines(image);
-    cv::Mat intermediate_results = image.clone();
     
-	cv::Ptr<cv::LineSegmentDetector > lsd = cv::createLineSegmentDetector();
-    std::vector<cv::Vec4f> line_segm;
-    lsd->detect(preprocessed,line_segm);
+	cv::Ptr<cv::LineSegmentDetector > lineSegmentDetector = cv::createLineSegmentDetector();
+    std::vector<cv::Vec4f> lineSegment;
+    lineSegmentDetector->detect(preprocessed,lineSegment);
     std::vector<cv::Vec4f> segments;
 
 	//Reject short lines
-    for(int i = 0; i<line_segm.size(); i++) {                                                                                                                         //150
-        if(getSegmentLength(line_segm[i]) > 35) {
-            segments.push_back(line_segm[i]);
+    for(int i = 0; i < lineSegment.size(); i++) {                                                                                                                         //150
+        if(getSegmentLength(lineSegment[i]) > MIN_SEGMENT_LENGTH) {
+            segments.push_back(lineSegment[i]);
         }
     }
-    double distance_threshold;
-    std::vector<cv::Vec4f> filtered_segments = filterSegmentsNearTopRight(segments, cv::Size(image.cols,image.rows));
+    double distanceThreshold;
+    std::vector<cv::Vec4f> filteredSegments = filterSegmentsNearTopRight(segments, cv::Size(image.cols, image.rows));
 
-    std::vector<double> pos_angles;
-    std::vector<double> neg_angles;
-    std::vector<double> pos_lengths;
-    std::vector<double> neg_lengths;
+    std::vector<double> positiveAngles;
+    std::vector<double> negativeAngles;
+    std::vector<double> positiveLengths;
+    std::vector<double> negativeLengths;
 
-    for (const cv::Vec4f& segment : filtered_segments) {
+    for (const cv::Vec4f& segment : filteredSegments) {
         // Calculate the angle with respect to the x-axis
         double angle = getSegmentAngle(segment);
 
@@ -66,51 +65,46 @@ void detectParkingSpotInImage(const cv::Mat& image, std::vector<ParkingSpot>& pa
 
         // Categorize and store the angle and length
         if (angle > 0) {
-            pos_angles.push_back(angle);
-            pos_lengths.push_back(length);
+            positiveAngles.push_back(angle);
+            positiveLengths.push_back(length);
 
         } else if (angle < 0) {
-            neg_angles.push_back(angle);
-            neg_lengths.push_back(length);
+            negativeAngles.push_back(angle);
+            negativeLengths.push_back(length);
         }
     }
 
-    double avg_pos_angle = computeAvg(pos_angles);
-    double avg_neg_angle = computeAvg(neg_angles);
-    double avg_pos_width = computeAvg(pos_lengths);
-    double avg_neg_width = computeAvg(neg_lengths);
+    double avgPositiveAngle = computeAvg(positiveAngles);
+    double avgNegativeAngle = computeAvg(negativeAngles);
+    double avgPositiveWidth = computeAvg(positiveLengths);
+    double avgNegativeWidth = computeAvg(negativeLengths);
 
     preprocessed = preprocessFindParkingLines(image);
  
     // offsets from avg values
-    std::vector<int> angle_offsets = {-6,-5,-4,-3,-2,-1,0,1,2,3,4,5,6};
-    std::vector<double> length_scales = {1.25};
-    std::vector<cv::RotatedRect> list_boxes;
+    std::vector<int> positiveAngleOffset = {-6,-5,-4,-3,-2,-1,0,1,2,3,4,5,6};
+    std::vector<int> negativeAngleOffset = {-16,-15,-14,-13,-12,-11,-10,-9,-8,-7,-6,-5,-4,-3,-2,-1,0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16};
+
+    std::vector<cv::RotatedRect> positiveRects;
+    std::vector<cv::RotatedRect> negativeRects;
     
-    multiRotationTemplateMatching(preprocessed, avg_pos_width, avg_pos_angle, 4, 1.25, 1.25, 0.2, angle_offsets, list_boxes, true);
+    multiRotationTemplateMatching(preprocessed, avgPositiveWidth, avgPositiveAngle, 4, 1.25, 1.25, 0.2, positiveAngleOffset, positiveRects, true);
+    multiRotationTemplateMatching(preprocessed, avgNegativeWidth, avgNegativeAngle, 4, 1.1, 1, 0.2, negativeAngleOffset, negativeRects, false);
 
-    std::vector<cv::RotatedRect> list_boxes2;
-    std::vector<double> rect_scores2(list_boxes2.size(), -1); // Initialize scores with -1 for non-existing rects
-
-    angle_offsets = {-16,-15,-14,-13,-12,-11,-10,-9,-8,-7,-6,-5,-4,-3,-2,-1,0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16};
-    length_scales = {1.1};
-    
-    multiRotationTemplateMatching(preprocessed, avg_neg_width, avg_neg_angle, 4, 1.1, 1, 0.2, angle_offsets, list_boxes2, false);
-
-    std::vector<cv::RotatedRect> merged_pos_rects = mergeOverlappingRects(list_boxes);
-    std::vector<cv::RotatedRect> merged_neg_rects = mergeOverlappingRects(list_boxes2);
+    std::vector<cv::RotatedRect> mergedPositiveRects = mergeOverlappingRects(positiveRects);
+    std::vector<cv::RotatedRect> mergedNegativeRects = mergeOverlappingRects(negativeRects);
 
     std::vector<cv::Vec4f> segments_pos;
     std::vector<cv::Vec4f> segments_neg;
 
     // Loop through all bounding boxes
-    for (const cv::RotatedRect& rect : merged_pos_rects) {
+    for (const cv::RotatedRect& rect : mergedPositiveRects) {
         cv::Vec4f line_segment = convertRectToLine(rect);
         segments_pos.push_back(line_segment);
     }
 
     // Loop through all bounding boxes
-    for (const cv::RotatedRect& rect : merged_neg_rects) {
+    for (const cv::RotatedRect& rect : mergedNegativeRects) {
         cv::Vec4f line_segment = convertRectToLine(rect);
         segments_neg.push_back(line_segment);
     }
@@ -118,10 +112,10 @@ void detectParkingSpotInImage(const cv::Mat& image, std::vector<ParkingSpot>& pa
     std::vector<cv::Vec4f> no_top_right_neg = filterSegmentsNearTopRight(segments_neg,cv::Size(image.cols,image.rows));
     std::vector<cv::Vec4f> no_top_right_pos = filterSegmentsNearTopRight(segments_pos,cv::Size(image.cols,image.rows));
 
-    distance_threshold = avg_pos_width*0.4;
-    std::vector<cv::Vec4f> filtered_segments_neg = filterCloseSegments(no_top_right_neg, distance_threshold);
-    distance_threshold = avg_neg_width*0.4;
-    std::vector<cv::Vec4f> filtered_segments_pos = filterCloseSegments(no_top_right_pos, distance_threshold);
+    distanceThreshold = avgPositiveWidth*0.4;
+    std::vector<cv::Vec4f> filtered_segments_neg = filterCloseSegments(no_top_right_neg, distanceThreshold);
+    distanceThreshold = avgNegativeWidth*0.4;
+    std::vector<cv::Vec4f> filtered_segments_pos = filterCloseSegments(no_top_right_pos, distanceThreshold);
 
     std::vector<cv::Vec4f> trimmed_segments_neg;
     for(cv::Vec4f& line_neg: filtered_segments_neg) {

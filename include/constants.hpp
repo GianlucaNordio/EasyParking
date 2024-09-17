@@ -247,6 +247,12 @@ const int CONNECTIVITY_8 = 8;
  */
 const int LINE_THICKNESS = 2;
 
+
+/**
+ * @brief Minimum length of a segment to be considered in the parkingSpot research.
+ */
+const int MIN_SEGMENT_LENGTH = 35;
+
 /**
  * @brief Length of the separation line used for console output formatting.
  */
