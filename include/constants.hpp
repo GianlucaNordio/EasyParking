@@ -114,6 +114,32 @@ const double ORIGINAL_IMAGE_WEIGHT = 0.6;
 const double NON_MAXIMUM_SUPPRESSION_THRESHOLD = 0.3;
 
 /**
+ * @brief A double value used for scaled rectangles in template matching.
+ */
+const double TEMPLATE_MATCHING_SCALE_RECT_POSITIVE = 1.25;
+
+/**
+ * @brief A double value used for scaled rectangles in template matching.
+ */
+const double TEMPLATE_MATCHING_SCALE_RECT_NEGATIVE = 1;
+
+/**
+ * @brief A double value used for scaled template in template matching.
+ */
+const double TEMPLATE_MATCHING_SCALE_TEMPLATE_POSITIVE = 1.25;
+
+/**
+ * @brief A double value used for scaled template in template matching.
+ */
+const double TEMPLATE_MATCHING_SCALE_TEMPLATE_NEGATIVE = 1.1;
+
+/**
+ * @brief A double value representing the threshold for template matching.
+ *        Template matching is used to find the best match between a template and a target image.
+ */
+const double TEMPLATE_MATCHING_THRESHOLD = 0.2;
+
+/**
  * @brief Threshold used for Intersection over Union (IoU) calculation.
  */
 const double IOU_THRESHOLD = 0.5;
@@ -173,6 +199,21 @@ const double LOWER_BOUND_DISTANCE = 22.5;
 const double CENTER_SHIFT = 15;
 
 /**
+ * @brief Template height value.
+ */
+const double TEMPLATE_HEIGHT_MULTISCALE = 4;
+
+/**
+ * @brief Factor that multiply the median area when filtering rectangles based on area.
+ */
+const double MEDIAN_AREA_MIN_FACTOR = 0.25;
+
+/**
+ * @brief Factor that multiply the median area when filtering rectangles based on area.
+ */
+const double MEDIAN_AREA_MAX_FACTOR = 2.25;
+
+/**
  * @brief The max length of the perpendicular segment used to search lines of the same slope.
  */
 const double MAX_SEARCH_LENGTH = 200.0;
@@ -181,6 +222,30 @@ const double MAX_SEARCH_LENGTH = 200.0;
  * @brief The minimum area of a rectangle to be considered valid.
  */
 const double MIN_AREA = 1;
+
+/**
+ * @brief A double value representing the overlap threshold. This value indicates the ratio of intersection area 
+ *        between two rectangles relative to their total area. If the normalized intersection area between two 
+ *        rectangles exceeds this threshold, one of them will be marked for removal.
+ */
+const double NON_MAXIMUM_SUPPRESSION_THRESHOLD_HIGH = 0.5;
+
+/**
+ * @brief A double value representing the overlap threshold. This value indicates the ratio of intersection area 
+ *        between two rectangles relative to their total area. If the normalized intersection area between two 
+ *        rectangles exceeds this threshold, one of them will be marked for removal.
+ */
+const double NON_MAXIMUM_SUPPRESSION_THRESHOLD_LOW = 0.15;
+
+/**
+ * @brief Confidence in the parkingSpot detection.
+ */
+const double CONFIDENCE = 1;
+
+/**
+ * @brief Shift value used in resolveOverlaps.
+ */
+const double SHIFT_AMOUNT = 5.0;
 
 /**
  * @brief Template height value.
@@ -213,6 +278,11 @@ const int IMAGE_TYPE_1_CHANNEL = CV_8U;
  * @brief Offset used for homography transformation.
  */
 const int OFFSET_HOMOGRAPHY = -25;
+
+/**
+ * @brief No id to associate at a ParkingSpot.
+ */
+const int NO_ID = 0;
 
 /**
  * @brief Shift used for adjusting the color when combining images.
@@ -379,5 +449,15 @@ const int TOP_RIGHT_CORNER_Y2 = 300;
  * @brief Y coordinate of top-right corner.
  */
 const int TOP_RIGHT_CORNER_Y = 0;
+
+/**
+ * @brief Positive angle offset used in template matching.
+ */
+const std::vector<int> POSITIVE_ANGLE_OFFSET = {-6,-5,-4,-3,-2,-1,0,1,2,3,4,5,6};
+
+/**
+ * @brief Negative angle offset used in template matching.
+ */
+const std::vector<int> NEGATIVE_ANGLE_OFFSET = {-16,-15,-14,-13,-12,-11,-10,-9,-8,-7,-6,-5,-4,-3,-2,-1,0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16};
 
 #endif // CONSTANTS_HPP

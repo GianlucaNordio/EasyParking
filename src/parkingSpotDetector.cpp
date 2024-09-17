@@ -2,6 +2,21 @@
 
 #include "parkingSpotDetector.hpp"
 
+/**
+ * @brief Detects parking spots in a sequence of images, applies Non-Maximum Suppression (NMS) 
+ * to remove overlapping or redundant detections, and stores the filtered spots.
+ *
+ * This function processes each image in the provided vector of images to detect potential parking spots.
+ * For each image, it identifies the parking spots using the `detectParkingSpotInImage` function and 
+ * stores the spots in the `baseSequenceParkingSpots`. The coordinates of all the detected spots 
+ * are accumulated into a vector and then passed to the Non-Maximum Suppression (NMS) function to 
+ * filter out redundant or overlapping spots. Finally, the best filtered parking spots are stored in 
+ * the `bestParkingSpots` vector.
+ *
+ * @param images A vector of OpenCV Mat objects, where each Mat represents an image.
+ * @param bestParkingSpots A reference to a vector where the best parking spots (after NMS) will be stored.
+ * @param baseSequenceParkingSpots A reference to a vector of vectors, where parking spots for each image are stored.
+ */
 void detectParkingSpots(const std::vector<cv::Mat>& images, std::vector<ParkingSpot>& bestParkingSpots, std::vector<::std::vector<ParkingSpot>>& baseSequenceParkingSpots) {
 
     std::vector<cv::RotatedRect> allRectsFound;
@@ -34,6 +49,20 @@ void detectParkingSpots(const std::vector<cv::Mat>& images, std::vector<ParkingS
     }
 }
 
+/**
+ * @brief Detects parking spots in a single image by analyzing line segments and applying template matching and 
+ * Non-Maximum Suppression (NMS) to identify valid parking spot regions.
+ *
+ * This function performs a multi-step approach to detect parking spots within the input image. First, it preprocesses 
+ * the image to find white lines. After detecting line segments, it filters out short segments and segments near 
+ * the top-right of the image. The function calculates the angles and lengths of remaining segments, performs 
+ * multi-scale template matching using these average values, and merges overlapping bounding boxes. Non-Maximum 
+ * Suppression (NMS) is applied to further refine the detected regions. Finally, filtered bounding boxes are converted 
+ * into `ParkingSpot` objects, which are returned via the `parkingSpots` vector.
+ *
+ * @param image The input image as an OpenCV Mat object in which parking spots will be detected.
+ * @param parkingSpots A reference to a vector where detected parking spots will be stored.
+ */
 void detectParkingSpotInImage(const cv::Mat& image, std::vector<ParkingSpot>& parkingSpots) {
 	std::vector<cv::RotatedRect> spots;
     cv::Mat preprocessed = preprocessFindWhiteLines(image);
@@ -82,15 +111,11 @@ void detectParkingSpotInImage(const cv::Mat& image, std::vector<ParkingSpot>& pa
 
     preprocessed = preprocessFindParkingLines(image);
  
-    // offsets from avg values
-    std::vector<int> positiveAngleOffset = {-6,-5,-4,-3,-2,-1,0,1,2,3,4,5,6};
-    std::vector<int> negativeAngleOffset = {-16,-15,-14,-13,-12,-11,-10,-9,-8,-7,-6,-5,-4,-3,-2,-1,0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16};
-
     std::vector<cv::RotatedRect> positiveRects;
     std::vector<cv::RotatedRect> negativeRects;
     
-    multiRotationTemplateMatching(preprocessed, avgPositiveWidth, avgPositiveAngle, 4, 1.25, 1.25, 0.2, positiveAngleOffset, positiveRects, true);
-    multiRotationTemplateMatching(preprocessed, avgNegativeWidth, avgNegativeAngle, 4, 1.1, 1, 0.2, negativeAngleOffset, negativeRects, false);
+    multiRotationTemplateMatching(preprocessed, avgPositiveWidth, avgPositiveAngle, TEMPLATE_HEIGHT_MULTISCALE, TEMPLATE_MATCHING_SCALE_TEMPLATE_POSITIVE, TEMPLATE_MATCHING_SCALE_RECT_POSITIVE, TEMPLATE_MATCHING_THRESHOLD, POSITIVE_ANGLE_OFFSET, positiveRects, true);
+    multiRotationTemplateMatching(preprocessed, avgNegativeWidth, avgNegativeAngle, TEMPLATE_HEIGHT_MULTISCALE, TEMPLATE_MATCHING_SCALE_TEMPLATE_NEGATIVE, TEMPLATE_MATCHING_SCALE_RECT_NEGATIVE, TEMPLATE_MATCHING_THRESHOLD, NEGATIVE_ANGLE_OFFSET, negativeRects, false);
 
     std::vector<cv::RotatedRect> mergedPositiveRects = mergeOverlappingRects(positiveRects);
     std::vector<cv::RotatedRect> mergedNegativeRects = mergeOverlappingRects(negativeRects);
@@ -128,11 +153,6 @@ void detectParkingSpotInImage(const cv::Mat& image, std::vector<ParkingSpot>& pa
         } 
     }
 
-    // Thresholds
-    float angle_threshold = CV_PI / 180.0f * 3;  // 10 degrees
-    float length_threshold = 3;  // 30 pixels
-
-
     // Process the segments
     std::vector<cv::RotatedRect> positiveRotatedRects = buildRotatedRectsFromSegments(filteredSegmentPositive);
     std::vector<cv::RotatedRect> negativeRotatedRects = buildRotatedRectsFromSegments(filteredSegmentNegative);
@@ -140,8 +160,8 @@ void detectParkingSpotInImage(const cv::Mat& image, std::vector<ParkingSpot>& pa
     // Apply NMS filtering
     std::vector<cv::RotatedRect> positiveElementsToRemove;
     std::vector<cv::RotatedRect> negativeElementsToRemove;
-    nonMaximumSuppression(positiveRotatedRects, positiveElementsToRemove, 0.3, false); 
-    nonMaximumSuppression(negativeRotatedRects, negativeElementsToRemove, 0.15, false);
+    nonMaximumSuppression(positiveRotatedRects, positiveElementsToRemove, NON_MAXIMUM_SUPPRESSION_THRESHOLD, false); 
+    nonMaximumSuppression(negativeRotatedRects, negativeElementsToRemove, NON_MAXIMUM_SUPPRESSION_THRESHOLD_LOW, false);
 
     // Remove the elements determined by NMS filtering
     for (cv::RotatedRect element : positiveElementsToRemove) {
@@ -175,7 +195,7 @@ void detectParkingSpotInImage(const cv::Mat& image, std::vector<ParkingSpot>& pa
     std::vector<cv::RotatedRect> allRectsFound;
 
     for (const cv::RotatedRect& rect : positiveRotatedRects) {
-        if(rect.size.area() > medianArea / 4 && rect.size.area() < medianArea * 2.25) {
+        if(rect.size.area() > medianArea * MEDIAN_AREA_MIN_FACTOR && rect.size.area() < medianArea * MEDIAN_AREA_MAX_FACTOR) {
             removeBigAndSmallPositive.push_back(rect);
         }
     }
@@ -188,22 +208,19 @@ void detectParkingSpotInImage(const cv::Mat& image, std::vector<ParkingSpot>& pa
     std::vector<cv::RotatedRect> removeBigAndSmallNegative;
     medianArea = computeMedian(areas);
 
-    for (const auto& rect : filteredRects) {
-        if(rect.size.area() > medianArea / 4 && rect.size.area() < medianArea * 2.25) {
+    for (const cv::RotatedRect& rect : filteredRects) {
+        if(rect.size.area() > medianArea * MEDIAN_AREA_MIN_FACTOR && rect.size.area() < medianArea * MEDIAN_AREA_MAX_FACTOR) {
             removeBigAndSmallNegative.push_back(rect);
             allRectsFound.push_back(rect);
         }
     }
 
-    // Set the amount to shift when resolving overlaps
-    double shiftAmount = 5.0;
-
     // Resolve overlaps between vector1 and vector2
-    resolveOverlaps(removeBigAndSmallNegative, removeBigAndSmallPositive, shiftAmount);
+    resolveOverlaps(removeBigAndSmallNegative, removeBigAndSmallPositive, SHIFT_AMOUNT);
 
     // re-do nms after overlaps are resolved
     std::vector<cv::RotatedRect> elementsToRemoveFinal;
-    nonMaximumSuppression(removeBigAndSmallPositive, elementsToRemoveFinal, 0.5, false);
+    nonMaximumSuppression(removeBigAndSmallPositive, elementsToRemoveFinal, NON_MAXIMUM_SUPPRESSION_THRESHOLD_HIGH, false);
 
     // Remove the elements determined by NMS filtering
     for (cv::RotatedRect element : elementsToRemoveFinal) {
@@ -229,7 +246,7 @@ void detectParkingSpotInImage(const cv::Mat& image, std::vector<ParkingSpot>& pa
     }
 
 	for (const cv::RotatedRect& rect : finalRects) {
-        parkingSpots.push_back(ParkingSpot(0, 1, false, rect));
+        parkingSpots.push_back(ParkingSpot(NO_ID, CONFIDENCE, false, rect));
     }
 }
 

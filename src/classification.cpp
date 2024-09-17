@@ -51,7 +51,7 @@ void classifyImage(std::vector<ParkingSpot>& parkingSpot, cv::Mat segmentationMa
     }
 
     // Create a mask for each parking spot
-    for (auto& spot : parkingSpot) {
+    for (ParkingSpot& spot : parkingSpot) {
         cv::Mat spotMask = cv::Mat::zeros(segmentationMask.size(), IMAGE_TYPE_1_CHANNEL);
         cv::Point2f vertices[4];
         spot.rect.points(vertices);

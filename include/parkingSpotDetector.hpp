@@ -12,8 +12,37 @@
 #include "templateMatching.hpp"
 #include "constants.hpp"
 
+/**
+ * @brief Detects parking spots in a sequence of images, applies Non-Maximum Suppression (NMS) 
+ * to remove overlapping or redundant detections, and stores the filtered spots.
+ *
+ * This function processes each image in the provided vector of images to detect potential parking spots.
+ * For each image, it identifies the parking spots using the `detectParkingSpotInImage` function and 
+ * stores the spots in the `baseSequenceParkingSpots`. The coordinates of all the detected spots 
+ * are accumulated into a vector and then passed to the Non-Maximum Suppression (NMS) function to 
+ * filter out redundant or overlapping spots. Finally, the best filtered parking spots are stored in 
+ * the `bestParkingSpots` vector.
+ *
+ * @param images A vector of OpenCV Mat objects, where each Mat represents an image.
+ * @param bestParkingSpots A reference to a vector where the best parking spots (after NMS) will be stored.
+ * @param baseSequenceParkingSpots A reference to a vector of vectors, where parking spots for each image are stored.
+ */
 void detectParkingSpots(const std::vector<cv::Mat>& images, std::vector<ParkingSpot>& bestParkingSpots, std::vector<std::vector<ParkingSpot>>& baseSequenceParkingSpots);
 
+/**
+ * @brief Detects parking spots in a single image by analyzing line segments and applying template matching and 
+ * Non-Maximum Suppression (NMS) to identify valid parking spot regions.
+ *
+ * This function performs a multi-step approach to detect parking spots within the input image. First, it preprocesses 
+ * the image to find white lines. After detecting line segments, it filters out short segments and segments near 
+ * the top-right of the image. The function calculates the angles and lengths of remaining segments, performs 
+ * multi-scale template matching using these average values, and merges overlapping bounding boxes. Non-Maximum 
+ * Suppression (NMS) is applied to further refine the detected regions. Finally, filtered bounding boxes are converted 
+ * into `ParkingSpot` objects, which are returned via the `parkingSpots` vector.
+ *
+ * @param image The input image as an OpenCV Mat object in which parking spots will be detected.
+ * @param parkingSpots A reference to a vector where detected parking spots will be stored.
+ */
 void detectParkingSpotInImage(const cv::Mat& image, std::vector<ParkingSpot>& parkingSpots);
 
 /**
