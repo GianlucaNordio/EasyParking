@@ -87,7 +87,7 @@ void detectParkingSpotInImage(const cv::Mat& image, std::vector<ParkingSpot>& pa
     std::vector<double> length_scales = {1.25};
     std::vector<cv::RotatedRect> list_boxes;
     
-    multiRotationTemplateMatching(preprocessed, avg_pos_width, avg_pos_angle, 6, 1.25, 1.25, 0.2, angle_offsets, list_boxes, true);
+    multiRotationTemplateMatching(preprocessed, avg_pos_width, avg_pos_angle, 4, 1.25, 1.25, 0.2, angle_offsets, list_boxes, true);
 
     std::vector<cv::RotatedRect> list_boxes2;
     std::vector<double> rect_scores2(list_boxes2.size(), -1); // Initialize scores with -1 for non-existing rects
@@ -95,7 +95,7 @@ void detectParkingSpotInImage(const cv::Mat& image, std::vector<ParkingSpot>& pa
     angle_offsets = {-16,-15,-14,-13,-12,-11,-10,-9,-8,-7,-6,-5,-4,-3,-2,-1,0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16};
     length_scales = {1.1};
     
-    multiRotationTemplateMatching(preprocessed, avg_neg_width, avg_neg_angle, 6, 1.1, 1, 0.2, angle_offsets, list_boxes2, false);
+    multiRotationTemplateMatching(preprocessed, avg_neg_width, avg_neg_angle, 4, 1.1, 1, 0.2, angle_offsets, list_boxes2, false);
 
     std::vector<cv::RotatedRect> merged_pos_rects = mergeOverlappingRects(list_boxes);
     std::vector<cv::RotatedRect> merged_neg_rects = mergeOverlappingRects(list_boxes2);
