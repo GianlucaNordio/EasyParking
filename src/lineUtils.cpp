@@ -312,3 +312,52 @@ bool segmentsIntersect(const cv::Vec4f& segment1, const cv::Vec4f& segment2, cv:
     }
     return false;
 }
+
+/**
+ * @brief Extends a line segment in both directions by a specified ratio.
+ * 
+ * This function extends a line segment, represented by two endpoints, in both directions by a specified 
+ * extension ratio. The extension is calculated based on the length of the segment and is applied to both 
+ * ends of the segment. The function computes the direction vector of the segment, normalizes it, and then 
+ * extends the segment accordingly.
+ * 
+ * @param segment A `cv::Vec4f` representing the line segment, with coordinates (x1, y1, x2, y2).
+ * @param extensionRatio The ratio by which to extend the segment relative to its length (e.g., 0.25 for 25% extension).
+ * @return A `cv::Vec4f` representing the extended line segment, with updated coordinates for the new endpoints.
+ */
+cv::Vec4f extendSegment(const cv::Vec4f& segment, double extensionRatio) {
+    cv::Point2f start(segment[0], segment[1]), end(segment[2], segment[3]);
+
+    // Compute direction vector of the segment
+    cv::Vec2f direction = cv::Vec2f(end - start);
+    double length = getSegmentLength(segment);
+    
+    // Normalize the direction vector to unit length
+    cv::Vec2f directionNormalized = direction / length;
+
+    // Compute the extension length (25% of the segment length)
+    double extensionLength = length * extensionRatio;
+
+    // Extend in both directions by converting to cv::Point2f for vector arithmetic
+    cv::Point2f extendedStart = start - cv::Point2f(directionNormalized[0], directionNormalized[1]) * extensionLength;
+    cv::Point2f extendedEnd = end + cv::Point2f(directionNormalized[0], directionNormalized[1]) * extensionLength;
+
+    // Return the new extended segment
+    return cv::Vec4f(extendedStart.x, extendedStart.y, extendedEnd.x, extendedEnd.y);
+}
+
+/**
+ * @brief Computes the average of a vector of double values.
+ * 
+ * This function calculates the average (mean) value of a vector of `double` numbers. It sums all the 
+ * elements in the vector and divides by the number of elements to obtain the average. If the vector 
+ * is empty, the function returns 0.0 to avoid division by zero.
+ * 
+ * @param data A vector of `double` values for which the average is to be computed.
+ * @return The average of the values in the vector, or 0.0 if the vector is empty.
+ */
+double computeAvg(std::vector<double>& data) {
+    if (data.empty()) return 0.0;
+    double const count = static_cast<double>(data.size());
+    return std::reduce(data.begin(), data.end()) / count;
+}

@@ -207,4 +207,35 @@ std::vector<cv::RotatedRect> mergeOverlappingRects(std::vector<cv::RotatedRect>&
  */
 bool areRectsAligned(const cv::RotatedRect& rect1, const cv::RotatedRect& rect2, double angleTolerance);
 
+/**
+ * @brief Filters out rotated rectangles based on their overlap with surrounding rectangles.
+ * 
+ * This function processes a list of rotated rectangles (`rects1`) by splitting each rectangle into two 
+ * parts along its longest direction and scaling both parts. It then checks if these scaled parts overlap 
+ * with any rectangle in another list (`rects2`). If both parts of a rectangle from `rects1` overlap with 
+ * at least one rectangle in `rects2`, the original rectangle is discarded. Rectangles with an area smaller 
+ * than a defined minimum (`MIN_AREA`) are also discarded.
+ * 
+ * @param rects1 A vector of `cv::RotatedRect` objects to be filtered based on their overlap with `rects2`.
+ * @param rects2 A vector of `cv::RotatedRect` objects used to check for overlaps with the rectangles in `rects1`.
+ * @param image The image associated with the rectangles (not used directly in the function but may be for context).
+ * @return A vector of `cv::RotatedRect` objects from `rects1` that do not have both parts overlapping with any 
+ *         rectangle in `rects2` and have an area greater than `MIN_AREA`.
+ */
+std::vector<cv::RotatedRect> filterBySurrounding(const std::vector<cv::RotatedRect>& rects1, const std::vector<cv::RotatedRect>& rects2, cv::Mat image);
+
+/**
+ * @brief Computes the median of a vector of double values.
+ * 
+ * This function calculates the median value of a vector of `double` numbers. It first sorts the vector 
+ * and then determines the median based on whether the number of elements is even or odd:
+ * - For an odd number of elements, the median is the middle value.
+ * - For an even number of elements, the median is the average of the two middle values.
+ * If the vector is empty, the function returns 0.0 to handle the case of no data.
+ * 
+ * @param data A vector of `double` values for which the median is to be computed.
+ * @return The median value of the vector, or 0.0 if the vector is empty.
+ */
+double computeMedian(std::vector<double>& data);
+
 #endif // RECTUTILS.HPP

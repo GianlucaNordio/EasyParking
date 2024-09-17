@@ -2,6 +2,9 @@
 #define LINEUTILS_HPP
 
 #include <opencv2/opencv.hpp>
+#include <algorithm>
+#include <numeric>
+#include <math.h>
 
 #include "constants.hpp"
 
@@ -153,7 +156,32 @@ void trimIfIntersect(cv::Vec4f& segment1, cv::Vec4f& segment2);
  * @param intersection A reference to a `cv::Point2f` where the intersection point will be stored if the segments intersect.
  * @return `true` if the segments intersect within their bounds and `false` if they do not intersect or are parallel.
  */
-
 bool segmentsIntersect(const cv::Vec4f& segment1, const cv::Vec4f& segment2, cv::Point2f& intersection);
+
+/**
+ * @brief Extends a line segment in both directions by a specified ratio.
+ * 
+ * This function extends a line segment, represented by two endpoints, in both directions by a specified 
+ * extension ratio. The extension is calculated based on the length of the segment and is applied to both 
+ * ends of the segment. The function computes the direction vector of the segment, normalizes it, and then 
+ * extends the segment accordingly.
+ * 
+ * @param segment A `cv::Vec4f` representing the line segment, with coordinates (x1, y1, x2, y2).
+ * @param extensionRatio The ratio by which to extend the segment relative to its length (e.g., 0.25 for 25% extension).
+ * @return A `cv::Vec4f` representing the extended line segment, with updated coordinates for the new endpoints.
+ */
+cv::Vec4f extendSegment(const cv::Vec4f& segment, double extensionRatio);
+
+/**
+ * @brief Computes the average of a vector of double values.
+ * 
+ * This function calculates the average (mean) value of a vector of `double` numbers. It sums all the 
+ * elements in the vector and divides by the number of elements to obtain the average. If the vector 
+ * is empty, the function returns 0.0 to avoid division by zero.
+ * 
+ * @param data A vector of `double` values for which the average is to be computed.
+ * @return The average of the values in the vector, or 0.0 if the vector is empty.
+ */
+double computeAvg(std::vector<double>& data);
 
 #endif // LINEUTILS_HPP

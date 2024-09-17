@@ -374,3 +374,79 @@ std::vector<cv::RotatedRect> mergeOverlappingRects(std::vector<cv::RotatedRect>&
 bool areRectsAligned(const cv::RotatedRect& rect1, const cv::RotatedRect& rect2, double angleTolerance) {
     return std::abs(rect1.angle - rect2.angle) <= angleTolerance;
 }
+
+/**
+ * @brief Filters out rotated rectangles based on their overlap with surrounding rectangles.
+ * 
+ * This function processes a list of rotated rectangles (`rects1`) by splitting each rectangle into two 
+ * parts along its longest direction and scaling both parts. It then checks if these scaled parts overlap 
+ * with any rectangle in another list (`rects2`). If both parts of a rectangle from `rects1` overlap with 
+ * at least one rectangle in `rects2`, the original rectangle is discarded. Rectangles with an area smaller 
+ * than a defined minimum (`MIN_AREA`) are also discarded.
+ * 
+ * @param rects1 A vector of `cv::RotatedRect` objects to be filtered based on their overlap with `rects2`.
+ * @param rects2 A vector of `cv::RotatedRect` objects used to check for overlaps with the rectangles in `rects1`.
+ * @param image The image associated with the rectangles (not used directly in the function but may be for context).
+ * @return A vector of `cv::RotatedRect` objects from `rects1` that do not have both parts overlapping with any 
+ *         rectangle in `rects2` and have an area greater than `MIN_AREA`.
+ */
+std::vector<cv::RotatedRect> filterBySurrounding(const std::vector<cv::RotatedRect>& rects1, const std::vector<cv::RotatedRect>& rects2, cv::Mat image) {
+    std::vector<cv::RotatedRect> filteredRects;
+
+    for (const cv::RotatedRect& rect1 : rects1) {
+        // Split rect1 into two equal parts along its longest direction
+        std::pair<cv::RotatedRect, cv::RotatedRect> result = splitAndShiftRotatedRect(rect1);
+        cv::RotatedRect rectPart1 = result.first;
+        cv::RotatedRect rectPart2 = result.second;
+        
+        // Scale both parts
+        rectPart1 = scaleRotatedRect(rectPart1, 1.25);
+        rectPart2 = scaleRotatedRect(rectPart2, 1.25);
+        
+        bool part1Overlap = false, part2Overlap = false;
+
+        // Check if both parts overlap with any rect in rects2
+        for (const cv::RotatedRect& rect2 : rects2) {
+            if (computeIntersectionAreaNormalized(rectPart1, rect2) > 0) {
+                part1Overlap = true;
+            }
+            if (computeIntersectionAreaNormalized(rectPart2, rect2) > 0) {
+                part2Overlap = true;
+            }
+            // If both parts overlap with at least one rect, we can discard rect1
+            if (part1Overlap && part2Overlap) {
+                break;
+            }
+        }
+
+        // Only keep rect1 if not both parts overlap with any rect in rects2
+        if (!(part1Overlap && part2Overlap) && rect1.size.area() > MIN_AREA) {
+            filteredRects.push_back(rect1);
+        }
+    }
+
+    return filteredRects;
+}
+
+/**
+ * @brief Computes the median of a vector of double values.
+ * 
+ * This function calculates the median value of a vector of `double` numbers. It first sorts the vector 
+ * and then determines the median based on whether the number of elements is even or odd:
+ * - For an odd number of elements, the median is the middle value.
+ * - For an even number of elements, the median is the average of the two middle values.
+ * If the vector is empty, the function returns 0.0 to handle the case of no data.
+ * 
+ * @param data A vector of `double` values for which the median is to be computed.
+ * @return The median value of the vector, or 0.0 if the vector is empty.
+ */
+double computeMedian(std::vector<double>& data) {
+    if (data.empty()) return 0.0;
+    std::sort(data.begin(), data.end());
+    size_t n = data.size();
+    if (n % 2 == 0) {
+        return (data[n / 2 - 1] + data[n / 2]) / 2.0;
+    } else {
+        return data[n / 2];
+    }
+}

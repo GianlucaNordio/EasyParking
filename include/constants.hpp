@@ -85,6 +85,11 @@ const cv::Scalar BLACK = cv::Scalar(0, 0, 0);
 const cv::Size SIZE_RECT_MINIMAP = cv::Size(60,20);
 
 /**
+ * @brief Number of margin pixels blac added at the template.
+ */
+const double TEMPLATE_BLACK_MARGIN = 4;
+
+/**
  * @brief Threshold used to resolve the overlap of RotatedRect.
  */
 const double RESOLVE_OVERLAP_THRESHOLD = 0.1;
@@ -131,6 +136,11 @@ const double SPLIT_DIRECTION_OFFSET = 35;
  * @brief A constante used to transform value into percentage
  */
 const double PERCENTAGE = 100;
+
+/**
+ * @brief The minimum area of a rectangle to be considered valid.
+ */
+const double MIN_AREA = 1;
 
 /**
  * @brief Constant used to tell the model to not update its model of the background.

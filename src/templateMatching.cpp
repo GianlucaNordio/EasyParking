@@ -25,7 +25,7 @@ std::vector<cv::Mat> generateTemplate(double width, double angle, bool flipped){
     double rotatedHeight;
 
     double height = 10;
-    width +=4;
+    width += TEMPLATE_BLACK_MARGIN; // We add 4 as black margin
 
     // Rotate the template
     if(!flipped) {
@@ -50,6 +50,8 @@ std::vector<cv::Mat> generateTemplate(double width, double angle, bool flipped){
     cv::Mat horizontalMask(templateHeight, templateWidth, IMAGE_TYPE_1_CHANNEL);
 
     // Build the template and mask
+    // Used to build a template with black pixels along its longest direction. 
+    // This is done to not match with random patches of white pixels
     for(int i = 0; i< horizontalTemplate.rows; i++) {
         for(int j = 0; j<horizontalTemplate.cols; j++) {
             if((!flipped ? i>2 && i < height-2 : j>2&&j<height-2) && (!flipped ? j>2 && j < width-2 : j>2&&j<width-2)) {

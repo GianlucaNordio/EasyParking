@@ -79,10 +79,10 @@ std::vector<cv::RotatedRect> detectParkingSpotInImage(const cv::Mat& image) {
         }
     }
 
-    double avg_pos_angle = compute_avg(pos_angles);
-    double avg_neg_angle = compute_avg(neg_angles);
-    double avg_pos_width = compute_avg(pos_lengths);
-    double avg_neg_width = compute_avg(neg_lengths);
+    double avg_pos_angle = computeAvg(pos_angles);
+    double avg_neg_angle = computeAvg(neg_angles);
+    double avg_pos_width = computeAvg(pos_lengths);
+    double avg_neg_width = computeAvg(neg_lengths);
 
     preprocessed = preprocessFindParkingLines(image);
  
@@ -299,8 +299,8 @@ std::vector<cv::RotatedRect> detectParkingSpotInImage(const cv::Mat& image) {
 
 
     // Process the segments
-    std::vector<cv::RotatedRect> rotated_rects = process_segments(filtered_segments_pos, image);
-    std::vector<cv::RotatedRect> rotated_rects2 = process_segments(filtered_segments_neg, image);
+    std::vector<cv::RotatedRect> rotated_rects = buildRotateRectsFromSegments(filtered_segments_pos);
+    std::vector<cv::RotatedRect> rotated_rects2 = buildRotateRectsFromSegments(filtered_segments_neg);
 
     // Apply NMS filtering
     std::vector<cv::RotatedRect> elementsToRemove;
@@ -328,7 +328,7 @@ std::vector<cv::RotatedRect> detectParkingSpotInImage(const cv::Mat& image) {
     std::vector<cv::Point2f> centers_all;
 
     // Output the result
-    std::vector filtered_rects = filter_by_surrounding(rotated_rects2,rotated_rects,image);
+    std::vector filtered_rects = filterBySurrounding(rotated_rects2, rotated_rects, image);
     std::vector<double> areas;
     double median_area;
 
@@ -336,7 +336,7 @@ std::vector<cv::RotatedRect> detectParkingSpotInImage(const cv::Mat& image) {
         if(rect.size.area()<1) continue;
         areas.push_back(rect.size.area());
     }
-    median_area = compute_median(areas);
+    median_area = computeMedian(areas);
     areas.clear();
 
     std::vector<cv::RotatedRect> remove_big_small_pos;
@@ -354,7 +354,7 @@ std::vector<cv::RotatedRect> detectParkingSpotInImage(const cv::Mat& image) {
     }
 
     std::vector<cv::RotatedRect> remove_big_small_2;
-    median_area = compute_median(areas);
+    median_area = computeMedian(areas);
 
     for (const auto& rect : filtered_rects) {
         if(rect.size.area()>median_area/4 && rect.size.area()<median_area*2.25) {
@@ -400,142 +400,30 @@ std::vector<cv::RotatedRect> detectParkingSpotInImage(const cv::Mat& image) {
 	return all_close_rects;
 }
 
-void align_points(std::vector<cv::Point2f>& points, float threshold = 5.0f) {
-    // Sort the points by their y-coordinate
-    std::sort(points.begin(), points.end(), 
-        [](const cv::Point2f& a, const cv::Point2f& b) {
-            return a.y < b.y;
-        });
+std::vector<cv::RotatedRect> buildRotateRectsFromSegments(const std::vector<cv::Vec4f>& segments) {
+    std::vector<cv::RotatedRect> rotatedRects;
 
-    // Iterate through each unique y-coordinate and align points within the threshold
-    for (size_t i = 0; i < points.size(); ++i) {
-        float base_y = points[i].y;
-
-        // Align all points within the threshold of the current base_y
-        for (size_t j = i + 1; j < points.size(); ++j) {
-            if (std::fabs(points[j].y - base_y) <= threshold) {
-                points[j].y = base_y;
-            }
-        }
-
-        // Skip over points already aligned to the current base_y
-        while (i + 1 < points.size() && std::fabs(points[i + 1].y - base_y) <= threshold) {
-            ++i;
-        }
-    }
-}
-
-// Modified function to filter the first vector based on surrounding conditions
-std::vector<cv::RotatedRect> filter_by_surrounding(const std::vector<cv::RotatedRect>& rects1, const std::vector<cv::RotatedRect>& rects2, cv::Mat image) {
-    std::vector<cv::RotatedRect> filtered_rects;
-
-    for (const auto& rect1 : rects1) {
-        // Split rect1 into two equal parts along its longest direction
-        auto [rect_part1, rect_part2] = splitAndShiftRotatedRect(rect1);
-        
-        // Scale both parts
-        rect_part1 = scaleRotatedRect(rect_part1, 1.25);
-        rect_part2 = scaleRotatedRect(rect_part2, 1.25);
-        
-        bool part1_overlap = false, part2_overlap = false;
-
-        // Check if both parts overlap with any rect in rects2
-        for (const auto& rect2 : rects2) {
-            if (computeIntersectionAreaNormalized(rect_part1, rect2) > 0) {
-                part1_overlap = true;
-            }
-            if (computeIntersectionAreaNormalized(rect_part2, rect2) > 0) {
-                part2_overlap = true;
-            }
-            // If both parts overlap with at least one rect, we can discard rect1
-            if (part1_overlap && part2_overlap) {
-                break;
-            }
-        }
-
-        // Only keep rect1 if not both parts overlap with any rect in rects2
-        if (!(part1_overlap && part2_overlap) && rect1.size.area() > 1) {
-            filtered_rects.push_back(rect1);
-        }
+    // Iterate over each segment
+    for (const cv::Vec4f& segment : segments) {
+        // Process each segment and build the rotated rectangle
+        cv::RotatedRect rotatedRect = buildRotateRectFromPerpendicular(segment, segments);
+        rotatedRects.push_back(rotatedRect);
     }
 
-    return filtered_rects;
+    return rotatedRects;
 }
 
-// Function to calculate the median of a vector
-double compute_median(std::vector<double>& data) {
-    if (data.empty()) return 0.0;
-    std::sort(data.begin(), data.end());
-    size_t n = data.size();
-    if (n % 2 == 0) {
-        return (data[n / 2 - 1] + data[n / 2]) / 2.0;
-    } else {
-        return data[n / 2];
-    }
-}
 
-double compute_avg(std::vector<double>& data) {
-    if (data.empty()) return 0.0;
-    auto const count = static_cast<float>(data.size());
-    return std::reduce(data.begin(), data.end()) / count;
-}
-
-// Function to shrink a rotated rect
-cv::RotatedRect shrink_rotated_rect(const cv::RotatedRect& rect, float shorten_percentage) {
-    // Get the current size of the rectangle
-    cv::Size2f size = rect.size;
-
-    // Determine which side is the shortest and which is the longest
-    float short_side = std::min(size.width, size.height);
-    float long_side = std::max(size.width, size.height);
-
-    // Shorten the longest side by the given percentage
-    float new_long_side = long_side * (1.0f - shorten_percentage);
-
-    // Set the new size, keeping the shortest side unchanged
-    if (size.width > size.height) {
-        size.width = new_long_side;
-    } else {
-        size.height = new_long_side;
-    }
-
-    // Return a new rotated rect with the updated size
-    return cv::RotatedRect(rect.center, size, rect.angle);
-}
-
-// Function to extend a segment by a certain percentage of its length
-cv::Vec4f extend_segment(const cv::Vec4f& seg, float extension_ratio) {
-    cv::Point2f p1(seg[0], seg[1]), q1(seg[2], seg[3]);
-
-    // Compute direction vector of the segment
-    cv::Vec2f direction = cv::Vec2f(q1 - p1);
-    float length = getSegmentLength(seg);
-    
-    // Normalize the direction vector to unit length
-    cv::Vec2f direction_normalized = direction / length;
-
-    // Compute the extension length (25% of the segment length)
-    float extension_length = length * extension_ratio;
-
-    // Extend in both directions by converting to cv::Point2f for vector arithmetic
-    cv::Point2f extended_p1 = p1 - cv::Point2f(direction_normalized[0], direction_normalized[1]) * extension_length;
-    cv::Point2f extended_q1 = q1 + cv::Point2f(direction_normalized[0], direction_normalized[1]) * extension_length;
-
-    // Return the new extended segment
-    return cv::Vec4f(extended_p1.x, extended_p1.y, extended_q1.x, extended_q1.y);
-}
-
-// Function to move along the perpendicular direction from the right-most endpoint
-cv::RotatedRect build_rotatedrect_from_movement(const cv::Vec4f& segment, const std::vector<cv::Vec4f>& segments, cv::Mat image) {
+cv::RotatedRect buildRotateRectFromPerpendicular(const cv::Vec4f& segment, const std::vector<cv::Vec4f>& segments) {
     // Rightmost endpoint of the original segment
-    cv::Point2f right_endpoint(segment[2], segment[3]);
-    cv::Point2f left_endpoint(segment[0], segment[1]);
-    cv::Point2f midpoint = computeMidpoint(segment);
+    cv::Point2f rightEndpoint(segment[2], segment[3]);
+    cv::Point2f leftEndpoint(segment[0], segment[1]);
 
     // Compute the direction vector of the original segment
-    cv::Vec2f direction = cv::Vec2f(right_endpoint - left_endpoint);
-    float length = std::sqrt(direction[0] * direction[0] + direction[1] * direction[1]);
+    cv::Vec2f direction = cv::Vec2f(rightEndpoint - leftEndpoint);
+    double length = std::sqrt(direction[0] * direction[0] + direction[1] * direction[1]);
     length = getSegmentLength(segment);
+
     // Normalize the direction vector
     direction /= length;
 
@@ -544,63 +432,65 @@ cv::RotatedRect build_rotatedrect_from_movement(const cv::Vec4f& segment, const 
 
     cv::Point2f start;
     if(slope > 0) {
-        start = left_endpoint+cv::Point2f(direction[0]*length*0.6,direction[1]*length*0.6);
+        start = leftEndpoint + cv::Point2f(direction[0] * length * 0.6, direction[1] * length * 0.6);
     }
     else {
-        // eventualmente lasciare solo left_endpoint, non cambia nulla se rotatedrect per template verticali non viene scalato dopo il match
-        start = left_endpoint+cv::Point2f(direction[0]*length*0.25,direction[1]*length*0.25);
+        start = leftEndpoint + cv::Point2f(direction[0] * length * 0.25, direction[1] * length * 0.25);
     }
 
+    // 200 = max search lengt, 2.5 = searchlenght scale , 0.6 = positive slope scale, 0.25 = negative slope scale, 0.4 = extension scale
+    // 22.5 = lover bound distance, 15 = center shift for metrics
+
     // Find the perpendicular direction (rotate by 90 degrees)
-    cv::Vec2f perpendicular_direction(-direction[1], direction[0]);
-    double search_length = std::min(2.5*length, 200.0);
+    cv::Vec2f perpendicularDirection(-direction[1], direction[0]);
+    double searchLength = std::min(2.5 * length, 200.0);
 
     // Create the perpendicular segment from the rightmost endpoint
-    cv::Point2f perp_end = start + cv::Point2f(perpendicular_direction[0] * search_length, perpendicular_direction[1] * search_length);
+    cv::Point2f perpendicularFromRightmostEndpoint = start + cv::Point2f(perpendicularDirection[0] * searchLength, perpendicularDirection[1] * searchLength);
 
     // Initialize variables to store the closest intersection point
-    cv::Point2f closest_intersection;
-    float min_distance = std::numeric_limits<float>::max();
-    bool found_intersection = false;
-    cv::Vec4f closest_segment;
+    cv::Point2f closestIntersection;
+    double minDistance = std::numeric_limits<double>::max();
+    bool foundIntersection = false;
+    cv::Vec4f closestSegment;
 
     // Check intersection of the perpendicular segment with every other segment
-    for (const auto& other_segment : segments) {
+    for (const cv::Vec4f& otherSegment : segments) {
         cv::Point2f intersection;
-        cv::Vec4f perp_vect = cv::Vec4f(start.x, start.y, perp_end.x, perp_end.y);
-        cv::Vec4f extended_seg1 = extend_segment(other_segment, 0.4f);
-        if (other_segment != segment && segmentsIntersect(extended_seg1, perp_vect, intersection)) {
+        cv::Vec4f perp_vect = cv::Vec4f(start.x, start.y, perpendicularFromRightmostEndpoint.x, perpendicularFromRightmostEndpoint.y);
+        cv::Vec4f extended_seg1 = extendSegment(otherSegment, 0.4f);
+        if (otherSegment != segment && segmentsIntersect(extended_seg1, perp_vect, intersection)) {
 
             float dist = cv::norm(start-intersection);
             // last conditions to ensure that close segments of another parking slot line does not interfere
-            if (dist > 22.5 && dist < min_distance) { // last conditions to ensure that close segments of another parking slot line does not interfere) { 
-                min_distance = dist;
-                closest_intersection = intersection;
-                found_intersection = true;
-                closest_segment = other_segment;
+            if (dist > 22.5 && dist < minDistance) { // last conditions to ensure that close segments of another parking slot line does not interfere) { 
+                minDistance = dist;
+                closestIntersection = intersection;
+                foundIntersection = true;
+                closestSegment = otherSegment;
                 
             }
         }
     }
 
     // If an intersection is found, use it to build the rotated rect
-    if (found_intersection) {
+    if (foundIntersection) {
         // Get the two endpoints of the second segment
-        cv::Point2f endpoint1(closest_segment[0], closest_segment[1]);
-        cv::Point2f endpoint2(closest_segment[2], closest_segment[3]);
+        cv::Point2f endpoint1(closestSegment[0], closestSegment[1]);
+        cv::Point2f endpoint2(closestSegment[2], closestSegment[3]);
 
-        double length_other = getSegmentLength(closest_segment);
+        double length_other = getSegmentLength(closestSegment);
         cv::Point2f destination_right(endpoint2.x, endpoint2.x*slope+intercept);
 
-        cv::Point2f destination_bottom = destination_right + cv::Point2f(perpendicular_direction[0] * min_distance, perpendicular_direction[1] * min_distance);
+        cv::Point2f destination_bottom = destination_right + cv::Point2f(perpendicularDirection[0] * minDistance, perpendicularDirection[1] * minDistance);
         cv::RotatedRect bounding_box;
         if(slope>0) {
-            bounding_box = cv::RotatedRect(left_endpoint,destination_right,destination_bottom);        
+            bounding_box = cv::RotatedRect(leftEndpoint,destination_right,destination_bottom);        
             } 
         else {
             cv::Point2f destination_left((endpoint1.y-intercept)/slope,endpoint1.y);
-            cv::Point2f destination_up = destination_left + cv::Point2f(perpendicular_direction[0]*min_distance, perpendicular_direction[1] * min_distance);
-            bounding_box = cv::RotatedRect(right_endpoint,destination_left,destination_up);
+            cv::Point2f destination_up = destination_left + cv::Point2f(perpendicularDirection[0]*minDistance, perpendicularDirection[1] * minDistance);
+            bounding_box = cv::RotatedRect(rightEndpoint,destination_left,destination_up);
         }
         
         cv::Point2f vertices[4];
@@ -613,18 +503,4 @@ cv::RotatedRect build_rotatedrect_from_movement(const cv::Vec4f& segment, const 
 
     // If no intersection is found, return a default (empty) rotated rect
     return cv::RotatedRect();
-}
-
-// Main function to process segments
-std::vector<cv::RotatedRect> process_segments(const std::vector<cv::Vec4f>& segments, cv::Mat image) {
-    std::vector<cv::RotatedRect> rotated_rects;
-
-    // Iterate over each segment
-    for (const auto& segment : segments) {
-        // Process each segment and build the rotated rectangle
-        cv::RotatedRect rotated_rect = build_rotatedrect_from_movement(segment, segments, image);
-        rotated_rects.push_back(rotated_rect);
-    }
-
-    return rotated_rects;
 }
