@@ -158,37 +158,38 @@ void detectParkingSpotInImage(const cv::Mat& image, std::vector<ParkingSpot>& pa
         }
     }
 
-    std::vector filtered_rects = filterBySurrounding(negativeRotatedRects, positiveRotatedRects, image);
+    std::vector filteredRects = filterBySurrounding(negativeRotatedRects, positiveRotatedRects, image);
     std::vector<double> areas;
-    double median_area;
+    double medianArea;
 
-    for (const auto& rect : positiveRotatedRects) {
-        if(rect.size.area()<1) continue;
+    for (const cv::RotatedRect& rect : positiveRotatedRects) {
+        if(rect.size.area() < MIN_AREA) continue;
         areas.push_back(rect.size.area());
     }
-    median_area = computeMedian(areas);
+
+    medianArea = computeMedian(areas);
     areas.clear();
 
-    std::vector<cv::RotatedRect> remove_big_small_pos;
+    std::vector<cv::RotatedRect> removeBigAndSmallPositive;
     std::vector<cv::RotatedRect> allRectsFound;
 
-    for (const auto& rect : positiveRotatedRects) {
-        if(rect.size.area()>median_area/4 && rect.size.area()<median_area*2.25) {
-            remove_big_small_pos.push_back(rect);
+    for (const cv::RotatedRect& rect : positiveRotatedRects) {
+        if(rect.size.area() > medianArea / 4 && rect.size.area() < medianArea * 2.25) {
+            removeBigAndSmallPositive.push_back(rect);
         }
     }
 
-    for (const auto& rect : filtered_rects) {
-        if(rect.size.area()<1) continue;
+    for (const cv::RotatedRect& rect : filteredRects) {
+        if(rect.size.area() < MIN_AREA) continue;
         areas.push_back(rect.size.area());
     }
 
-    std::vector<cv::RotatedRect> remove_big_small_2;
-    median_area = computeMedian(areas);
+    std::vector<cv::RotatedRect> removeBigAndSmallNegative;
+    medianArea = computeMedian(areas);
 
-    for (const auto& rect : filtered_rects) {
-        if(rect.size.area()>median_area/4 && rect.size.area()<median_area*2.25) {
-            remove_big_small_2.push_back(rect);
+    for (const auto& rect : filteredRects) {
+        if(rect.size.area() > medianArea / 4 && rect.size.area() < medianArea * 2.25) {
+            removeBigAndSmallNegative.push_back(rect);
             allRectsFound.push_back(rect);
         }
     }
@@ -197,21 +198,21 @@ void detectParkingSpotInImage(const cv::Mat& image, std::vector<ParkingSpot>& pa
     float shift_amount = 5.0;
 
     // Resolve overlaps between vector1 and vector2
-    resolve_overlaps(remove_big_small_2, remove_big_small_pos, shift_amount);
+    resolve_overlaps(removeBigAndSmallNegative, removeBigAndSmallPositive, shift_amount);
 
     // re-do nms after overlaps are resolved
     std::vector<cv::RotatedRect> elementsToRemove3;
-    nonMaximumSuppression(remove_big_small_pos, elementsToRemove3, 0.5,false);
+    nonMaximumSuppression(removeBigAndSmallPositive, elementsToRemove3, 0.5,false);
 
     // Remove the elements determined by NMS filtering
     for (cv::RotatedRect element : elementsToRemove3) {
-        std::vector<cv::RotatedRect>::const_iterator iterator = elementIterator(remove_big_small_pos, element);
-        if (iterator != remove_big_small_pos.cend()) {
-            remove_big_small_pos.erase(iterator);
+        std::vector<cv::RotatedRect>::const_iterator iterator = elementIterator(removeBigAndSmallPositive, element);
+        if (iterator != removeBigAndSmallPositive.cend()) {
+            removeBigAndSmallPositive.erase(iterator);
         }
     }
 
-    for (const auto& rect : remove_big_small_pos) {
+    for (const auto& rect : removeBigAndSmallPositive) {
         if(rect.size.area()>1) { // the if is needed because removing with the iterator produces rects with zero area
             allRectsFound.push_back(rect);
         }
