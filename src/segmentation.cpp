@@ -1,5 +1,8 @@
 #include "segmentation.hpp"
 
+#include <opencv2/opencv.hpp>
+#include <opencv2/bgsegm.hpp>
+
 /**
  * Constructor for the Segmentation class.
  * Initializes a background subtractor (MOG2) with a specified history length, variance threshold, and shade detection setting.
@@ -8,7 +11,7 @@
  * @param backgroundImages A vector of cv::Mat objects representing the background images used to initialize the background subtractor.
  */
 Segmentation::Segmentation(const std::vector<cv::Mat> &backgroundImages) {
-    pBackSub = cv::createBackgroundSubtractorMOG2(HISTORY_DEFAULT_VALUE, VAR_THRESHOLD, SHADES_DETECTION);
+    pBackSub = cv::bgsegm::createBackgroundSubtractorGMG();
     
     cv::Mat mask;
     for(int i = 0; i < backgroundImages.size(); i++) {
