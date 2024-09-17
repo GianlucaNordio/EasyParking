@@ -85,7 +85,7 @@ void multiRotationTemplateMatching(const cv::Mat& image, double avgWidth, double
 
         int template_width = avgWidth * scaleTemplate;
         int template_height = 4;
-        double angle = - avgAngle + angleOffsets[k];
+        double angle = (isAnglePositive ? - avgAngle : avgAngle) + angleOffsets[k];
 
         std::vector<cv::Mat> rotated_template_and_mask = generateTemplate(template_width, angle, !isAnglePositive);
         cv::Mat rotated_template = rotated_template_and_mask[0];
@@ -113,8 +113,7 @@ void multiRotationTemplateMatching(const cv::Mat& image, double avgWidth, double
             cv::Point center;
             center.x = pt.x + rotated_template.cols / 2;
             center.y = pt.y + rotated_template.rows / 2;
-                //*1.25 = boundingbox scale
-            cv::RotatedRect rotated_rect(center, cv::Size(template_width * scaleRect, template_height * scaleRect), -angle);
+            cv::RotatedRect rotated_rect(center, cv::Size(template_width * scaleRect, template_height * scaleRect), (isAnglePositive?-angle : angle));
             
             // Check overlap with existing rects in list_boxes2
             bool overlaps = false;
