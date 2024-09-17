@@ -181,6 +181,11 @@ const double MAX_SEARCH_LENGTH = 200.0;
 const double MIN_AREA = 1;
 
 /**
+ * @brief Template height value.
+ */
+const double TEMPLATE_HEIGHT = 10;
+
+/**
  * @brief Constant used to tell the model to not update its model of the background.
  *        This constant is used by the backgroundSubtraction when performing the prediction 
  *        on an image containing things that are not the background.

@@ -24,12 +24,11 @@ std::vector<cv::Mat> generateTemplate(double width, double angle, bool flipped){
     double rotatedWidth;
     double rotatedHeight;
 
-    double height = 10;
     width += TEMPLATE_BLACK_MARGIN; // We add 4 as black margin
 
     // Rotate the template
     if(!flipped) {
-        templateHeight = height;
+        templateHeight = TEMPLATE_HEIGHT;
         templateWidth = width;
         rotationAngle = angle; // negative rotationAngle for not flipped (angle is negative)
         rotatedWidth = templateWidth*cos(-rotationAngle*CV_PI/180)+templateHeight;
@@ -38,7 +37,7 @@ std::vector<cv::Mat> generateTemplate(double width, double angle, bool flipped){
 
     if(flipped) {
         templateHeight = width;
-        templateWidth = height;
+        templateWidth = TEMPLATE_HEIGHT;
         rotationAngle = -90-angle; // negative rotationAngle for flipped (angle is negative)
         rotatedWidth = templateHeight*cos(-angle*CV_PI/180)+templateWidth;
         rotatedHeight = templateHeight;
@@ -54,7 +53,7 @@ std::vector<cv::Mat> generateTemplate(double width, double angle, bool flipped){
     // This is done to not match with random patches of white pixels
     for(int i = 0; i< horizontalTemplate.rows; i++) {
         for(int j = 0; j<horizontalTemplate.cols; j++) {
-            if((!flipped ? i>2 && i < height-2 : j>2&&j<height-2) && (!flipped ? j>2 && j < width-2 : j>2&&j<width-2)) {
+            if((!flipped ? i > 2 && i < TEMPLATE_HEIGHT - 2 : j > 2 && j < TEMPLATE_HEIGHT - 2) && (!flipped ? j > 2 && j < width - 2 : j > 2 && j < width - 2)) {
             horizontalTemplate.at<uchar>(i,j) = TEMPLATE_LINE_VALUE;
             horizontalMask.at<uchar>(i,j) = MASK_LINE_VALUE_HIGH;
             }
@@ -78,6 +77,33 @@ std::vector<cv::Mat> generateTemplate(double width, double angle, bool flipped){
     return std::vector<cv::Mat>{rotatedTemplate,rotatedMask};
 }
 
+/**
+ * @brief Performs multi-rotation template matching on an input image to detect objects at various angles and scales.
+ *
+ * This function applies template matching with multiple rotated templates on the input image. The templates are
+ * generated based on the provided average width, angle, and scaling factors. For each rotation, local minima 
+ * (best match locations) are found, and corresponding rotated rectangles (detections) are created. 
+ * The function handles overlapping detections by only keeping the one with the better match score.
+ *
+ * @param image The input image in which to perform template matching.
+ * @param avgWidth The average width of the object to match, used as a base to calculate template size.
+ * @param avgAngle The average angle of the object, used as a base to generate rotated templates.
+ * @param templateHeight The height of the template used for matching.
+ * @param scaleTemplate Scaling factor for the template size.
+ * @param scaleRect Scaling factor for the resulting bounding box (rotated rectangle) size.
+ * @param threshold Threshold to filter out poor matches (local minima with a match score above this value are ignored).
+ * @param angleOffsets Vector of offsets to apply to the average angle for generating rotated templates.
+ * @param rects A reference to a vector of `cv::RotatedRect` objects, where the detected bounding boxes are stored.
+ * @param isAnglePositive A boolean indicating whether to rotate the templates in the positive or negative direction.
+ *
+ * The function does the following:
+ * - Generates rotated templates and corresponding masks based on input parameters.
+ * - Performs template matching using `cv::matchTemplate` with squared difference as the metric.
+ * - Normalizes the template matching result and identifies local minima (best match points).
+ * - For each local minimum, a rotated bounding box (rectangle) is created.
+ * - If the bounding box does not overlap with any existing detections, it is added to the output.
+ * - If the bounding box overlaps with existing ones, only the detection with the better score (smaller squared difference) is kept.
+ */
 void multiRotationTemplateMatching(const cv::Mat& image, double avgWidth, double avgAngle, double templateHeight, double scaleTemplate, double scaleRect, double threshold, std::vector<int> angleOffsets, std::vector<cv::RotatedRect>& rects, bool isAnglePositive){
     std::vector<double> rectScores(rects.size(), -1); // Initialize scores with -1 for non-existing rects
 
